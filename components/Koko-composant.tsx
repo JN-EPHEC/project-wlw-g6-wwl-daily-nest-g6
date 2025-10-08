@@ -1,12 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 
-const lol = () => {
+export default function Coucou () {
+    return (
     <View style={StyleSheet.card}>
-    <Text style={StyleSheet.title}>
-        Coucou les copaing
-    </Text>
-</View>
-
+        <Text style={StyleSheet.title}>
+            Coucou les copaing
+        </Text>
+    </View>
+    );
 } ;
 
 const styles = StyleSheet.create ({
@@ -21,7 +22,6 @@ card: {
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 3, 
     },
 
 title: {
@@ -35,4 +35,4 @@ title: {
 );
 
 //j'ajoute un commentaire
-export default lol 
+export default Coucou 
