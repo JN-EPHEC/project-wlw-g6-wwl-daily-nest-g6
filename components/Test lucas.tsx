@@ -6,7 +6,7 @@ export default function BonjourNoel() {
             <Text style={styles.text}>Bonjour Mr Noël</Text>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -17,8 +17,11 @@ const styles = StyleSheet.create({
     },
     text:{
         fontFamily: "gliker",
-        fontSize: "25px",
         textAlign: "center",
         color: "#AAA",
-    }
-});
+    },
+}
+
+);
+
+export default BonjourNoel
