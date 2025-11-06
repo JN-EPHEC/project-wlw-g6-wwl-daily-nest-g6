@@ -1,10 +1,10 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-export default function MonProfil() {
+export default function MonProfile() {
   return (
     <View>
-      <Text>Paramètres</Text>
+      <Text>Mon Profil</Text>
     </View>
   );
 }

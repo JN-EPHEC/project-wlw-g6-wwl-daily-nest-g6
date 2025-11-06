@@ -8,7 +8,7 @@ import Carnetfamiliale from "./Carnetfamiliale";
 import Déconnexion from "./Déconnexion";
 import Invitation from "./Invitation";
 import ListeCourse from "./ListeCourse";
-import MonProfil from "./MonProfil";
+import MonProfile from "./MonProfile";
 import Paramètres from "./Paramètres";
 
 
@@ -34,8 +34,8 @@ export default function DrawerNav() {
       <Drawer.Screen name="Carnetfamiliale" component={Carnetfamiliale} />
       <Drawer.Screen name="ListeCourse" component={ListeCourse} />
       <Drawer.Screen name="Budget" component={Budget} />
-      <Drawer.Screen name="Invitation" component={Invitation} />
-      <Drawer.Screen name="MonProfil" component={MonProfil} />
+   <Drawer.Screen name="Invitation" component={Invitation} />
+   <Drawer.Screen name="MonProfil" component={MonProfile} />
       <Drawer.Screen name="Paramètres" component={Paramètres} />
       <Drawer.Screen name="Avantages" component={Avantages} />
       <Drawer.Screen name="Déconnexion" component={Déconnexion} />
