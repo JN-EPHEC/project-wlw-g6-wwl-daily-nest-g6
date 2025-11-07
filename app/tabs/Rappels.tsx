@@ -1,11 +1,11 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function Budget() {
+export default function Rappels() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Budget 💰</Text>
-      <Text>Gère ton budget familial ici.</Text>
+      <Text style={styles.title}>Rappels 📅</Text>
+      <Text>Voici tes rappels quotidiens.</Text>
     </View>
   );
 }
