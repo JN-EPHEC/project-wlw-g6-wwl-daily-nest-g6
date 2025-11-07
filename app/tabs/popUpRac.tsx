@@ -1,10 +1,10 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-export default function Déconnexion() {
+export default function popUpRac () {
   return (
     <View>
-      <Text>Déconnextion</Text>
+      <Text>Acceuil</Text>
     </View>
   );
 }
