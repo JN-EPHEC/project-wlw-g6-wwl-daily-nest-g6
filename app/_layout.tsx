@@ -49,10 +49,10 @@ export default function DrawerNav() {
         options={{title:"Profil" }}/>  
 
       <Drawer.Screen name="Avantages" component={Avantages}
-        options={{title:"Avanatges" }}/>  
+        options={{title:"Avantages" }}/>  
       
       <Drawer.Screen name="Deconnexion" component={Deconnexion}
-        options={{title:"Avanatges" }}/>
+        options={{title:"Déconnexion" }}/>
     </Drawer.Navigator>
   );
 }
