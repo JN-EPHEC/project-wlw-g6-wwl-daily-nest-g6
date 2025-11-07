@@ -9,12 +9,14 @@ import popUpRac from "./popUpRac";
 
 
 
+
 export type TabMenuParamList = {
   Rappels: undefined;
   ToDo: undefined;
   Recompense: undefined;
   chat: undefined;
   popUpRac: undefined;
+ 
 };
 
 const Tab = createBottomTabNavigator<TabMenuParamList>();

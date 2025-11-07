@@ -27,7 +27,7 @@ const Drawer = createDrawerNavigator<DrawerMenuParamList>();
 
 export default function DrawerNav() {
   return (
-  <Drawer.Navigator screenOptions={{headerShown: false, }}>
+  <Drawer.Navigator>
       <Drawer.Screen name="Accueil" component={Acceuil} options={{title: "Accueil"}}/>
 
       <Drawer.Screen name="Carnetfamiliale" component={Carnetfamiliale}
