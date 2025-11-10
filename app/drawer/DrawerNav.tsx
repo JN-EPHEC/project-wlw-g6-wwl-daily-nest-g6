@@ -1,14 +1,16 @@
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import React from "react";
-import Avantages from "./drawer/Avantages";
-import Budget from "./drawer/Budget";
-import Carnetfamiliale from "./drawer/Carnetfamiliale";
-import Deconnexion from "./drawer/Deconnexion";
-import Invitation from "./drawer/Invitation";
-import ListeCourse from "./drawer/ListeCourse";
-import Parametres from "./drawer/Parametres";
-import profil from "./drawer/profil";
-import Acceuil from "./tabs/_layout";
+import Avantages from "./Avantages";
+import Budget from "./Budget";
+import Carnetfamiliale from "./Carnetfamiliale";
+import Deconnexion from "./Deconnexion";
+import Invitation from "./Invitation";
+import ListeCourse from "./ListeCourse";
+import Parametres from "./Parametres";
+import profil from "./profil";
+import Acceuil from "./TabNav";
+
+
 
 export type DrawerMenuParamList = {
   Accueil: undefined;
@@ -48,10 +50,10 @@ export default function DrawerNav() {
         options={{title:"Parametres" }}/>  
 
       <Drawer.Screen name="Avantages" component={Avantages}
-        options={{title:"Avantages" }}/>  
+        options={{title:"Avantges" }}/>  
       
       <Drawer.Screen name="Deconnexion" component={Deconnexion}
-        options={{title:"Déconnexion" }}/>
+        options={{title:"Deconnexion" }}/>
     </Drawer.Navigator>
   );
 }

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 
 const TodoItem = () => {
@@ -6,18 +7,18 @@ const TodoItem = () => {
     return(
         <View style= {styles.item}>
             <Text style= {styles.title}>My To Do List</Text>
-            <Text style= {styles.text}>- Learn react native</Text>
-            <Text style= {styles.text}>- Build a static UI</Text>
-            <Text style= {styles.text}>- Practice with StyleSheet</Text>
-            <Text style= {styles.text}>- J'en ai marre</Text>
-            <Text style= {styles.text}>- J'ai envie de die</Text>
-            <Text style= {styles.text}>- J'ai mal à la tête</Text>
-             <Text style= {styles.text}>- J'ai faim</Text>
+            <Text style= {styles.title}>- Learn react native</Text>
+            <Text style= {styles.title}>- Build a static UI</Text>
+            <Text style= {styles.title}>- Practice with StyleSheet</Text>
+            <Text style= {styles.title}>- J'en ai marre</Text>
+            <Text style= {styles.title}>- J'ai envie de die</Text>
+            <Text style= {styles.title}>- J'ai mal à la tête</Text>
+             <Text style= {styles.title}>- J'ai faim</Text>
         </View>
     );
 };
 
-
+//aminé
 const styles = StyleSheet.create({
   container: {
     flex: 1,

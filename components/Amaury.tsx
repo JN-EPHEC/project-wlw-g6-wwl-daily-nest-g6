@@ -1,7 +1,8 @@
 
 import { Text } from 'react-native';
 
-function amaury(){
+function Amaury() {
     return <Text>Amaury</Text>;
 }
-export default amaury;
+
+export default Amaury;
