@@ -1,10 +1,12 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import { Redirect } from "expo-router";
+import { signOut } from "firebase/auth";
+import { useEffect } from "react";
+import { auth } from "../../firebaseConfig";
 
 export default function Deconnexion() {
-  return (
-    <View>
-      <Text>Déconnextion</Text>
-    </View>
-  );
+  useEffect(() => {
+    signOut(auth);
+  }, []);
+
+  return <Redirect href="/auth" />;
 }
