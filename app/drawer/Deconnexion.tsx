@@ -1,12 +1,21 @@
-import { Redirect } from "expo-router";
+import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
-import { useEffect } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebaseConfig";
 
-export default function Deconnexion() {
-  useEffect(() => {
-    signOut(auth);
-  }, []);
+export default function Deconnexion () {
 
-  return <Redirect href="/auth" />;
+    const router = useRouter();
+
+    const handleSignOut = async () => {
+      await signOut(auth);
+      router.replace("/auth");
+}
+return(
+  <View>
+    <TouchableOpacity onPress={handleSignOut}>
+      <Text>Se deconnecter</Text>
+    </TouchableOpacity>
+  </View>
+)
 }

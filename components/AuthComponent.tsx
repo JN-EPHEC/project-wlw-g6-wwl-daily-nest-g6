@@ -1,15 +1,15 @@
+import { useRouter } from "expo-router";
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signOut,
-  User,
+  User
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
 import { auth } from "../firebaseConfig"; // Import de notre config
 
-const AuthComponent = () => {
+export default function AuthComponent () {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState<User | null>(null); // Pour suivre l'utilisateur connecté
@@ -17,69 +17,29 @@ const AuthComponent = () => {
   // Écoute les changements d'état de l'authentification
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       if (currentUser) {
         // L'utilisateur est connecté
-        setUser(currentUser);
-      } else {
-        // L'utilisateur est déconnecté
-        setUser(null);
+        router.replace("./drawer/Acceuil");
       }
     });
-
     // Cleanup à la désinscription
     return () => unsubscribe();
   }, []);
 
-  // Fonction d'inscription
-  const handleSignUp = async () => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("Utilisateur créé !", userCredential.user);
-    } catch (error: any) {
-      Alert.alert("Erreur Inscription", error.message);
-    }
-  };
-
-  // Fonction de connexion
+  // Fonction de connnexion
   const handleSignIn = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
+      await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-      console.log("Utilisateur connecté !", userCredential.user);
     } catch (error: any) {
       Alert.alert("Erreur Connexion", error.message);
     }
   };
 
-  // Fonction de déconnexion
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      console.log("Utilisateur déconnecté !");
-  // After sign out, the auth state listener will handle UI changes
-    } catch (error: any) {
-      Alert.alert("Erreur Déconnexion", error.message);
-    }
-  };
-
-  if (user) {
-    // Si l'utilisateur est connecté
-    return (
-      <View style={styles.container}>
-        <Text>Bienvenue, {user.email}</Text>
-        <Button title="Se déconnecter" onPress={handleSignOut} />
-      </View>
-    );
-  }
-
-  // Si l'utilisateur n'est pas connecté
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Authentification</Text>
@@ -99,12 +59,11 @@ const AuthComponent = () => {
       />
       <View style={styles.buttonContainer}>
         <Button title="Se connecter" onPress={handleSignIn} />
-        <Button title="S'inscrire" onPress={handleSignUp} color="#841584" />
+        <Button title="S'inscrire" onPress={() => router.push("/Inscription")}/>
       </View>
     </View>
   );
-};
-
+}
 // Styles (simplifiés)
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20 },
@@ -127,5 +86,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
-
-export default AuthComponent;
