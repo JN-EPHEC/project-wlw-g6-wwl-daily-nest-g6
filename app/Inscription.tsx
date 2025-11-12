@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-    createUserWithEmailAndPassword,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";

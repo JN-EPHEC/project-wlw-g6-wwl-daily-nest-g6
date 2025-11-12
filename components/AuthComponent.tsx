@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signOut,
   User
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
