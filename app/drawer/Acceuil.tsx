@@ -1,12 +1,10 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
-
 import Rappels from "../tabs/Rappels";
 import Recompense from "../tabs/Recompense";
 import ToDo from "../tabs/ToDo";
 import chat from "../tabs/chat";
 import popUpRac from "../tabs/popUpRac";
-
 export type TabMenuParamList = {
   Rappels: undefined;
   ToDo: undefined;
