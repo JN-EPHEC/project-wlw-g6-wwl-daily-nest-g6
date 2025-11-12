@@ -5,44 +5,47 @@ import {
   User
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { auth } from "../firebaseConfig"; // Import de notre config
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { auth } from "../firebaseConfig";
 
-export default function AuthComponent () {
+export default function AuthComponent() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [user, setUser] = useState<User | null>(null); // Pour suivre l'utilisateur connecté
+  const [user, setUser] = useState<User | null>(null);
 
-  // Écoute les changements d'état de l'authentification
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // L'utilisateur est connecté
-        router.replace("./drawer/Acceuil");
+        router.replace("/drawer/Acceuil");
       }
     });
-    // Cleanup à la désinscription
+    
     return () => unsubscribe();
   }, []);
 
-  // Fonction de connnexion
   const handleSignIn = async () => {
     try {
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       Alert.alert("Erreur Connexion", error.message);
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      Alert.alert("Déconnecté !");
+    } catch (error: any) {
+      Alert.alert("Erreur Déconnexion", error.message);
+    }
+  };
+
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Authentification</Text>
+      <Text style={styles.title}>Bienvenu sur Daily Nest !</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -58,31 +61,22 @@ export default function AuthComponent () {
         secureTextEntry
       />
       <View style={styles.buttonContainer}>
-        <Button title="Se connecter" onPress={handleSignIn} />
-        <Button title="S'inscrire" onPress={() => router.push("/Inscription")}/>
+        <TouchableOpacity onPress={handleSignIn} style={styles.signUpButton}>
+          <Text style={styles.signUpText}>Se connecter</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/Inscription")} style={styles.signUpButton}>
+          <Text style={styles.signUpText}>S'inscrire</Text>
+          </TouchableOpacity> 
       </View>
     </View>
   );
 }
-// Styles (simplifiés)
+
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+  input: { height: 40, borderColor: "gray", borderWidth: 1, marginBottom: 10, paddingHorizontal: 10 },
+  buttonContainer: { flexDirection: "row", justifyContent: "space-around", marginTop: 20, alignItems: "center" },
+  signUpText: { color: "white", fontWeight: "bold" },
+  signUpButton: { backgroundColor: "#00b7ff9a", padding: 10, borderRadius: 5 },
 });
