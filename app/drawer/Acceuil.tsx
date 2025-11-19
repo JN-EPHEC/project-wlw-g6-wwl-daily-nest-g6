@@ -6,8 +6,6 @@ import {
 import React, { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from "../firebaseConfig";
-
-
 export default function SignUp() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -23,14 +21,12 @@ export default function SignUp() {
   const [passwordError, setPasswordError] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [lastNameError, setLastNameError] = useState(false);
-
   const handleSignUp = async () => {
      setErrorMessage("");
     setEmailError(false);
     setPasswordError(false);
     setNameError(false);
     setLastNameError(false);
-
     let hasError = false;
     if (!email.trim ()) {
       setEmailError(true);
@@ -40,7 +36,6 @@ export default function SignUp() {
       setPasswordError(true);
       hasError = true;
     } 
-
     if (!firstName.trim()) {
       setNameError(true);
       hasError = true;  
@@ -50,7 +45,6 @@ export default function SignUp() {
       hasError = true;  
     }
      if (hasError) return;
-
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
@@ -70,28 +64,18 @@ export default function SignUp() {
     } finally {
       setLoading(false);
     }
-
   };
-
   const handleCloseModal = () => {
     setShowWelcome(false);
     router.replace("/drawer/Acceuil");
   }
- 
-
-
   return (
-
     <View style={{ flex: 1, padding: 20 }}>
       <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 20 }}>
         <Ionicons name="arrow-back" size={24} color="#00b7ff9a" />
       </TouchableOpacity>
-
-
     <View style={styles.container}>
       <Text style={styles.title}>Création de compte</Text>
-
-
     <TextInput
    style= {[styles.input, nameError && { borderColor: "red" }]}
     placeholder="Prénom*"
@@ -116,7 +100,6 @@ export default function SignUp() {
    {lastNameError && (
   <Text style={styles.fieldError}>Cette case doit être remplie</Text>
 )}
-
     <TextInput
     style={[styles.input, emailError && { borderColor: "red" }]}
     placeholder="Email*"
@@ -130,7 +113,6 @@ export default function SignUp() {
   {emailError && (
   <Text style={styles.fieldError}>Cette case doit être remplie</Text>
   )}
-    
     <TextInput
         style= {[ styles.input, passwordError && { borderColor: "red" }]}
         placeholder="Mot de passe*"
@@ -144,8 +126,6 @@ export default function SignUp() {
       {passwordError && (
         <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères</Text>
       )}
-
-
      <TextInput
   style={styles.input}
   placeholder="Date de naissance (JJ/MM/AAAA)"
@@ -153,23 +133,16 @@ export default function SignUp() {
   keyboardType="numeric"
   maxLength={10} 
   onChangeText={(text) => {
-    
     const digits = text.replace(/\D/g, "");
-
     let formatted = digits;
-
     if (digits.length > 2 && digits.length <= 4) {
-      
       formatted = digits.slice(0,2) + "/" + digits.slice(2);
     } else if (digits.length > 4) {
-      
       formatted = digits.slice(0,2) + "/" + digits.slice(2,4) + "/" + digits.slice(4,8);
     }
-
     setBirthDate(formatted);
   }}
 />
-
       <View style={{ alignItems: "center", marginTop: 20 }}>
       <TouchableOpacity
   onPress={handleSignUp}
@@ -179,13 +152,11 @@ export default function SignUp() {
   <Text style={styles.signUpText}>S'inscrire</Text>
 </TouchableOpacity>
       </View>
-
       <View style={{ alignItems: "center", marginTop: 10 }}>
        <TouchableOpacity onPress={() => router.push("/auth")}>
        <Text style={{ color: "navy", textDecorationLine: "underline", fontSize: 12 }}>Vous avez déja un compte ?</Text>
        </TouchableOpacity>
     </View>
-      
       <Modal visible={showWelcome} transparent animationType="slide">
         <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -198,15 +169,11 @@ export default function SignUp() {
       </Modal>
     </ View> 
     </View>
-    
-    
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20, borderRadius: 20 },
   title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20, borderRadius: 20 },
-  
   input: {
   height: 40,
   borderColor: "gray",
@@ -229,14 +196,12 @@ modalContent: {
   borderRadius: 10,
   alignItems: "center",
 },
-
   modalText: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
   closeButton: {
     marginTop: 10,
     padding: 5,
   },
   closeText: { fontSize: 18, fontWeight: "bold" },
-
   signUpButton: {
   backgroundColor: "#00b7ff9a",      
   paddingVertical: 10,          
@@ -261,6 +226,5 @@ signUpText: {
     color: "red",
     textAlign: "center",
     marginBottom: 10,
-    
   },
 });
