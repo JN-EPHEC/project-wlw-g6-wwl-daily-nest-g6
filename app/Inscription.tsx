@@ -250,17 +250,4 @@ signUpText: {
   fontSize: 16,
   fontWeight: "bold",
 },
- fieldError: {
-    color: "red",
-    marginTop: -5,
-    marginBottom: 8,
-    textAlign: "left",
-    fontSize: 13,
-  },
-   error: {
-    color: "red",
-    textAlign: "center",
-    marginBottom: 10,
-    
-  },
 });
