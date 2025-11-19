@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-    createUserWithEmailAndPassword,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from "../firebaseConfig";
 
 
@@ -13,27 +13,71 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-   const [birthDate, setBirthDate] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [errorMessage, setErrorMessage] = useState ("");
+  const [loading, setLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [passwordError, setPasswordError] = useState(false);
+  const [nameError, setNameError] = useState(false);
+  const [lastNameError, setLastNameError] = useState(false);
 
   const handleSignUp = async () => {
-    console.log("Bouton cliqué !");
-  Alert.alert("Test", "Bouton fonctionne");
+     setErrorMessage("");
+    setEmailError(false);
+    setPasswordError(false);
+    setNameError(false);
+    setLastNameError(false);
 
+    let hasError = false;
+    if (!email.trim ()) {
+      setEmailError(true);
+      hasError = true;
+    }
+    if (password.length < 6) {
+      setPasswordError(true);
+      hasError = true;
+    } 
+
+    if (!firstName.trim()) {
+      setNameError(true);
+      hasError = true;  
+    }
+    if (!lastName.trim()) {
+      setLastNameError(true);
+      hasError = true;  
+    }
+     if (hasError) return;
+
+    setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       setShowWelcome(true);
     } catch (error: any) {
-      Alert.alert("Erreur Inscription", error.message);
+      if (
+        error.code == 'auth/invalid-email'
+      ) {
+        setErrorMessage("Email ou mot de passe incorrect");
+      } else if (
+        error.code == 'auth/email-already-in-use'
+      ) {
+        setErrorMessage("Cet email est déjà utilisé");
+      } else {
+        setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
+      } 
+    } finally {
+      setLoading(false);
     }
+
   };
 
   const handleCloseModal = () => {
     setShowWelcome(false);
     router.replace("/drawer/Acceuil");
   }
-  const isFormValid = firstName && lastName && email && password.length >= 6;
+ 
 
 
   return (
@@ -43,37 +87,63 @@ export default function SignUp() {
         <Ionicons name="arrow-back" size={24} color="#00b7ff9a" />
       </TouchableOpacity>
 
+
     <View style={styles.container}>
       <Text style={styles.title}>Création de compte</Text>
 
-    <TextInput
-    style={styles.input}
-    placeholder="Prénom"
-    value={firstName}
-    onChangeText={setFirstName}
-    />
-    <TextInput
-    style={styles.input}
-    placeholder="Nom"
-    value={lastName}
-    onChangeText={setLastName}
-    />
 
     <TextInput
-    style={styles.input}
-    placeholder="Email"
+   style= {[styles.input, nameError && { borderColor: "red" }]}
+    placeholder="Prénom*"
+    value={firstName}
+    onChangeText={(text) => {
+    setFirstName(text); 
+    setNameError(false);
+    }}
+    />
+    {nameError && (
+    <Text style={styles.fieldError}>Cette case doit être remplie</Text>
+    )}
+    <TextInput
+    style={[styles.input, lastNameError && { borderColor: "red" }]}
+    placeholder="Nom*"
+    value={lastName}
+    onChangeText={(text) => {
+    setLastName(text); 
+    setLastNameError(false);
+    }}
+    />
+   {lastNameError && (
+  <Text style={styles.fieldError}>Cette case doit être remplie</Text>
+)}
+
+    <TextInput
+    style={[styles.input, emailError && { borderColor: "red" }]}
+    placeholder="Email*"
     value={email}
-    onChangeText={setEmail}
+    onChangeText={(text) => {
+    setEmail(text); 
+    setEmailError(false);
+    }}
     autoCapitalize="none"
     />
+  {emailError && (
+  <Text style={styles.fieldError}>Cette case doit être remplie</Text>
+  )}
     
     <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
+        style= {[ styles.input, passwordError && { borderColor: "red" }]}
+        placeholder="Mot de passe*"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text); 
+          setPasswordError(false);
+        }}
         secureTextEntry={true}
       />
+      {passwordError && (
+        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères</Text>
+      )}
 
 
      <TextInput
@@ -103,11 +173,8 @@ export default function SignUp() {
       <View style={{ alignItems: "center", marginTop: 20 }}>
       <TouchableOpacity
   onPress={handleSignUp}
-  style={[
-    styles.signUpButton,
-    { opacity: isFormValid ? 1 : 0.5 } 
-  ]}
-  disabled={!isFormValid} 
+  style={styles.signUpButton}
+  disabled={loading}
 >
   <Text style={styles.signUpText}>S'inscrire</Text>
 </TouchableOpacity>
@@ -137,10 +204,19 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  input: { height: 40, borderColor: "gray", borderWidth: 1, marginBottom : 10, paddingHorizontal: 10 },
-
+  container: { flex: 1, justifyContent: "center", padding: 20, borderRadius: 20 },
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20, borderRadius: 20 },
+  
+  input: {
+  height: 40,
+  borderColor: "gray",
+  borderWidth: 1,
+  marginBottom: 10,
+  paddingHorizontal: 10,
+  fontStyle: "italic", 
+  color: "rgba(100, 100, 100, 0.7)", 
+  borderRadius: 15
+},
   modalContainer: {
   flex: 1,
   justifyContent: "center",
@@ -174,4 +250,17 @@ signUpText: {
   fontSize: 16,
   fontWeight: "bold",
 },
+ fieldError: {
+    color: "red",
+    marginTop: -5,
+    marginBottom: 8,
+    textAlign: "left",
+    fontSize: 13,
+  },
+   error: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 10,
+    
+  },
 });
