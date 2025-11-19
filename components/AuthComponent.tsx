@@ -7,7 +7,8 @@ import {
   onAuthStateChanged,
   signInWithCredential,
   signInWithEmailAndPassword,
-  User
+  signInWithPopup,
+  User,
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -195,4 +196,17 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: "row", justifyContent: "space-around", marginTop: 20, alignItems: "center"},
   signUpText: { color: "white", fontWeight: "bold" },
   signUpButton: { backgroundColor: "#00b7ff9a", padding: 10, borderRadius: 5 },
+  error: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 10,
+    
+  },
+  fieldError: {
+    color: "red",
+    marginTop: -5,
+    marginBottom: 8,
+    textAlign: "left",
+    fontSize: 13,
+  },
 });
