@@ -7,11 +7,16 @@ import {
   onAuthStateChanged,
   signInWithCredential,
   signInWithEmailAndPassword,
-  User
+  signInWithPopup,
+  User,
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from "../firebaseConfig";
+
+
+
+
 
 export default function AuthComponent() {
   const router = useRouter();
@@ -27,6 +32,16 @@ export default function AuthComponent() {
   const [passwordControleError, setPasswordControleError] = useState(false);
 
 WebBrowser.maybeCompleteAuthSession();
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
+    scopes: ['profile', 'email'],
+    redirectUri: makeRedirectUri({
+      scheme: "dailynest",
+    }),
+  });
+
+  WebBrowser.maybeCompleteAuthSession();
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
@@ -100,6 +115,29 @@ WebBrowser.maybeCompleteAuthSession();
     }
   }, [response]);
 
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      const idToken = authentication?.idToken;
+      if (idToken) {
+        const credential = GoogleAuthProvider.credential(idToken);
+        (async () => {
+          try {
+            await signInWithCredential(auth, credential);
+            // router.push('/drawer/Acceuil');
+            console.log("Connexion réussie");
+          } catch (err: any) {
+            console.warn('Firebase signInWithCredential error', err);
+            Alert.alert('Erreur', err.message || String(err));
+          }
+        })();
+      }
+    }
+    else if (response?.type === 'error') {
+      Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
+    }
+  }, [response]);
+
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
@@ -128,7 +166,6 @@ WebBrowser.maybeCompleteAuthSession();
       Alert.alert('Erreur', err.message || String(err));
     }
   };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenu sur Daily Nest !</Text>
@@ -167,7 +204,7 @@ WebBrowser.maybeCompleteAuthSession();
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push("/Inscription")} style={styles.signUpButton}>
           <Text style={styles.signUpText}>S'inscrire</Text>
-          </TouchableOpacity> 
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleGoogleSignIn} style={[styles.signUpButton, { backgroundColor: "#DB4437" }]}>
           <Text style={styles.signUpText}>Google</Text>
         </TouchableOpacity>
@@ -175,6 +212,8 @@ WebBrowser.maybeCompleteAuthSession();
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 20, borderRadius: 20},
@@ -196,3 +235,4 @@ const styles = StyleSheet.create({
   signUpText: { color: "white", fontWeight: "bold" },
   signUpButton: { backgroundColor: "#00b7ff9a", padding: 10, borderRadius: 5 },
 });
+
