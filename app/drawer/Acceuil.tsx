@@ -1,10 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import React from "react";
-import Rappels from "../tabs/Rappels";
+import { DrawerActions } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { addDoc, collection } from "firebase/firestore";
+import React, { useState } from "react";
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { db } from "../../firebaseConfig";
+
+import Home from "../tabs/Home";
 import Recompense from "../tabs/Recompense";
 import chat from "../tabs/chat";
-import popUpRac from "../tabs/popUpRac";
+import Budget from "./Budget";
+import Carnetfamiliale from "./Carnetfamiliale";
+import ListeCourse from "./ListeCourse";
+
 export type TabMenuParamList = {
   Home: undefined;
   Budget: undefined;
@@ -367,3 +376,125 @@ export default function RootStack() {
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+
+
+  modalContent: {
+    width: "90%",
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+
+  iconButton: {
+    backgroundColor: "#00d0ffff",
+    borderRadius: 15,
+    padding: 10,
+    width: 90,
+    height: 90,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+
+  buttonText: {
+    color: "#fff",
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: "center",
+  },
+
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: "#eee",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  closeText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", 
+    padding: 20,
+  },
+  inputWeb: {
+  width: "100%",
+  height: 45,               
+  marginTop: 10,
+  paddingHorizontal: 12,   
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: "#00d0ffff",
+  color: "gray",
+  fontStyle: "italic",
+  fontSize: 16,
+},
+  backButton: {
+  position: "absolute",
+  left: 10,
+  top: 10,
+  zIndex: 10,
+  padding: 5,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: "bold",
+  marginBottom: 15,
+  color: "#00d0ffff",
+  textAlign: "center",
+  width: "100%",
+},
+modalInnerContainer: {
+  width: "100%",
+  justifyContent: "center",
+  marginBottom: 12,        
+  paddingHorizontal: 20,
+},
+
+modalHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  width: "100%",
+  marginBottom: 15,
+},
+saveButton: {
+  backgroundColor: "#00d0ffff",
+  borderRadius: 25,          
+  paddingVertical: 10,       
+  paddingHorizontal: 20,     
+  marginTop: 15,
+  alignItems: "center",
+},
+
+saveButtonText: {
+  color: "white",
+  fontWeight: "bold",
+  fontSize: 16,
+},
+
+
+
+
+
+
+});
