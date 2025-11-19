@@ -3,7 +3,7 @@ import "react-native-reanimated";
 
 export default function DrawerLayout() {
   return (
-    <Drawer>
+    <Drawer screenOptions={{ headerShown: false }}>
       <Drawer.Screen name="Acceuil" options={{ title: "Accueil" }} />
       <Drawer.Screen name="Carnetfamiliale" options={{ title: "Carnet Familial" }} />
       <Drawer.Screen name="ListeCourse" options={{ title: "Liste de Courses" }} />
