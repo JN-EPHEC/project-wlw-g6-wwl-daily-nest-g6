@@ -24,7 +24,7 @@ const styles = StyleSheet.create ({
       fontSize: 18,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    borderRadius: 21,
+    borderRadius: 20,
     backgroundColor: "#eda771ff",
     alignItems: "center",
     justifyContent: "center",
@@ -35,3 +35,4 @@ const styles = StyleSheet.create ({
 });
 //ceci
 //je retente 
+//tentative 2
