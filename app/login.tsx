@@ -1,3 +1,4 @@
+import ThemedText from "@/components/themed-text";
 import { Link } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -5,7 +6,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 export default function Landing() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bienvenue</Text>
+      <ThemedText type='defaultSemiBold'style={styles.title}>Bienvenue</ThemedText>
 
       <Link href="/auth" asChild>
         <TouchableOpacity style={styles.button}>
@@ -25,7 +26,7 @@ export default function Landing() {
         <TouchableOpacity
           style={StyleSheet.flatten([
             styles.button,
-            { backgroundColor: "#8E44AD" },
+            { backgroundColor: "#489ed1" },
           ])}
         >
           <Text style={styles.buttonText}>Exemple Firestore (CRUD)</Text>
@@ -42,16 +43,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 24 },
+  title: { fontSize: 32, fontWeight: "bold", marginBottom: 24 },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#e59306ff",
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 18,
     minWidth: "80%",
     alignItems: "center",
     marginBottom: 12,
   },
-  secondary: { backgroundColor: "#34C759" },
+  secondary: { backgroundColor: "#68cb30" },
   buttonText: { color: "white", fontSize: 16, fontWeight: "600" },
 });

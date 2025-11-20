@@ -1,92 +1,60 @@
+import { useRouter } from "expo-router";
 import {
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
   User,
 } from "firebase/auth";
 import React, { useEffect, useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { auth } from "../firebaseConfig"; // Import de notre config
+import { Alert, StyleSheet, TextInput, View } from "react-native";
+import { auth } from "../firebaseConfig";
+import ThemedButton from "./themed-button";
+import ThemedText from "./themed-text";
 
-const AuthComponent = () => {
+
+export default function AuthComponent() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [user, setUser] = useState<User | null>(null); // Pour suivre l'utilisateur connecté
+  const [user, setUser] = useState<User | null>(null);
 
-  // Écoute les changements d'état de l'authentification
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       if (currentUser) {
-        // L'utilisateur est connecté
-        setUser(currentUser);
-      } else {
-        // L'utilisateur est déconnecté
-        setUser(null);
+        router.replace("/drawer/Acceuil");
       }
     });
-
-    // Cleanup à la désinscription
+    
     return () => unsubscribe();
   }, []);
 
-  // Fonction d'inscription
-  const handleSignUp = async () => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("Utilisateur créé !", userCredential.user);
-    } catch (error: any) {
-      Alert.alert("Erreur Inscription", error.message);
-    }
-  };
-
-  // Fonction de connexion
   const handleSignIn = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("Utilisateur connecté !", userCredential.user);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
       Alert.alert("Erreur Connexion", error.message);
     }
   };
 
-  // Fonction de déconnexion
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      console.log("Utilisateur déconnecté !");
-  // After sign out, the auth state listener will handle UI changes
+      Alert.alert("Déconnecté !");
     } catch (error: any) {
       Alert.alert("Erreur Déconnexion", error.message);
     }
   };
 
-  if (user) {
-    // Si l'utilisateur est connecté
-    return (
-      <View style={styles.container}>
-        <Text>Bienvenue, {user.email}</Text>
-        <Button title="Se déconnecter" onPress={handleSignOut} />
-      </View>
-    );
-  }
 
-  // Si l'utilisateur n'est pas connecté
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Authentification</Text>
+      <ThemedText type="title" style={styles.title}>Bienvenu sur Daily Nest !</ThemedText>
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
+        selectionColor="#f07d25ff"
         onChangeText={setEmail}
         autoCapitalize="none"
       />
@@ -97,35 +65,35 @@ const AuthComponent = () => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <View style={styles.buttonContainer}>
-        <Button title="Se connecter" onPress={handleSignIn} />
-        <Button title="S'inscrire" onPress={handleSignUp} color="#841584" />
+      <View>
+        <ThemedButton label="S'inscrire"onPress={handleSignIn} style={styles.signUpButton}>          
+          
+          </ThemedButton>
+
+        <ThemedButton label="GRH" onPress={() => router.push("/Inscription")} style={styles.signUpButton}>
+          </ThemedButton> 
+          <View style={styles.container}>
+        
+    
+      </View>
       </View>
     </View>
   );
-};
+}
 
-// Styles (simplifiés)
+
+
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20 },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
+  container: { flex: 1, justifyContent: "center", padding: 2,  backgroundImage:"assets/images/fond_ecran_etoile.png" , zIndex: -1},
+  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20, marginTop: 110,},
+  input: { height: 40, borderColor: "bleu", borderWidth: 1, marginBottom: 10,marginHorizontal: 50, paddingHorizontal: 20 ,borderRadius: 15},
+  signUpText: { color: "white", fontWeight: "bold" },
+  signUpButton: { padding: 10, borderRadius: 15, paddingVertical: 14, marginHorizontal: 50,
+    paddingHorizontal: 14,
+    backgroundColor: "#f07d25ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 8,},
+  //bg : {flex:1}
+ 
 });
-
-export default AuthComponent;

@@ -1,6 +1,6 @@
+import ThemedText from "@/components/themed-text";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
-
 import Rappels from "../tabs/Rappels";
 import Recompense from "../tabs/Recompense";
 import ToDo from "../tabs/ToDo";
@@ -27,5 +27,11 @@ export default function Acceuil() {
       <Tab.Screen name="chat" component={chat} />
       <Tab.Screen name="popUpRac" component={popUpRac} />
     </Tab.Navigator>
+
+  );
+}
+export function landingpage() {
+  return (
+  <ThemedText> organaze simply <br></br>manage your family</ThemedText>
   );
 }

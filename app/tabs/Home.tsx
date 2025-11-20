@@ -5,7 +5,7 @@ export default function Rappels() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenue</Text>
-      <Text>Bienvenue dans DAily Nest.</Text>
+      <Text>Bienvenue dans DAily Nest ?</Text>
     </View>
   );
 }

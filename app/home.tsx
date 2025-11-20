@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function Landing() {
+export default function Home() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenue</Text>
