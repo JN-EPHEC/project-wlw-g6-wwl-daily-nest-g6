@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   link: {
     lineHeight: 30,
     fontSize: 15,
-    color: '#82baddff',
+    color: '#1c90d8ff',
     textDecorationLine: 'underline'
 
   },
@@ -84,3 +84,4 @@ const styles = StyleSheet.create({
 });
 //ceci
 
+//je retente

@@ -24,7 +24,7 @@ const styles = StyleSheet.create ({
       fontSize: 18,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    borderRadius: 20,
+    borderRadius: 21,
     backgroundColor: "#eda771ff",
     alignItems: "center",
     justifyContent: "center",
@@ -34,3 +34,4 @@ const styles = StyleSheet.create ({
     text : { fontSize: 16, fontFamily: "RobotoCondensed_400Regular_Italic", color: "rgba(255, 255, 255, 0.94)"},
 });
 //ceci
+//je retente 
