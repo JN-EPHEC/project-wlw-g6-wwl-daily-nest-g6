@@ -33,3 +33,4 @@ const styles = StyleSheet.create ({
     },
     text : { fontSize: 16, fontFamily: "RobotoCondensed_400Regular_Italic", color: "rgba(255, 255, 255, 0.94)"},
 });
+//ceci
