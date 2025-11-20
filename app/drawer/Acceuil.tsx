@@ -7,16 +7,16 @@ import React, { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { db } from "../../firebaseConfig";
 
+import chat from "../tabs/chat";
 import Home from "../tabs/Home";
 import Recompense from "../tabs/Recompense";
-import chat from "../tabs/chat";
-import Budget from "./Budget";
+import ToDo from "../tabs/ToDo";
 import Carnetfamiliale from "./Carnetfamiliale";
 import ListeCourse from "./ListeCourse";
 
 export type TabMenuParamList = {
   Home: undefined;
-  Budget: undefined;
+  ToDo: undefined;
   ListeCourse: undefined;
   popUpRac: undefined;
   Carnetfamiliale: undefined;
@@ -109,7 +109,7 @@ export function Acceuil() {
 };
 
 const saveTodo = async () => {
-    if (!todoTitle || !todoPerson || !todoDate) {
+    if (!todoTitle) {
       alert("Veuillez remplir tous les champs.");
       return;
     }
@@ -117,14 +117,10 @@ const saveTodo = async () => {
     try {
       await addDoc(collection(db, "todos"), {
         title: todoTitle,
-        person: todoPerson,
-        date: todoDate,
       });
 
       alert("Tâche sauvegardée !");
       setTodoTitle("");
-      setTodoPerson("");
-      setTodoDate("");
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -165,9 +161,6 @@ const saveTodo = async () => {
           <TouchableOpacity onPress={goBack}>
               <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
             </TouchableOpacity>
-            <TouchableOpacity onPress={closeModal}>
-              <Ionicons name="close-outline" size={26} color="red"/>
-            </TouchableOpacity>
             </View>
 
              <Text style={styles.modalTitle}>Nouvel Événement</Text>
@@ -204,9 +197,6 @@ const saveTodo = async () => {
           <TouchableOpacity onPress={goBack}>
               <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
             </TouchableOpacity>
-            <TouchableOpacity onPress={closeModal}>
-              <Ionicons name="close-outline" size={26} color="red"/>
-            </TouchableOpacity>
             </View>
 
           <Text style={styles.modalTitle}>Nouvelle Tâche</Text>
@@ -216,17 +206,7 @@ const saveTodo = async () => {
            value={todoTitle}
             onChangeText={setTodoTitle} 
             style={styles.inputWeb} />
-          <TextInput 
-          placeholder="Responsable de la tâche" 
-          value={todoPerson} 
-          onChangeText={setTodoPerson} 
-          style={styles.inputWeb} />
-          <input 
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}  
-              style={styles.inputWeb}
-            />
+          
 
             <TouchableOpacity style={styles.saveButton} onPress={saveTodo}>
             <Text style={styles.saveButtonText}>Sauvegarder</Text>
@@ -241,9 +221,6 @@ const saveTodo = async () => {
           <View style={styles.modalHeader}>
           <TouchableOpacity onPress={goBack}>
               <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={closeModal}>
-              <Ionicons name="close-outline" size={26} color="red"/>
             </TouchableOpacity>
             </View>
 
@@ -285,7 +262,7 @@ const saveTodo = async () => {
           tabBarIcon: ({ color }) => {
             let iconName = "";
             if (route.name === "Home") iconName = "home-outline";
-            if (route.name === "Budget") iconName = "wallet-outline";
+            if (route.name === "ToDo") iconName = "list-outline";
             if (route.name === "popUpRac") iconName = "add-circle";
             if (route.name === "ListeCourse") iconName = "cart-outline";
             if (route.name === "Carnetfamiliale") iconName = "people-outline";
@@ -294,7 +271,7 @@ const saveTodo = async () => {
         })}
       >
         <Tab.Screen name="Home" component={Home} />
-        <Tab.Screen name="Budget" component={Budget} />
+        <Tab.Screen name="ToDo" component={ToDo} />
         <Tab.Screen
           name="popUpRac"
           component={() => null}
@@ -318,6 +295,13 @@ const saveTodo = async () => {
       <Modal visible={menuVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
+            <TouchableOpacity
+        style={styles.closeModalButton}
+        onPress={() => setMenuVisible(false)}
+      >
+        <Ionicons name="close" size={15} color="black" />
+      </TouchableOpacity>
+
             {!modalScreen && (
         <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
           <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("event")}>
@@ -386,7 +370,8 @@ const styles = StyleSheet.create({
 
 
   modalContent: {
-    width: "90%",
+    width: "80%",
+    marginTop: 60,
     backgroundColor: "#fff",
     borderRadius: 15,
     padding: 20,
@@ -488,6 +473,13 @@ saveButtonText: {
   color: "white",
   fontWeight: "bold",
   fontSize: 16,
+},
+closeModalButton: {
+  position: "absolute",
+  top: 10,
+  right: 10,
+  zIndex: 10,
+  padding: 5,
 },
 
 
