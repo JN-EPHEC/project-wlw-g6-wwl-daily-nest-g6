@@ -446,8 +446,6 @@ WebBrowser.maybeCompleteAuthSession();
 
 
         <TouchableOpacity onPress={handleGoogleSignIn} style={[styles.signUpButton, { backgroundColor: "#DB4437" }]}>
-
-
           <Text style={styles.signUpText}>Google</Text>
 
 
