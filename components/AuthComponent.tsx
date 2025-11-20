@@ -9,9 +9,8 @@ import { useRouter } from "expo-router";
 
 import * as WebBrowser from 'expo-web-browser';
 
+import { auth } from '@/firebaseConfig';
 import {
-
-
   GoogleAuthProvider,
 
   onAuthStateChanged,
@@ -24,13 +23,12 @@ import {
 
   signInWithPopup,
 
-  User,
-
+  User
 } from "firebase/auth";
-
 import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-@@ -13,11 +18,29 @@ export default function AuthComponent() {
+export default function AuthComponent() {
 
   const router = useRouter();
 
@@ -108,7 +106,7 @@ WebBrowser.maybeCompleteAuthSession();
 
       }
 
-@@ -27,57 +50,163 @@ export default function AuthComponent() {
+    });
 
   }, []);
 
@@ -351,7 +349,7 @@ WebBrowser.maybeCompleteAuthSession();
 
     <View style={styles.container}>
 
-      <Text style={styles.title}>Bienvenu sur Daily Nest !</Text>
+      <Text style={styles.title}>Bienvenue sur Daily Nest !</Text>
 
       <TextInput
 
@@ -447,22 +445,13 @@ WebBrowser.maybeCompleteAuthSession();
 
         <TouchableOpacity onPress={handleGoogleSignIn} style={[styles.signUpButton, { backgroundColor: "#DB4437" }]}>
           <Text style={styles.signUpText}>Google</Text>
-
-
         </TouchableOpacity>
-
       </View>
-
     </View>
-
   );
-
 }
 
-
-
 const styles = StyleSheet.create({
-
 
   container: { flex: 1, justifyContent: "center", padding: 20, borderRadius: 20},
 
