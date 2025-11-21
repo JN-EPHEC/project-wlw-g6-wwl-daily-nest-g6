@@ -112,4 +112,3 @@ pointsInsideHeart: {
   color: "white",
 },
 });
-
