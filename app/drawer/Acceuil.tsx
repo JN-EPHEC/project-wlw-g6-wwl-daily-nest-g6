@@ -317,7 +317,7 @@ const saveTodo = async () => {
             if (route.name === "popUpRac") iconName = "add-circle";
             if (route.name === "ListeCourse") iconName = "cart-outline";
             if (route.name === "Carnetfamiliale") iconName = "people-outline";
-            return <Ionicons name={iconName} size={24} color={color} />;
+            return <Ionicons name={iconName} size={24} color="#ffbf00" />;
           },
         })}
       >
@@ -383,7 +383,7 @@ export default function RootStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Acceuil"
+        name="AcceuilMain"
         component={Acceuil}
         options={({ navigation }) => ({
           headerTitle: "Accueil",
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
 
-
+  
   modalContent: {
     width: "80%",
     marginTop: 60,
