@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
 
   closeButton: {
     marginTop: 20,
-    backgroundColor: "#eee",
+    backgroundColor: "#eeeeeef4",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,

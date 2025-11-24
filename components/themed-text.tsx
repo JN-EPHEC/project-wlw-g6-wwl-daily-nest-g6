@@ -1,31 +1,37 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-
 import { useThemeColor } from '@/hooks/use-theme-color';
+import React from 'react';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'body' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link'| 'error'
+  | 'button';
+  
 };
 
-export function ThemedText({
+export default function ThemedText({
   style,
   lightColor,
   darkColor,
-  type = 'default',
+  type = 'body',
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
+  const fontFamily =
+  type == 'title'
+  ? 'Shrikhand_400Regular'
+  : 'Roboto_400Regular';
   return (
     <Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        { color,fontFamily },
+        type === 'body' && styles.body, 
+        type === 'title' && styles.title ,
+        type === 'defaultSemiBold' && styles.defaultSemiBold,
+        type === 'subtitle' && styles.subtitle ,
+        type === 'link' && styles.link,
         style,
       ]}
       {...rest}
@@ -34,27 +40,46 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
-  default: {
+  body: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: "400",
+    color : '#374151',
+
+    
   },
   defaultSemiBold: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#101010',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     lineHeight: 32,
+    color: '#fd7621ff'
+    
   },
   subtitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color:'#040404e8'
+    
   },
   link: {
     lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+    fontSize: 15,
+    color: '#1c90d8ff',
+    textDecorationLine: 'underline'
+
   },
+
+
+
+  
 });
+//copié
