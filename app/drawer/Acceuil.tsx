@@ -190,7 +190,7 @@ const saveTodo = async () => {
 
     switch (modalScreen) { 
 
-    case "event":
+    case "calendrier":
       return (
         <View style={styles.modalInnerContainer}>
 
