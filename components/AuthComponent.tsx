@@ -18,25 +18,10 @@ import {
 
   User
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-const createUserIfNotExists = async (firebaseUser: User) => {
-  const ref = doc(db, "users", firebaseUser.uid);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      createdAt: Date.now(),
-    });
-    console.log("User Firestore créé");
-  } else {
-    console.log("User déjà existant Firestore");
-  }
-};
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { auth, db } from "../firebaseConfig";
 
 export default function AuthComponent() {
 
@@ -123,156 +108,64 @@ WebBrowser.maybeCompleteAuthSession();
 
 
   const handleSignIn = async () => {
+  setErrorMessage("");
+  setEmailError(false);
+  setPasswordError(false);
 
+  let hasError = false;
+  if (!email) {
+    setEmailError(true);
+    hasError = true;
+  }
 
-    setErrorMessage("");
+  if (hasError) return;
 
+  setLoading(true);
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const uid = userCredential.user.uid;
 
-    setEmailError(false);
+    await setDoc(doc(db, "users", uid), {
+      email: userCredential.user.email,
+      createdAt: new Date(),
+    }, { merge: true });
 
-
-    setPasswordError(false);
-
-
-
-
-
-    let hasError = false;
-
-
-    if (!email) {
-
-
-      setEmailError(true);
-
-
-      hasError = true;
-
-
+  } catch (error: any) {
+    if (error.code == 'auth/invalid-email') {
+      setErrorMessage("Email ou mot de passe incorrect");
+    } else {
+      setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
     }
-
-
-    
-
-
-    if (hasError) return;
-
-
-
-
-
-
-
-
-    setLoading(true);
-
-    try {
-
-      await signInWithEmailAndPassword(auth, email, password);
-      const currentUser = auth.currentUser;
-if (currentUser) {
-  await createUserIfNotExists(currentUser);
-}
-    } catch (error: any) {
-
-
-      if (
-
-
-        error.code == 'auth/invalid-email'
-
-
-      ) {
-
-
-        setErrorMessage("Email ou mot de passe incorrect");
-
-
-      } else {
-
-
-        setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
-
-
-      } 
-
-
-    } finally {
-
-
-      setLoading(false);
-
-    }
-
-  };
-
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
+  if (response?.type === 'success') {
+    const { authentication } = response;
+    const idToken = authentication?.idToken;
 
+    if (idToken) {
+      const credential = GoogleAuthProvider.credential(idToken);
+      (async () => {
 
-    if (response?.type === 'success') {
+        const result = await signInWithCredential(auth, credential);
+        const user = result.user; 
+        const uid = user.uid;
 
+        await setDoc(doc(db, "users", uid), {
+          email: user.email,
+          createdAt: new Date(),
+        }, { merge: true });
 
-      const { authentication } = response;
-
-
-      const idToken = authentication?.idToken;
-
-
-      if (idToken) {
-
-
-        const credential = GoogleAuthProvider.credential(idToken);
-
-
-        (async () => {
-
-
-          try {
-
-
-            await signInWithCredential(auth, credential);
-            if (auth.currentUser) {
-          await createUserIfNotExists(auth.currentUser);
-}
-
-            // router.push('/drawer/Acceuil');
-
-
-            console.log("Connexion réussie");
-
-
-          } catch (err: any) {
-
-
-            console.warn('Firebase signInWithCredential error', err);
- 
-
-            Alert.alert('Erreur', err.message || String(err));
-
-
-          }
-
-
-        })();
-
-
-      }
-
-
+        console.log("Connexion Google réussie");
+      })();
     }
-
-
-    else if (response?.type === 'error') {
-
-
-      Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
-
-
-    }
-
-
-  }, [response]);
+  } else if (response?.type === 'error') {
+    Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
+  }
+}, [response]);
 
 
 
