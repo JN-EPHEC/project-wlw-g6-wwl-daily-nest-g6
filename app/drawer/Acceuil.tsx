@@ -29,7 +29,7 @@ const Tab = createBottomTabNavigator<TabMenuParamList>();
 
 export function Acceuil() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [modalScreen, setModalScreen] = useState<"event" | "todo" | "shopping" | null>(null);
+  const [modalScreen, setModalScreen] = useState<"calendrier" | "todo" | "shopping" | null>(null);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -73,7 +73,7 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc(collectiondb, "users", user?.uid!), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -93,7 +93,7 @@ const [shoppingItem, setShoppingItem] = useState("");
   }
 };
 
-  const openModal = (screen: "event" | "todo" | "shopping") => {
+  const openModal = (screen: "calendrier" | "todo" | "shopping") => {
     setModalScreen(screen);
     setMenuVisible(true);
   };
@@ -111,7 +111,7 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc(collection(db, "caledrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -344,16 +344,24 @@ const saveTodo = async () => {
      
       
       <Modal visible={menuVisible} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-        style={styles.closeModalButton}
-        onPress={() => setMenuVisible(false)}
+  <TouchableOpacity
+    style={styles.modalContainer}
+    activeOpacity={1}
+    onPress={() => setMenuVisible(false)}  
+  >
+    <TouchableOpacity
+      activeOpacity={1}
+      style={styles.modalContent}
+      onPress={(e) => e.stopPropagation()}  
+    >
+      <TouchableOpacity
+        style={{ position: "absolute", top: 10, right: 10 }}
+        onPress={() => setMenuVisible(false)} 
       >
-        <Ionicons name="close" size={15} color="black" />
+        <Ionicons name="close" size={30} color="black" />
       </TouchableOpacity>
 
-            {!modalScreen && (
+      {!modalScreen && (
         <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
           <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("event")}>
             <Ionicons name="calendar-outline" size={30} color="white" />
@@ -369,11 +377,12 @@ const saveTodo = async () => {
           </TouchableOpacity>
         </View>
       )}
-            {modalScreen && renderModalContent()} 
 
-          </View>
-        </View>
-      </Modal>
+      {modalScreen && renderModalContent()}
+    </TouchableOpacity>
+  </TouchableOpacity>
+</Modal>
+
     </View> 
   );
 }
