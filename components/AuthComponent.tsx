@@ -1,15 +1,8 @@
+import { auth, db } from '@/firebaseConfig';
 import { makeRedirectUri } from 'expo-auth-session';
-
-
-
 import * as Google from 'expo-auth-session/providers/google';
-
 import { useRouter } from "expo-router";
-
-
 import * as WebBrowser from 'expo-web-browser';
-
-import { auth } from '@/firebaseConfig';
 import {
   GoogleAuthProvider,
 
@@ -25,8 +18,25 @@ import {
 
   User
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+const createUserIfNotExists = async (firebaseUser: User) => {
+  const ref = doc(db, "users", firebaseUser.uid);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      createdAt: Date.now(),
+    });
+    console.log("User Firestore créé");
+  } else {
+    console.log("User déjà existant Firestore");
+  }
+};
 
 export default function AuthComponent() {
 
@@ -159,7 +169,10 @@ WebBrowser.maybeCompleteAuthSession();
     try {
 
       await signInWithEmailAndPassword(auth, email, password);
-
+      const currentUser = auth.currentUser;
+if (currentUser) {
+  await createUserIfNotExists(currentUser);
+}
     } catch (error: any) {
 
 
@@ -219,7 +232,9 @@ WebBrowser.maybeCompleteAuthSession();
 
 
             await signInWithCredential(auth, credential);
-
+            if (auth.currentUser) {
+          await createUserIfNotExists(auth.currentUser);
+}
 
             // router.push('/drawer/Acceuil');
 
@@ -231,7 +246,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 
             console.warn('Firebase signInWithCredential error', err);
-
+ 
 
             Alert.alert('Erreur', err.message || String(err));
 
@@ -341,8 +356,6 @@ WebBrowser.maybeCompleteAuthSession();
     }
 
   };
-
-
 
 
   return (
