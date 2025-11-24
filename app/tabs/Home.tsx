@@ -15,7 +15,9 @@ import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } fro
 
 
 import { Calendar } from "react-native-calendars";
-import { auth, db } from "../../firebaseConfig";
+
+
+import { db } from "../../firebaseConfig";
 
 
 
@@ -56,10 +58,6 @@ export default function Home() {
 
   const [isEditing, setIsEditing] = useState(false); 
 
-  const currentUser = auth.currentUser;
-  const uid = currentUser?.uid;
-
-
 
 
 
@@ -68,27 +66,57 @@ export default function Home() {
 
 
   useEffect(() => {
-      if (!uid) return; 
 
-    const unsubscribe = onSnapshot(collection(db, "users", uid, "calendar"), (snapshot) => { 
-      const newEvents: { [key: string]: any } = {}; 
-      const newItems: { [key: string]: any[] } = {}; 
-      snapshot.forEach((doc) => { 
-        const data = doc.data();
-        newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
 
-        if (!newItems[data.date]) newItems[data.date] = []; 
-        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
-      });
+  const unsubscribe = onSnapshot(collection(db, "events"), (snapshot) => { 
 
-      setEvents(newEvents); 
-      setItems(newItems); 
+
+    const newEvents: { [key: string]: any } = {}; 
+
+
+    const newItems: { [key: string]: any[] } = {}; 
+
+
+    snapshot.forEach((doc) => { 
+
+
+      const data = doc.data();
+
+
+      newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
+
+
+
+
+
+      if (!newItems[data.date]) newItems[data.date] = []; 
+
+
+      newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
+
+
     });
 
-    return () => unsubscribe();
-  }, [uid]);
 
 
+
+
+    setEvents(newEvents); 
+
+
+    setItems(newItems); 
+
+
+  });
+
+
+
+
+
+  return () => unsubscribe();
+
+
+}, []);
 
 
 
@@ -108,7 +136,9 @@ export default function Home() {
 
     }
 
-    if (!uid) return;
+
+
+
 
     try {
 
@@ -117,7 +147,11 @@ export default function Home() {
 
 
         const ev = items[eventDate][editingIndex];
-        const docRef = doc (db, "users", uid, "calendar", ev.id);
+
+
+        const docRef = doc (db, "events", ev.id);
+
+
         await updateDoc(docRef, { 
 
 
@@ -131,7 +165,11 @@ export default function Home() {
 
 
       } else {
-        await addDoc(collection(db, "users", uid, "calendar"), { 
+
+
+        await addDoc(collection(db, "events"), { 
+
+
           title: eventTitle,
 
 
@@ -187,7 +225,8 @@ export default function Home() {
 
 
   const deleteEvent = async (eventId: string) => {
-    if (!uid) return;
+
+
     Alert.alert(
 
 
@@ -207,7 +246,11 @@ export default function Home() {
 
 
             try {
-              const docRef = doc(db, "users", uid, "calendar", eventId);
+
+
+              const docRef = doc(db, "events", eventId);
+
+
               await deleteDoc(docRef);
 
 
@@ -598,7 +641,11 @@ export default function Home() {
 
 
 ) : (
-  <Text>Pas d'événement </Text>
+
+
+  <Text>Désolé fréro, pas d'événement 😅</Text>
+
+
 )}
 
 
