@@ -20,7 +20,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "app/(modal.tsx)", "app/tabs/(_layout.tsx)", "app/(_layout.tsx)"  ],
+    "expo-env.d.ts",
+    "app/(modal.tsx)",
+    "app/tabs/(_layout.tsx)",
+    "app/(_layout.tsx)",
+    "nativewind-env.d.ts"
+  ],
   "extends": "expo/tsconfig.base"
 }
