@@ -9,14 +9,14 @@ import { db } from "../../firebaseConfig";
 
 import Home from "../tabs/Home";
 import Recompense from "../tabs/Recompense";
+import ToDo from "../tabs/ToDo";
 import chat from "../tabs/chat";
-import Budget from "./Budget";
 import Carnetfamiliale from "./Carnetfamiliale";
 import ListeCourse from "./ListeCourse";
 
 export type TabMenuParamList = {
   Home: undefined;
-  Budget: undefined;
+  ToDo: undefined;
   ListeCourse: undefined;
   popUpRac: undefined;
   Carnetfamiliale: undefined;
@@ -285,16 +285,16 @@ const saveTodo = async () => {
           tabBarIcon: ({ color }) => {
             let iconName = "";
             if (route.name === "Home") iconName = "home-outline";
-            if (route.name === "Budget") iconName = "wallet-outline";
+            if (route.name === "ToDo") iconName = "list-outline";
             if (route.name === "popUpRac") iconName = "add-circle";
             if (route.name === "ListeCourse") iconName = "cart-outline";
             if (route.name === "Carnetfamiliale") iconName = "people-outline";
-            return <Ionicons name={iconName} size={24} color={color} />;
+            return <Ionicons name={iconName} size={24} color="#ffbf00" />;
           },
         })}
       >
         <Tab.Screen name="Home" component={Home} />
-        <Tab.Screen name="Budget" component={Budget} />
+        <Tab.Screen name="ToDo" component={ToDo} />
         <Tab.Screen
           name="popUpRac"
           component={() => null}
@@ -348,7 +348,7 @@ export default function RootStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Acceuil"
+        name="AcceuilMain"
         component={Acceuil}
         options={({ navigation }) => ({
           headerTitle: "Accueil",
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
 
-
+  
   modalContent: {
     width: "90%",
     backgroundColor: "#fff",
