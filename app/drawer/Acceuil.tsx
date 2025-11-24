@@ -1,11 +1,13 @@
+
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { addDoc, collection } from "firebase/firestore";
-import React, { useState } from "react";
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { db } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 
 import chat from "../tabs/chat";
 import Home from "../tabs/Home";
@@ -28,7 +30,7 @@ const Tab = createBottomTabNavigator<TabMenuParamList>();
 
 export function Acceuil() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [modalScreen, setModalScreen] = useState<"event" | "todo" | "shopping" | null>(null);
+  const [modalScreen, setModalScreen] = useState<"calendrier" | "todo" | "shopping" | null>(null);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -38,11 +40,34 @@ export function Acceuil() {
   const [todoPerson, setTodoPerson] = useState("");
   const [todoDate, setTodoDate] = useState("");
 
-  const [shoppingList, setShoppingList] = useState("");
-  const [shoppingItem, setShoppingItem] = useState("");
+  const [shoppingLists, setShoppingLists] = useState<any[]>([]);
+const [selectedListId, setSelectedListId] = useState<string>("");
+const [newListName, setNewListName] = useState("");
+const [shoppingItem, setShoppingItem] = useState("");
+
+
 
   const goBack = () => { setModalScreen (null)};
   const [modalVisible, setModalVisible] = useState(false);
+  const user = auth.currentUser;
+
+  useEffect(() => {
+  if (!user) return;
+
+  const unsubscribe = onSnapshot(
+    collection(db, "users", user.uid, "shopping"),
+    (snapshot) => {
+      const lists: any[] = [];
+      snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+     setShoppingLists(lists);
+    }
+  );
+
+  return unsubscribe;
+}, []);
+
+
+
 
   const saveEvent = async () => {
     if (!eventTitle || !eventDate || !eventTime) {
@@ -50,7 +75,8 @@ export function Acceuil() {
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc(
+        collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -70,7 +96,7 @@ export function Acceuil() {
   }
 };
 
-  const openModal = (screen: "event" | "todo" | "shopping") => {
+  const openModal = (screen: "calendrier" | "todo" | "shopping") => {
     setModalScreen(screen);
     setMenuVisible(true);
   };
@@ -88,7 +114,7 @@ export function Acceuil() {
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc (collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -130,30 +156,42 @@ const saveTodo = async () => {
   };
 
   const saveShopping = async () => {
-    if (!shoppingList || !shoppingItem) {
-      alert("Veuillez remplir tous les champs.");
-      return;
+  if (!shoppingItem) {
+    alert("Veuillez remplir le champ produit.");
+    return;
+  }
+
+  try {
+    let listId = selectedListId;
+
+    if (!selectedListId) {
+      const newListRef = await addDoc(
+        collection(db, "users", user?.uid!, "shopping"),
+        { title: shoppingItem }
+      );
+      listId = newListRef.id;
     }
 
-    try {
-      await addDoc(collection(db, "shopping"), {
-        list: shoppingList,
-        item: shoppingItem,
-      });
+    await addDoc(
+      collection(db, "users", user?.uid!, "shopping", listId, "items"),
+      { name: shoppingItem, checked: false }
+    );
 
-      alert("Liste de course sauvegardée !");
-      setShoppingList("");
-      setShoppingItem("");
-      setModalScreen(null);
-      setMenuVisible(false);
+    alert("Produit ajouté !");
+    setShoppingItem("");
+    setSelectedListId("");
+    setNewListName("");
+    setModalScreen(null);
+    setMenuVisible(false);
+  } catch (err) {
+    alert("Impossible de sauvegarder.");
+  }
+};
 
-    } catch (err) {
-      alert("Impossible de sauvegarder la liste de course.");
-    }
-  };
+
     switch (modalScreen) { 
 
-    case "event":
+    case "calendrier":
       return (
         <View style={styles.modalInnerContainer}>
 
@@ -169,6 +207,7 @@ const saveTodo = async () => {
           placeholder="Titre" 
           value={eventTitle} 
           onChangeText={setEventTitle} 
+      
           style={styles.inputWeb} />
           <input 
               type="date"
@@ -215,35 +254,50 @@ const saveTodo = async () => {
         </View>
       );
     case "shopping":
-      return (
-        <View style={styles.modalInnerContainer}>
+  return (
+    <View style={styles.modalInnerContainer}>
+      <View style={styles.modalHeader}>
+        <TouchableOpacity onPress={goBack}>
+          <Ionicons name="arrow-back-outline" size={26} color="#00d0ff" />
+        </TouchableOpacity>
+      </View>
 
-          <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={goBack}>
-              <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
-            </TouchableOpacity>
-            </View>
+      <Text style={styles.modalTitle}>Nouvelle Liste de Course</Text>
 
-          <Text style={styles.modalTitle}>Nouvelle Liste de Course</Text>
+      <Text style={{ fontSize: 16, marginBottom: 5 }}>Choisir une liste existante</Text>
+      <Picker
+  selectedValue={selectedListId}
+  onValueChange={(val) => setSelectedListId(val)}
+  style={{ backgroundColor: "#f1f1f1", marginBottom: 10, borderRadius: 10 }}
+>
+  <Picker.Item label="Créer une nouvelle liste" value="" />
+  {shoppingLists.map((list) => (
+    <Picker.Item key={list.id} label={list.title} value={list.id} />
+  ))}
+</Picker>
 
-          <TextInput 
-          placeholder="Nom de la liste" 
-          value={shoppingList} 
-          onChangeText={setShoppingList} 
-          style={styles.inputWeb} />
+      {!selectedListId && (
+        <TextInput
+          placeholder="Nom de la nouvelle liste"
+          value={newListName}
+          onChangeText={setNewListName}
+          style={styles.inputWeb}
+        />
+      )}
 
-          <TextInput
-           placeholder="Nom du produit" 
-           value={shoppingItem} 
-           onChangeText={setShoppingItem} 
-           style={styles.inputWeb} />
+      <TextInput
+        placeholder="Nom du produit"
+        value={shoppingItem}
+        onChangeText={setShoppingItem}
+        style={styles.inputWeb}
+      />
 
-           <TouchableOpacity style={styles.saveButton} onPress={saveShopping}>
-            <Text style={styles.saveButtonText}>Sauvegarder</Text>
-          </TouchableOpacity>
+      <TouchableOpacity style={styles.saveButton} onPress={saveShopping}>
+        <Text style={styles.saveButtonText}>Sauvegarder</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
-        </View>
-      );
     default:
       return null;
   }
@@ -260,15 +314,14 @@ const saveTodo = async () => {
           tabBarStyle: { height: 60, paddingHorizontal: 0 },
           tabBarItemStyle: { flex: 1, alignItems: "center", justifyContent: "center" },
           tabBarIcon: ({ color }) => {
-            let iconName = "";
+            let iconName: React.ComponentProps<typeof Ionicons>['name'] = "home-outline";
             if (route.name === "Home") iconName = "home-outline";
             if (route.name === "ToDo") iconName = "list-outline";
             if (route.name === "popUpRac") iconName = "add-circle";
             if (route.name === "ListeCourse") iconName = "cart-outline";
             if (route.name === "Carnetfamiliale") iconName = "people-outline";
             return <Ionicons name={iconName} size={24} color={color} />;
-          },
-        })}
+          },        })}
       >
         <Tab.Screen name="Home" component={Home} />
         <Tab.Screen name="ToDo" component={ToDo} />
@@ -293,18 +346,26 @@ const saveTodo = async () => {
      
       
       <Modal visible={menuVisible} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-        style={styles.closeModalButton}
-        onPress={() => setMenuVisible(false)}
+  <TouchableOpacity
+    style={styles.modalContainer}
+    activeOpacity={1}
+    onPress={() => setMenuVisible(false)}  
+  >
+    <TouchableOpacity
+      activeOpacity={1}
+      style={styles.modalContent}
+      onPress={(e) => e.stopPropagation()}  
+    >
+      <TouchableOpacity
+        style={{ position: "absolute", top: 10, right: 10 }}
+        onPress={() => setMenuVisible(false)} 
       >
-        <Ionicons name="close" size={15} color="black" />
+        <Ionicons name="close" size={30} color="black" />
       </TouchableOpacity>
 
-            {!modalScreen && (
+      {!modalScreen && (
         <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("event")}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("calendrier")}>
             <Ionicons name="calendar-outline" size={30} color="white" />
             <Text style={styles.buttonText}>Événement</Text>
           </TouchableOpacity>
@@ -318,11 +379,12 @@ const saveTodo = async () => {
           </TouchableOpacity>
         </View>
       )}
-            {modalScreen && renderModalContent()} 
 
-          </View>
-        </View>
-      </Modal>
+      {modalScreen && renderModalContent()}
+    </TouchableOpacity>
+  </TouchableOpacity>
+</Modal>
+
     </View> 
   );
 }
@@ -488,3 +550,4 @@ closeModalButton: {
 
 
 });
+
