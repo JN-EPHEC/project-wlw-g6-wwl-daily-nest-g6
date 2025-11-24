@@ -1,3 +1,4 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
@@ -19,13 +20,14 @@ export default function Home() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false); 
 
+  const currentUser = auth.currentUser;
+  const uid = currentUser?.uid;
 
 
 
   useEffect(() => {
-      if (!uid) return; // sécuriser si pas connecté
+      if (!uid) return; 
 
-    // 🔥 Écouter uniquement les événements de l'utilisateur connecté
     const unsubscribe = onSnapshot(collection(db, "users", uid, "calendar"), (snapshot) => { 
       const newEvents: { [key: string]: any } = {}; 
       const newItems: { [key: string]: any[] } = {}; 
@@ -33,31 +35,16 @@ export default function Home() {
         const data = doc.data();
         newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
 
-      if (!newItems[data.date]) newItems[data.date] = []; 
+        if (!newItems[data.date]) newItems[data.date] = []; 
+        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
+      });
 
-
-      newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
-
-
+      setEvents(newEvents); 
+      setItems(newItems); 
     });
 
-
-
-
-
-    setEvents(newEvents); 
-
-
-    setItems(newItems); 
-
-
-  });
-
-
-
-
-
-  return () => unsubscribe();
+    return () => unsubscribe();
+  }, [uid]);
 
 
 
@@ -67,20 +54,18 @@ export default function Home() {
       return;
     }
 
-
-
-
+    if (!uid) return;
 
     try {
       if (editingIndex !== null) { 
         const ev = items[eventDate][editingIndex];
-        const docRef = doc (db, "users", ev.id);
+        const docRef = doc (db, "users", uid, "calendar", ev.id);
         await updateDoc(docRef, { 
           title: eventTitle,
           time: eventTime,
         });
       } else {
-        await addDoc(collection(db, "events"), { 
+        await addDoc(collection(db, "users", uid, "calendar"), { 
           title: eventTitle,
           date: eventDate,
           time: eventTime,
@@ -100,6 +85,7 @@ export default function Home() {
     }
   };
   const deleteEvent = async (eventId: string) => {
+    if (!uid) return;
     Alert.alert(
       "Confirmer la suppression",
       "Êtes-vous sûr de vouloir supprimer cet événement ?",
@@ -107,7 +93,7 @@ export default function Home() {
         { text: "Non", style: "cancel" },
         { text: "Oui", onPress: async () => {
             try {
-              const docRef = doc(db, "events", eventId);
+              const docRef = doc(db, "users", uid, "calendar", eventId);
               await deleteDoc(docRef);
               alert("Événement supprimé !");
             } catch (err) {
@@ -324,3 +310,4 @@ closeButton: {
 
 
 });
+
