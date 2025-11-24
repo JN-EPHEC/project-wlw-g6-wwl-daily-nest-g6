@@ -18,7 +18,7 @@ import {
 
   User
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -158,13 +158,19 @@ WebBrowser.maybeCompleteAuthSession();
             createdAt: new Date(),
           }, { merge: true });
 
-        console.log("Connexion Google réussie");
-      })();
     }
-  } else if (response?.type === 'error') {
-    Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
-  }
-}, [response]);
+
+
+    else if (response?.type === 'error') {
+
+
+      Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
+
+
+    }
+
+
+  }, [response]);
 
 
 
