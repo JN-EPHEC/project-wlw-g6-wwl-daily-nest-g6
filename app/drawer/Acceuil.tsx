@@ -67,13 +67,15 @@ const [shoppingItem, setShoppingItem] = useState("");
 
 
 
+
   const saveEvent = async () => {
     if (!eventTitle || !eventDate || !eventTime) {
       alert ("Veuillez remplir tous les champs svpp");
       return;
     }
     try {
-    await addDoc(collectiondb, "users", user?.uid!), { 
+    await addDoc(
+        collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -111,7 +113,7 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    await addDoc(collection(db, "caledrier"), { 
+    await addDoc (collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
