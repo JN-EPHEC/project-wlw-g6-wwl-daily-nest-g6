@@ -5,15 +5,9 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
   GoogleAuthProvider,
-
   onAuthStateChanged,
-
-
   signInWithCredential,
-
   signInWithEmailAndPassword,
-
-
   signInWithPopup,
 
   User
@@ -21,7 +15,7 @@ import {
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { auth, db } from "../firebaseConfig";
+
 
 export default function AuthComponent() {
 
