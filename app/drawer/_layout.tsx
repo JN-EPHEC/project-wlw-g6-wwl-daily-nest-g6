@@ -29,6 +29,4 @@ export default function DrawerLayout() {
 
       <Drawer.Screen name="Deconnexion" options={{ title: "Déconnexion" }} />
 
-    </Drawer>
-
-  )}
+    </Drawer>)}

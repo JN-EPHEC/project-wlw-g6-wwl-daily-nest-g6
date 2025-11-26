@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-  createUserWithEmailAndPassword,
+    createUserWithEmailAndPassword,
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { auth } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 
 
 export default function SignUp() {
@@ -53,7 +54,35 @@ export default function SignUp() {
 
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      const newUser = userCredential.user;
+
+      
+
+      // Créer le document Firestore avec l'UID unique
+
+      await setDoc(doc(db, "users", newUser.uid), {
+
+        uid: newUser.uid,
+
+        email: newUser.email,
+
+        firstName: firstName.trim(),
+
+        lastName: lastName.trim(),
+
+        birthDate: birthDate || null,
+
+        createdAt: Date.now(),
+
+      });
+
+      
+
+      console.log("Utilisateur créé dans Firestore avec UID:", newUser.uid);
+
       setShowWelcome(true);
     } catch (error: any) {
       if (
