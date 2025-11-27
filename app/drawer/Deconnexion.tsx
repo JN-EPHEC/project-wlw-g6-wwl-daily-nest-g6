@@ -22,7 +22,7 @@ export default function Deconnexion() {
     <View style={styles.container}>
       <Text style={styles.text}>Voulez-vouz vraiment nous quitter ?</Text>
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Oui, c'est bon tu me soule</Text>
+        <Text style={styles.logoutText}>Oui</Text>
       </TouchableOpacity>
       <Modal visible={showWelcome} transparent animationType="fade">
         <View style={styles.modalContainer}>

@@ -1,7 +1,8 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
@@ -20,95 +21,221 @@ export default function Home() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false); 
 
-  const currentUser = auth.currentUser;
-  const uid = currentUser?.uid;
+const [selectedCalendarType, setSelectedCalendarType] = useState("personal");
+const [families, setFamilies] = useState<any[]>([]);
+const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
 
 
+const [uid, setUid] = useState<string | null>(null);
+const [email, setEmail] = useState<string | null>(null);
 
-  useEffect(() => {
-      if (!uid) return; 
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setUid(user.uid);
+      setEmail(user.email || null);
+    } else {
+      setUid(null);
+      setEmail(null);
+    }
+  });
 
-    const unsubscribe = onSnapshot(collection(db, "users", uid, "calendar"), (snapshot) => { 
-      const newEvents: { [key: string]: any } = {}; 
-      const newItems: { [key: string]: any[] } = {}; 
-      snapshot.forEach((doc) => { 
+  return () => unsubscribe();
+}, []);
+
+
+useEffect(() => {
+  // Reset quand on change de calendrier
+  setEvents({});
+  setItems({});
+  setSelectedDate("");
+}, [selectedCalendarType, selectedFamily]);
+
+
+useEffect(() => {
+  if (!uid) return;
+
+  if (selectedCalendarType === "personal") {
+    const unsubscribe = onSnapshot(collection(db, "users", uid, "calendar"), (snapshot) => {
+      const newEvents: any = {};
+      const newItems: any = {};
+
+      snapshot.forEach((doc) => {
         const data = doc.data();
         newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
 
-        if (!newItems[data.date]) newItems[data.date] = []; 
-        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
+        if (!newItems[data.date]) newItems[data.date] = [];
+        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time });
       });
 
-      setEvents(newEvents); 
-      setItems(newItems); 
+      setEvents(newEvents);
+      setItems(newItems);
     });
 
     return () => unsubscribe();
-  }, [uid]);
-
-
-
-  const saveEvent = async () => {
-    if (!eventTitle || !eventDate || !eventTime) {
-      alert("Veuillez remplir tous les champs.");
-      return;
-    }
-
-    if (!uid) return;
-
-    try {
-      if (editingIndex !== null) { 
-        const ev = items[eventDate][editingIndex];
-        const docRef = doc (db, "users", uid, "calendar", ev.id);
-        await updateDoc(docRef, { 
-          title: eventTitle,
-          time: eventTime,
-        });
-      } else {
-        await addDoc(collection(db, "users", uid, "calendar"), { 
-          title: eventTitle,
-          date: eventDate,
-          time: eventTime,
-        });
-      }
-
-      alert("Événement sauvegardé !");
-      setModalVisible(true);
-      setEventTitle("");
-      setEventDate("");
-      setEventTime("");
-      setEditingIndex(null);
-      setIsEditing(false);
-
-    } catch (err) {
-      alert("Impossible de sauvegarder");
-    }
-  };
-  const deleteEvent = async (eventId: string) => {
-    if (!uid) return;
-    Alert.alert(
-      "Confirmer la suppression",
-      "Êtes-vous sûr de vouloir supprimer cet événement ?",
-      [
-        { text: "Non", style: "cancel" },
-        { text: "Oui", onPress: async () => {
-            try {
-              const docRef = doc(db, "users", uid, "calendar", eventId);
-              await deleteDoc(docRef);
-              alert("Événement supprimé !");
-            } catch (err) {
-              alert("Impossible de supprimer l'événement.");
-            }
-          } 
-        }
-      ]
-    );
   }
+
+  if (selectedCalendarType === "family" && selectedFamily) {
+    const unsubscribe = onSnapshot(
+      collection(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar"),
+      (snapshot) => {
+        const newEvents: any = {};
+        const newItems: any = {};
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          newEvents[data.date] = { marked: true, dotColor: "#ff0000" };
+
+          if (!newItems[data.date]) newItems[data.date] = [];
+          newItems[data.date].push({ id: doc.id, title: data.title, time: data.time });
+        });
+
+        setEvents(newEvents);
+        setItems(newItems);
+      }
+    );
+
+    return () => unsubscribe();
+  }
+}, [selectedCalendarType, selectedFamily, uid]);
+
+const saveEvent = async () => {
+  if (!eventTitle || !eventDate || !eventTime) {
+    alert("Veuillez remplir tous les champs.");
+    return;
+  }
+
+  try {
+    let path: any;
+
+    if (selectedCalendarType === "personal") {
+      if (!uid) return; // sécurité
+      path = collection(db, "users", uid, "calendar");
+    } else {
+      if (!selectedFamily || !selectedFamily.ownerId) return;
+      path = collection(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar");
+    }
+
+    if (editingIndex !== null) {
+      const ev = items[eventDate][editingIndex];
+      const docRef = doc(path, ev.id);
+      await updateDoc(docRef, { title: eventTitle, time: eventTime });
+    } else {
+      await addDoc(path, { title: eventTitle, date: eventDate, time: eventTime });
+    }
+
+    alert("Événement sauvegardé !");
+    setModalVisible(false);
+    setEventTitle("");
+    setEventDate("");
+    setEventTime("");
+    setEditingIndex(null);
+    setIsEditing(false);
+
+  } catch (err) {
+    alert("Impossible de sauvegarder");
+  }
+};
+
+
+  const deleteEvent = async (eventId: string) => {
+    if (!uid) {
+  Alert.alert("Erreur", "Utilisateur non connecté");
+  return;
+}
+  Alert.alert(
+    "Confirmer la suppression",
+    "Êtes-vous sûr de vouloir supprimer cet événement ?",
+    [
+      { text: "Non", style: "cancel" },
+      { text: "Oui", onPress: async () => {
+          try {
+            let docRef;
+            if (selectedCalendarType === "personal") {
+              docRef = doc(db, "users", uid, "calendar", eventId);
+            } else {
+              docRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar", eventId);
+            }
+            await deleteDoc(docRef);
+            alert("Événement supprimé !");
+          } catch (err) {
+            alert("Impossible de supprimer l'événement.");
+          }
+        } 
+      }
+    ]
+  );
+};
+
+  
+  useEffect(() => {
+  if (!email) return;
+
+  const unsubscribe = onSnapshot(collection(db, "users"), async (snapshot) => {
+    const fams: any[] = [];
+    for (const docUser of snapshot.docs) {
+      const famCol = collection(db, "users", docUser.id, "families");
+      const famSnap = await getDocs(famCol);
+      famSnap.forEach(f => {
+        const data = f.data();
+        if (data.members.includes(email)) {
+          fams.push({ id: f.id, ownerId: docUser.id, ...data });
+        }
+      });
+    }
+    setFamilies(fams);
+  });
+
+  return () => unsubscribe();
+}, [email]);
+
     
 
 
   return (
-    <View style={styles.calendarContainer}>
+    
+<View style={styles.calendarContainer}>
+  <View style={{ width: "100%", padding: 10, alignItems: "center" }}>
+  <View style={{
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "white",
+    width: "70%",
+    boxShadow: "0px 2px 6px rgba(0,0,0,0.15)"
+  }}>
+    <select
+      style={{
+        width: "100%",
+        fontSize: 16,
+        padding: 6,
+        borderRadius: 10,
+        borderWidth: 0,
+        outline: "none",
+        backgroundColor: "transparent"
+      }}
+      value={selectedCalendarType === "family" && selectedFamily ? selectedFamily.id : "personal"}
+      onChange={(e) => {
+        if (e.target.value === "personal") {
+          setSelectedCalendarType("personal");
+          setSelectedFamily(null);
+        } else {
+          const fam = families.find((f) => f.id === e.target.value);
+          setSelectedFamily(fam);
+          setSelectedCalendarType("family");
+        }
+      }}
+    >
+      <option value="personal">Calendrier personnel</option>
+      <option disabled>── Calendriers famille ──</option>
+      {families.map((f, i) => (
+        <option key={i} value={f.id}> {f.name}</option>
+      ))}
+    </select>
+  </View>
+</View>
+
       <Calendar
         onDayPress={(day) => {
           setSelectedDate(day.dateString); 
@@ -225,7 +352,29 @@ export default function Home() {
     </View> 
   ))
 ) : (
-  <Text>Pas d'événement </Text>
+  <View style={{ alignItems: "center", gap: 15 }}>
+  <Text>Pas d'événement</Text>
+  <TouchableOpacity
+    onPress={() => {
+      setModalViewVisible(false);
+      setIsEditing(false);
+      setEventTitle("");
+      setEventDate(selectedDate);
+      setEventTime("");
+      setEditingIndex(null);
+      setModalVisible(true);
+    }}
+    style={{
+      backgroundColor: "#ffbf00ff",
+      padding: 10,
+      borderRadius: 50,
+      marginTop: 10
+    }}
+  >
+    <Ionicons name="add" size={26} color="white" />
+  </TouchableOpacity>
+</View>
+
 )}
 
     </View>
