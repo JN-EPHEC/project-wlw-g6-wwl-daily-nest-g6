@@ -297,3 +297,4 @@ const styles = StyleSheet.create({
   itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   itemText: { fontSize: 18, marginLeft: 10 },
 });
+

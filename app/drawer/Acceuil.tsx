@@ -1,3 +1,4 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -29,7 +30,7 @@ const Tab = createBottomTabNavigator<TabMenuParamList>();
 
 export function Acceuil() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [modalScreen, setModalScreen] = useState<"event" | "todo" | "shopping" | null>(null);
+  const [modalScreen, setModalScreen] = useState<"calendrier" | "todo" | "shopping" | null>(null);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -67,13 +68,15 @@ const [shoppingItem, setShoppingItem] = useState("");
 
 
 
+
   const saveEvent = async () => {
     if (!eventTitle || !eventDate || !eventTime) {
       alert ("Veuillez remplir tous les champs svpp");
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc(
+        collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -93,7 +96,7 @@ const [shoppingItem, setShoppingItem] = useState("");
   }
 };
 
-  const openModal = (screen: "event" | "todo" | "shopping") => {
+  const openModal = (screen: "calendrier" | "todo" | "shopping") => {
     setModalScreen(screen);
     setMenuVisible(true);
   };
@@ -111,7 +114,7 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    await addDoc(collection(db, "events"), { 
+    await addDoc (collection(db, "users", user?.uid!, "calendrier"), { 
       title: eventTitle,
       date: eventDate,
       time: eventTime,
@@ -188,7 +191,7 @@ const saveTodo = async () => {
 
     switch (modalScreen) { 
 
-    case "event":
+    case "calendrier":
       return (
         <View style={styles.modalInnerContainer}>
 
@@ -311,15 +314,14 @@ const saveTodo = async () => {
           tabBarStyle: { height: 60, paddingHorizontal: 0 },
           tabBarItemStyle: { flex: 1, alignItems: "center", justifyContent: "center" },
           tabBarIcon: ({ color }) => {
-            let iconName = "";
+            let iconName: React.ComponentProps<typeof Ionicons>['name'] = "home-outline";
             if (route.name === "Home") iconName = "home-outline";
             if (route.name === "ToDo") iconName = "list-outline";
             if (route.name === "popUpRac") iconName = "add-circle";
             if (route.name === "ListeCourse") iconName = "cart-outline";
             if (route.name === "Carnetfamiliale") iconName = "people-outline";
-            return <Ionicons name={iconName} size={24} color="#ffbf00" />;
-          },
-        })}
+            return <Ionicons name={iconName} size={24} color={color} />;
+          },        })}
       >
         <Tab.Screen name="Home" component={Home} />
         <Tab.Screen name="ToDo" component={ToDo} />
@@ -344,18 +346,26 @@ const saveTodo = async () => {
      
       
       <Modal visible={menuVisible} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-        style={styles.closeModalButton}
-        onPress={() => setMenuVisible(false)}
+  <TouchableOpacity
+    style={styles.modalContainer}
+    activeOpacity={1}
+    onPress={() => setMenuVisible(false)}  
+  >
+    <TouchableOpacity
+      activeOpacity={1}
+      style={styles.modalContent}
+      onPress={(e) => e.stopPropagation()}  
+    >
+      <TouchableOpacity
+        style={{ position: "absolute", top: 10, right: 10 }}
+        onPress={() => setMenuVisible(false)} 
       >
-        <Ionicons name="close" size={15} color="black" />
+        <Ionicons name="close" size={30} color="black" />
       </TouchableOpacity>
 
-            {!modalScreen && (
+      {!modalScreen && (
         <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("event")}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("calendrier")}>
             <Ionicons name="calendar-outline" size={30} color="white" />
             <Text style={styles.buttonText}>Événement</Text>
           </TouchableOpacity>
@@ -369,11 +379,12 @@ const saveTodo = async () => {
           </TouchableOpacity>
         </View>
       )}
-            {modalScreen && renderModalContent()} 
 
-          </View>
-        </View>
-      </Modal>
+      {modalScreen && renderModalContent()}
+    </TouchableOpacity>
+  </TouchableOpacity>
+</Modal>
+
     </View> 
   );
 }
@@ -383,7 +394,7 @@ export default function RootStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="AcceuilMain"
+        name="Acceuil"
         component={Acceuil}
         options={({ navigation }) => ({
           headerTitle: "Accueil",
@@ -419,7 +430,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
 
-  
+
   modalContent: {
     width: "80%",
     marginTop: 60,
@@ -455,7 +466,7 @@ const styles = StyleSheet.create({
 
   closeButton: {
     marginTop: 20,
-    backgroundColor: "#eee",
+    backgroundColor: "#eeeeeef4",
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
@@ -539,3 +550,4 @@ closeModalButton: {
 
 
 });
+

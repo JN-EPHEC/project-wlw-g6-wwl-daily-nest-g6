@@ -1,284 +1,249 @@
-import { Ionicons } from "@expo/vector-icons";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { auth, db } from "../../firebaseConfig";
+import { Checkbox } from 'expo-checkbox';
+import { useState } from 'react';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function TodoList() {
-  const [todoLists, setTodoLists] = useState<any[]>([]);
-  const [newListName, setNewListName] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
+interface TodoItem {
+  id: string;
+  title: string;
+  completed: boolean;
+  importance: number;
+  points: number;
+}
 
-  const [selectedList, setSelectedList] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [newItem, setNewItem] = useState("");
+export default function App() {
+  const [todos, setTodos] = useState<TodoItem[]>([
+    { id: '1', title: 'Faire les courses', completed: false, importance: 3, points: 10 },
+    { id: '2', title: 'Appeler le médecin', completed: false, importance: 5, points: 20 },
+    { id: '3', title: 'Préparer le dîner', completed: false, importance: 4, points: 15 },
+  ]);
 
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editText, setEditText] = useState("");
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [newTitle, setNewTitle] = useState('');
+  const [newImportance, setNewImportance] = useState('3');
+  const [newPoints, setNewPoints] = useState('10');
 
-  const user = auth.currentUser;
-  if (!user) return <Text>Chargement...</Text>;
-  
-  const deleteList = async (list: any) => {
-    await deleteDoc(doc(db, "users", user.uid, "todos", list.id));
+  const addTodo = () => {
+    if (newTitle.trim() === '') return;
+
+    const importance = parseInt(newImportance) || 1;
+    const points = parseInt(newPoints) || 0;
+
+    if (importance < 1 || importance > 5) {
+      alert('Le niveau d\'importance doit être entre 1 et 5');
+      return;
+    }
+
+    const newTodo: TodoItem = {
+      id: Date.now().toString(),
+      title: newTitle.trim(),
+      completed: false,
+      importance: importance,
+      points: points,
+    };
+
+    setTodos([...todos, newTodo]);
+    setNewTitle('');
+    setNewImportance('3');
+    setNewPoints('10');
   };
 
-  const deleteItem = async (item: any) => {
-    await deleteDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", item.id)
+  const toggleTodo = (id: string) => {
+    setTodos(prevTodos =>
+      prevTodos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
     );
   };
 
-  const startEditList = (list: any) => {
-    setEditingItem(list);
-    setEditText(list.title);
-    setEditModalVisible(true);
+  const getImportanceColor = (importance: number) => {
+    const colors = ['#90EE90', '#FFD700', '#FFA500', '#FF6347', '#FF0000'];
+    return colors[importance - 1] || '#FFD700';
   };
 
-  const saveListEdit = async () => {
-    if (!editText.trim()) return;
-    await updateDoc(doc(db, "users", user.uid, "todos", editingItem.id), {
-      title: editText,
-    });
-    setEditModalVisible(false);
-    setEditingItem(null);
-    setEditText("");
-  };
-
-  const startEditItem = (item: any) => {
-    setEditingItem(item);
-    setEditText(item.name);
-    setEditModalVisible(true);
-  };
-
-  const saveItemEdit = async () => {
-    await updateDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", editingItem.id),
-      { name: editText }
-    );
-    setEditModalVisible(false);
-    setEditingItem(null);
-    setEditText("");
-  };
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "todos"),
-      (snapshot) => {
-        const lists: any[] = [];
-        snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
-        setTodoLists(lists);
-      }
-    );
-    return unsubscribe;
-  }, []);
-
-  const createList = async () => {
-    if (!newListName.trim()) return;
-    await addDoc(collection(db, "users", user.uid, "todos"), {
-      title: newListName,
-    });
-    setNewListName("");
-  };
-
-  const openList = (list: any) => {
-    setSelectedList(list);
-    setModalVisible(true);
-
-    const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "todos", list.id, "items"),
-      (snapshot) => {
-        const loadedItems: any[] = [];
-        snapshot.forEach((doc) =>
-          loadedItems.push({ id: doc.id, ...doc.data() })
-        );
-        setItems(loadedItems);
-      }
-    );
-
-    return unsubscribe;
-  };
-
-  const addItem = async () => {
-    if (!newItem.trim()) return;
-    await addDoc(
-      collection(db, "users", user.uid, "todos", selectedList.id, "items"),
-      { name: newItem, checked: false }
-    );
-    setNewItem("");
-  };
-
-  const toggleItem = async (item: any) => {
-    await updateDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", item.id),
-      { checked: !item.checked }
-    );
-  };
+  const renderItem = ({ item }: { item: TodoItem }) => (
+    <View style={styles.section}>
+      <Checkbox
+        style={styles.checkbox}
+        value={item.completed}
+        onValueChange={() => toggleTodo(item.id)}
+        color={item.completed ? '#ffbf00' : undefined}
+      />
+      <View style={styles.taskInfo}>
+        <Text
+          style={[
+            styles.paragraph,
+            item.completed && styles.completedText,
+          ]}
+        >
+          {item.title}
+        </Text>
+        <View style={styles.metadata}>
+          <View style={[styles.importanceBadge, { backgroundColor: getImportanceColor(item.importance) }]}>
+            <Text style={styles.badgeText}>Priorité {item.importance}</Text>
+          </View>
+          <View style={styles.pointsBadge}>
+            <Text style={styles.pointsText}>🏆 {item.points} pts</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📝 Mes Listes de Tâches</Text>
-
-      <View style={styles.addContainer}>
+      <Text style={styles.title}>Mes Tâches</Text>
+      
+      <View style={styles.formContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Nouvelle liste de tâches"
-          value={newListName}
-          onChangeText={setNewListName}
-          onSubmitEditing={createList}
+          placeholder="Nouvelle tâche..."
+          value={newTitle}
+          onChangeText={setNewTitle}
         />
-        <TouchableOpacity onPress={createList}>
-          <Ionicons name="add-circle" size={40} color="#ffbf00" />
+        <View style={styles.formRow}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Importance (1-5)</Text>
+            <TextInput
+              style={styles.smallInput}
+              placeholder="Niveau d'importance (1-5)"
+              value={newImportance}
+              onChangeText={setNewImportance}
+              keyboardType="numeric"
+              maxLength={1}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Points</Text>
+            <TextInput
+              style={styles.smallInput}
+              placeholder="Points attribués"
+              value={newPoints}
+              onChangeText={setNewPoints}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+        <TouchableOpacity style={styles.addButton} onPress={addTodo}>
+          <Text style={styles.addButtonText}>+ Ajouter</Text>
         </TouchableOpacity>
       </View>
 
       <FlatList
-        data={todoLists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.listItem}>
-            <TouchableOpacity onPress={() => openList(item)} style={{ flex: 1 }}>
-              <Text style={styles.listText}>{item.title}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => startEditList(item)}>
-              <Ionicons name="pencil" size={20} color="orange" style={{ marginRight: 15 }} />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => deleteList(item)}>
-              <Ionicons name="trash" size={20} color="red" />
-            </TouchableOpacity>
-          </View>
-        )}
+        data={todos}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
       />
-
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalContainer}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <TouchableOpacity
-              style={{ position: "absolute", top: 10, right: 10 }}
-              onPress={() => setModalVisible(false)}
-            >
-              <Ionicons name="close" size={30} color="black" />
-            </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>{selectedList?.title}</Text>
-
-            <View style={styles.addItemRow}>
-              <TextInput
-                style={styles.input}
-                placeholder="Ajouter une tâche"
-                value={newItem}
-                onChangeText={setNewItem}
-                onSubmitEditing={addItem}
-              />
-              <TouchableOpacity onPress={addItem}>
-                <Ionicons name="add-circle" size={40} color="#ffbf00" />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={items}
-              keyExtractor={(i) => i.id}
-              renderItem={({ item }) => (
-                <View style={styles.itemRow}>
-                  <TouchableOpacity
-                    onPress={() => toggleItem(item)}
-                    style={{ flexDirection: "row", flex: 1 }}
-                  >
-                    <Ionicons name={item.checked ? "checkbox" : "square-outline"} size={28} color="#ffbf00" />
-                    <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through", color: "#b0b0b0" }]}>
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => startEditItem(item)}>
-                    <Ionicons name="pencil" size={20} color="orange" style={{ marginRight: 15 }} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => deleteItem(item)}>
-                    <Ionicons name="trash" size={20} color="red" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
-      <Modal visible={editModalVisible} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>Modifier</Text>
-
-            <TextInput
-              value={editText}
-              onChangeText={setEditText}
-              onSubmitEditing={editingItem?.name ? saveItemEdit : saveListEdit}
-              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
-            />
-
-            <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Text style={{ fontSize: 15, color: "red" }}>Annuler</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={editingItem?.name ? saveItemEdit : saveListEdit}>
-                <Text style={{ fontSize: 15, color: "green" }}>Sauvegarder</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "white" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 15, color: "#ffbf00" },
-  addContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
-  input: {
+  container: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#ffbf00",
-    padding: 10,
-    borderRadius: 10,
-    marginRight: 10,
+    marginHorizontal: 16,
+    marginVertical: 32,
   },
-  listItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#ffbf00',
+  },
+  formContainer: {
+    backgroundColor: '#f5f5f5',
     padding: 15,
-    backgroundColor: "#f4f4f4",
     borderRadius: 10,
-    marginTop: 10,
+    marginBottom: 20,
   },
-  listText: { fontSize: 18 },
-  modalContainer: {
+  input: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    fontSize: 16,
+  },
+  formRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  inputGroup: {
     flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    marginHorizontal: 5,
   },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    maxHeight: "80%",
+  label: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+    fontWeight: '600',
   },
-  modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 15, color: "#ffbf00" },
-  addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
-  itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12, paddingVertical: 8 },
-  itemText: { fontSize: 18, marginLeft: 10 },
+  smallInput: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  addButton: {
+    backgroundColor: '#ffbf00',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  section: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  taskInfo: {
+    flex: 1,
+  },
+  paragraph: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: '#b0b0b0',
+  },
+  metadata: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  importanceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  pointsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 12,
+  },
+  pointsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#333',
+  },
+  checkbox: {
+    margin: 8,
+  },
 });
