@@ -4,6 +4,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
+  // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithCredential,
@@ -244,6 +245,26 @@ WebBrowser.maybeCompleteAuthSession();
 
   };
 
+  // Facebook Login - Décommenté quand la configuration Facebook sera complète
+  // const handleFacebookSignIn = async () => {
+  //   try {
+  //     const provider = new FacebookAuthProvider();
+  //     const result = await signInWithPopup(auth, provider);
+  //     const user = result.user;
+  //     const uid = user.uid;
+
+  //     await setDoc(doc(db, "users", uid), {
+  //       email: user.email,
+  //       createdAt: new Date(),
+  //     }, { merge: true });
+
+  //     console.log("Connexion Facebook réussie");
+  //   } catch (error: any) {
+  //     console.error('Erreur Facebook:', error);
+  //     Alert.alert('Erreur', error.message || 'Échec de la connexion Facebook');
+  //   }
+  // };
+
 
   return (
 
@@ -346,6 +367,10 @@ WebBrowser.maybeCompleteAuthSession();
         <TouchableOpacity onPress={handleGoogleSignIn} style={[styles.signUpButton, { backgroundColor: "#DB4437" }]}>
           <Text style={styles.signUpText}>Google</Text>
         </TouchableOpacity>
+        {/* Bouton Facebook - Décommenté quand Facebook Login sera prêt */}
+        {/* <TouchableOpacity onPress={handleFacebookSignIn} style={[styles.signUpButton, { backgroundColor: "#1877F2" }]}>
+          <Text style={styles.signUpText}>Facebook</Text>
+        </TouchableOpacity> */}
       </View>
     </View>
   );
