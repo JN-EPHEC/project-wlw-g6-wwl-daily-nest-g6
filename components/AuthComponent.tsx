@@ -1,3 +1,4 @@
+import { auth, db } from '@/firebaseConfig';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
