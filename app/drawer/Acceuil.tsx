@@ -75,10 +75,16 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
+    // Convertir YYYY-MM-DD en JJ/MM/AAAA
+    const dateParts = eventDate.split('-');
+    const formattedDate = dateParts.length === 3 
+      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+      : eventDate;
+
     await addDoc(
-        collection(db, "users", user?.uid!, "calendrier"), { 
+        collection(db, "users", user?.uid!, "calendar"), { 
       title: eventTitle,
-      date: eventDate,
+      date: formattedDate,
       time: eventTime,
     });
     alert ("Événement sauvegardé !");
@@ -114,9 +120,15 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    await addDoc (collection(db, "users", user?.uid!, "calendrier"), { 
+    // Convertir YYYY-MM-DD en JJ/MM/AAAA
+    const dateParts = eventDate.split('-');
+    const formattedDate = dateParts.length === 3 
+      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+      : eventDate;
+
+    await addDoc (collection(db, "users", user?.uid!, "calendar"), { 
       title: eventTitle,
-      date: eventDate,
+      date: formattedDate,
       time: eventTime,
     });
     alert("Événement sauvegardé !");

@@ -4,13 +4,13 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
-  // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  User,
+    // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
+    GoogleAuthProvider,
+    onAuthStateChanged,
+    signInWithCredential,
+    signInWithEmailAndPassword,
+    signInWithPopup,
+    User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -99,8 +99,17 @@ WebBrowser.maybeCompleteAuthSession();
         const user = result.user; 
         const uid = user.uid;
 
+        // Extraire le prénom et nom du displayName
+        const displayName = user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
         await setDoc(doc(db, "users", uid), {
           email: user.email,
+          firstName: firstName,
+          lastName: lastName,
+          birthDate: '', // À compléter par l'utilisateur
           createdAt: new Date(),
         }, { merge: true });
 
@@ -115,28 +124,27 @@ WebBrowser.maybeCompleteAuthSession();
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      signInWithPopup(auth, provider)
-        .then((result) => {
-          // This gives you a Google Access Token. You can use it to access the Google API.
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          const token = credential ? credential.accessToken : null;
-          // The signed-in user info.
-          const user = result.user;
-          // IdP data available using getAdditionalUserInfo(result)
-          // ...
-        }).catch((error) => {
-          // Handle Errors here.
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          // The email of the user's account used.
-          const email = error.customData.email;
-          // The AuthCredential type that was used.
-          const credential = GoogleAuthProvider.credentialFromError(error);
-          // ...
-        });
-      //  await promptAsync();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const uid = user.uid;
+
+      // Extraire le prénom et nom du displayName
+      const displayName = user.displayName || '';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      await setDoc(doc(db, "users", uid), {
+        email: user.email,
+        firstName: firstName,
+        lastName: lastName,
+        birthDate: '', // À compléter par l'utilisateur dans son profil
+        createdAt: new Date(),
+      }, { merge: true });
+
+      console.log("Connexion Google réussie");
     } catch (err: any) {
-      console.warn('promptAsync error', err);
+      console.warn('Google sign-in error', err);
       Alert.alert('Erreur', err.message || String(err));
     }
   };

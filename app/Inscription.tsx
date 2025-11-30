@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-    createUserWithEmailAndPassword,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
@@ -24,6 +24,13 @@ export default function SignUp() {
   const [passwordError, setPasswordError] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [lastNameError, setLastNameError] = useState(false);
+  const [nameFormatError, setNameFormatError] = useState(false);
+  const [lastNameFormatError, setLastNameFormatError] = useState(false);
+  const [emailFormatError, setEmailFormatError] = useState(false);
+  const [birthDateFormatError, setBirthDateFormatError] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
+  const [passwordFormatError, setPasswordFormatError] = useState(false);
 
   const handleSignUp = async () => {
      setErrorMessage("");
@@ -37,7 +44,10 @@ export default function SignUp() {
       setEmailError(true);
       hasError = true;
     }
-    if (password.length < 6) {
+    // Vérifier: min 6 caractères, 1 chiffre, 1 majuscule
+    const hasNumber = /\d/.test(password);
+    const hasUpperCase = /[A-Z]/.test(password);
+    if (password.length < 6 || !hasNumber || !hasUpperCase) {
       setPasswordError(true);
       hasError = true;
     } 
@@ -49,6 +59,10 @@ export default function SignUp() {
     if (!lastName.trim()) {
       setLastNameError(true);
       hasError = true;  
+    }
+    if (!termsAccepted) {
+      setTermsError(true);
+      hasError = true;
     }
      if (hasError) return;
 
@@ -122,61 +136,103 @@ export default function SignUp() {
 
 
     <TextInput
-   style= {[styles.input, nameError && { borderColor: "red" }]}
+   style= {[styles.input, (nameError || nameFormatError) && { borderColor: "red" }]}
     placeholder="Prénom*"
     value={firstName}
+    maxLength={50}
     onChangeText={(text) => {
-    setFirstName(text); 
+    // N'accepter que les lettres et les accents
+    const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, '');
+    if (text !== filteredText) {
+      setNameFormatError(true);
+    } else {
+      setNameFormatError(false);
+    }
+    setFirstName(filteredText); 
     setNameError(false);
     }}
     />
     {nameError && (
     <Text style={styles.fieldError}>Cette case doit être remplie</Text>
     )}
+    {nameFormatError && (
+    <Text style={styles.fieldError}>Seules les lettres et accents sont autorisés</Text>
+    )}
     <TextInput
-    style={[styles.input, lastNameError && { borderColor: "red" }]}
+    style={[styles.input, (lastNameError || lastNameFormatError) && { borderColor: "red" }]}
     placeholder="Nom*"
     value={lastName}
+    maxLength={50}
     onChangeText={(text) => {
-    setLastName(text); 
+    // N'accepter que les lettres et les accents
+    const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, '');
+    if (text !== filteredText) {
+      setLastNameFormatError(true);
+    } else {
+      setLastNameFormatError(false);
+    }
+    setLastName(filteredText); 
     setLastNameError(false);
     }}
     />
    {lastNameError && (
   <Text style={styles.fieldError}>Cette case doit être remplie</Text>
 )}
+   {lastNameFormatError && (
+  <Text style={styles.fieldError}>Seules les lettres et accents sont autorisés</Text>
+)}
 
     <TextInput
-    style={[styles.input, emailError && { borderColor: "red" }]}
+    style= {[styles.input, (emailError || emailFormatError) && { borderColor: "red" }]}
     placeholder="Email*"
     value={email}
     onChangeText={(text) => {
     setEmail(text); 
     setEmailError(false);
+    // Vérifier si l'email contient un @xxx.xx
+    if (text.length > 0 && !text.includes('@')) {
+      setEmailFormatError(true);
+    } else {
+      setEmailFormatError(false);
+    }
     }}
     autoCapitalize="none"
     />
   {emailError && (
   <Text style={styles.fieldError}>Cette case doit être remplie</Text>
   )}
+  {emailFormatError && (
+  <Text style={styles.fieldError}>L'email doit contenir un @xxx.xx</Text>
+  )}
     
     <TextInput
-        style= {[ styles.input, passwordError && { borderColor: "red" }]}
+        style= {[ styles.input, (passwordError || passwordFormatError) && { borderColor: "red" }]}
         placeholder="Mot de passe*"
         value={password}
         onChangeText={(text) => {
           setPassword(text); 
           setPasswordError(false);
+          // Vérifier: min 6 caractères, 1 chiffre, 1 majuscule
+          const hasNumber = /\d/.test(text);
+          const hasUpperCase = /[A-Z]/.test(text);
+          if (text.length > 0 && (text.length < 6 || !hasNumber || !hasUpperCase)) {
+            setPasswordFormatError(true);
+          } else {
+            setPasswordFormatError(false);
+          }
         }}
         secureTextEntry={true}
       />
       {passwordError && (
-        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères</Text>
+        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères, 1 chiffre et 1 majuscule</Text>
+      )}
+      {passwordFormatError && (
+        <Text style={styles.fieldError}>Min 6 caractères, 1 chiffre et 1 majuscule requis</Text>
       )}
 
 
      <TextInput
-  style={styles.input}
+  style={[styles.input, birthDateFormatError && { borderColor: "red" }]}
   placeholder="Date de naissance (JJ/MM/AAAA)"
   value={birthDate}
   keyboardType="numeric"
@@ -196,17 +252,74 @@ export default function SignUp() {
     }
 
     setBirthDate(formatted);
+    
+    // Vérifier le format complet DD/MM/YYYY
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (formatted.length > 0 && formatted.length < 10) {
+      setBirthDateFormatError(true);
+    } else if (formatted.length === 10 && !dateRegex.test(formatted)) {
+      setBirthDateFormatError(true);
+    } else if (formatted.length === 10 && dateRegex.test(formatted)) {
+      setBirthDateFormatError(false);
+    } else if (formatted.length === 0) {
+      setBirthDateFormatError(false);
+    }
   }}
 />
+{birthDateFormatError && (
+  <Text style={styles.fieldError}>Format attendu: JJ/MM/AAAA</Text>
+)}
+
+      <View style={styles.termsContainer}>
+        <TouchableOpacity 
+          onPress={() => {
+            setTermsAccepted(!termsAccepted);
+            setTermsError(false);
+          }}
+          style={styles.checkboxContainer}
+        >
+          <Ionicons 
+            name={termsAccepted ? "checkbox" : "square-outline"} 
+            size={24} 
+            color={termsError ? "red" : "#00b7ff9a"} 
+          />
+        </TouchableOpacity>
+        <Text style={[styles.termsText, termsError && { color: "red" }]}>
+          J'accepte la Politique de confidentialité, les Conditions générales d'utilisation et les Conditions générales de vente
+        </Text>
+      </View>
+      {termsError && (
+        <Text style={styles.fieldError}>Vous devez accepter les conditions pour continuer</Text>
+      )}
 
       <View style={{ alignItems: "center", marginTop: 20 }}>
-      <TouchableOpacity
-  onPress={handleSignUp}
-  style={styles.signUpButton}
-  disabled={loading}
->
-  <Text style={styles.signUpText}>S'inscrire</Text>
-</TouchableOpacity>
+      {(() => {
+        const hasNumber = /\d/.test(password);
+        const hasUpperCase = /[A-Z]/.test(password);
+        const isPasswordValid = password.length >= 6 && hasNumber && hasUpperCase;
+        
+        const isFormValid = 
+          firstName.trim() !== "" && 
+          lastName.trim() !== "" && 
+          email.trim() !== "" && 
+          email.includes('@') &&
+          isPasswordValid && 
+          termsAccepted &&
+          !nameFormatError &&
+          !lastNameFormatError &&
+          !emailFormatError &&
+          !birthDateFormatError;
+        
+        return (
+          <TouchableOpacity
+            onPress={handleSignUp}
+            style={[styles.signUpButton, !isFormValid && styles.signUpButtonDisabled]}
+            disabled={loading || !isFormValid}
+          >
+            <Text style={styles.signUpText}>S'inscrire</Text>
+          </TouchableOpacity>
+        );
+      })()}
       </View>
 
       <View style={{ alignItems: "center", marginTop: 10 }}>
@@ -274,6 +387,10 @@ modalContent: {
   alignItems: "center",
   marginTop: 10,
 },
+signUpButtonDisabled: {
+  backgroundColor: "rgba(0, 183, 255, 0.3)",
+  opacity: 0.5,
+},
 signUpText: {
   color: "white",               
   fontSize: 16,
@@ -291,5 +408,21 @@ signUpText: {
     textAlign: "center",
     marginBottom: 10,
     
+  },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+    marginBottom: 5,
+    paddingHorizontal: 5,
+  },
+  checkboxContainer: {
+    marginRight: 10,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 16,
   },
 });

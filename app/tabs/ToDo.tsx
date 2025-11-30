@@ -1,8 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
+
+// Fonction pour obtenir la couleur en fonction de la priorité
+const getPriorityColor = (priority: string): string => {
+  switch(priority) {
+    case "1": return "#4CAF50"; // Vert
+    case "2": return "#2196F3"; // Bleu
+    case "3": return "#FF9800"; // Orange
+    case "4": return "#F44336"; // Rouge
+    default: return "#2196F3"; // Bleu par défaut
+  }
+};
 
 export default function TodoList() {
   const [todoLists, setTodoLists] = useState<any[]>([]);
@@ -12,10 +23,18 @@ export default function TodoList() {
   const [selectedList, setSelectedList] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [newItemPoints, setNewItemPoints] = useState("");
+  const [newItemDate, setNewItemDate] = useState("");
+  const [newItemTime, setNewItemTime] = useState("");
+  const [newItemPriority, setNewItemPriority] = useState("2"); // 1=vert, 2=bleu, 3=orange, 4=rouge
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editText, setEditText] = useState("");
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [editPoints, setEditPoints] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editPriority, setEditPriority] = useState("2");
 
   const user = auth.currentUser;
   if (!user) return <Text>Chargement...</Text>;
@@ -49,17 +68,69 @@ export default function TodoList() {
   const startEditItem = (item: any) => {
     setEditingItem(item);
     setEditText(item.name);
+    setEditPoints(item.points?.toString() || "");
+    setEditDate(item.date || "");
+    setEditTime(item.time || "");
+    setEditPriority(item.priority || "2");
     setEditModalVisible(true);
   };
 
   const saveItemEdit = async () => {
+    const updatedData: any = {
+      name: editText,
+      points: parseInt(editPoints) || 0,
+      date: editDate,
+      time: editTime,
+      priority: editPriority,
+    };
+
     await updateDoc(
       doc(db, "users", user.uid, "todos", selectedList.id, "items", editingItem.id),
-      { name: editText }
+      updatedData
     );
+
+    // Mettre à jour également dans le calendrier si la date existe
+    if (editDate) {
+      const calendarRef = collection(db, "users", user.uid, "calendar");
+      const calendarSnapshot = await getDocs(calendarRef);
+      
+      // Chercher l'événement existant lié à cette tâche
+      let eventId = null;
+      calendarSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.title === editingItem.name && data.date === editingItem.date) {
+          eventId = doc.id;
+        }
+      });
+
+      if (eventId) {
+        await updateDoc(doc(db, "users", user.uid, "calendar", eventId), {
+          title: editText,
+          date: editDate,
+          time: editTime,
+          points: parseInt(editPoints) || 0,
+          priority: editPriority,
+        });
+      } else {
+        // Créer un nouvel événement si la date a été ajoutée
+        await addDoc(calendarRef, {
+          title: editText,
+          date: editDate,
+          time: editTime,
+          points: parseInt(editPoints) || 0,
+          priority: editPriority,
+          type: "todo",
+        });
+      }
+    }
+
     setEditModalVisible(false);
     setEditingItem(null);
     setEditText("");
+    setEditPoints("");
+    setEditDate("");
+    setEditTime("");
+    setEditPriority("2");
   };
 
   useEffect(() => {
@@ -102,11 +173,41 @@ export default function TodoList() {
 
   const addItem = async () => {
     if (!newItem.trim()) return;
+    const points = parseInt(newItemPoints) || 0;
+    
+    // Ajouter la tâche
     await addDoc(
       collection(db, "users", user.uid, "todos", selectedList.id, "items"),
-      { name: newItem, checked: false }
+      { 
+        name: newItem, 
+        checked: false, 
+        points: points,
+        date: newItemDate || "",
+        time: newItemTime || "",
+        priority: newItemPriority, // Garder en string
+      }
     );
+
+    // Si une date est spécifiée, ajouter aussi dans le calendrier
+    if (newItemDate.trim()) {
+      await addDoc(
+        collection(db, "users", user.uid, "calendar"),
+        {
+          title: newItem,
+          date: newItemDate, // Garder le format JJ/MM/AAAA
+          time: newItemTime || "00:00", // Heure saisie ou par défaut
+          points: points,
+          priority: newItemPriority, // Garder en string
+          type: "todo", // Pour identifier que c'est une tâche
+        }
+      );
+    }
+
     setNewItem("");
+    setNewItemPoints("");
+    setNewItemDate("");
+    setNewItemTime("");
+    setNewItemPriority("2");
   };
 
   const toggleItem = async (item: any) => {
@@ -173,15 +274,107 @@ export default function TodoList() {
 
             <Text style={styles.modalTitle}>{selectedList?.title}</Text>
 
-            <View style={styles.addItemRow}>
+            <View style={[styles.addItemRow, { marginTop: 20 }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { flex: 2 }]}
                 placeholder="Ajouter une tâche"
                 value={newItem}
                 onChangeText={setNewItem}
-                onSubmitEditing={addItem}
               />
-              <TouchableOpacity onPress={addItem}>
+              <View style={styles.pointsContainer}>
+                <Text style={styles.heartIcon}>❤️</Text>
+                <TextInput
+                  style={styles.pointsInput}
+                  placeholder="Pts"
+                  value={newItemPoints}
+                  onChangeText={setNewItemPoints}
+                  keyboardType="numeric"
+                  maxLength={3}
+                />
+              </View>
+            </View>
+
+            {/* Sélecteur de priorité */}
+            <View style={{ marginTop: 20 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 10, color: "#333" }}>Priorité</Text>
+              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                <TouchableOpacity
+                  onPress={() => setNewItemPriority("1")}
+                  style={[
+                    styles.priorityButton,
+                    { borderColor: getPriorityColor("1"), backgroundColor: newItemPriority === "1" ? getPriorityColor("1") : "white" }
+                  ]}
+                >
+                  <Text style={{ color: newItemPriority === "1" ? "white" : getPriorityColor("1"), fontWeight: "600" }}>Basse</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => setNewItemPriority("2")}
+                  style={[
+                    styles.priorityButton,
+                    { borderColor: getPriorityColor("2"), backgroundColor: newItemPriority === "2" ? getPriorityColor("2") : "white" }
+                  ]}
+                >
+                  <Text style={{ color: newItemPriority === "2" ? "white" : getPriorityColor("2"), fontWeight: "600" }}>Moyenne</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => setNewItemPriority("3")}
+                  style={[
+                    styles.priorityButton,
+                    { borderColor: getPriorityColor("3"), backgroundColor: newItemPriority === "3" ? getPriorityColor("3") : "white" }
+                  ]}
+                >
+                  <Text style={{ color: newItemPriority === "3" ? "white" : getPriorityColor("3"), fontWeight: "600" }}>Haute</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => setNewItemPriority("4")}
+                  style={[
+                    styles.priorityButton,
+                    { borderColor: getPriorityColor("4"), backgroundColor: newItemPriority === "4" ? getPriorityColor("4") : "white" }
+                  ]}
+                >
+                  <Text style={{ color: newItemPriority === "4" ? "white" : getPriorityColor("4"), fontWeight: "600" }}>Urgente</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={[styles.dateRow, { marginTop: 20 }]}>
+              <Ionicons name="calendar-outline" size={20} color="#ffbf00" style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.dateInput}
+                placeholder="Date (JJ/MM/AAAA)"
+                value={newItemDate}
+                onChangeText={(text) => {
+                  // Auto-formater la date
+                  let formatted = text.replace(/[^0-9]/g, '');
+                  if (formatted.length >= 2) {
+                    formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
+                  }
+                  if (formatted.length >= 5) {
+                    formatted = formatted.slice(0, 5) + '/' + formatted.slice(5, 9);
+                  }
+                  setNewItemDate(formatted);
+                }}
+                maxLength={10}
+              />
+              <Ionicons name="time-outline" size={20} color="#ffbf00" style={{ marginLeft: 10, marginRight: 10 }} />
+              <TextInput
+                style={styles.timeInput}
+                placeholder="HH:MM"
+                value={newItemTime}
+                onChangeText={(text) => {
+                  // Auto-formater l'heure
+                  let formatted = text.replace(/[^0-9]/g, '');
+                  if (formatted.length >= 2) {
+                    formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                  }
+                  setNewItemTime(formatted);
+                }}
+                maxLength={5}
+              />
+              <TouchableOpacity onPress={addItem} style={{ marginLeft: 10 }}>
                 <Ionicons name="add-circle" size={40} color="#ffbf00" />
               </TouchableOpacity>
             </View>
@@ -190,15 +383,27 @@ export default function TodoList() {
               data={items}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => (
-                <View style={styles.itemRow}>
+                <View style={[styles.itemRow, { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || "2") }]}>
                   <TouchableOpacity
                     onPress={() => toggleItem(item)}
-                    style={{ flexDirection: "row", flex: 1 }}
+                    style={{ flexDirection: "row", flex: 1, alignItems: "center" }}
                   >
-                    <Ionicons name={item.checked ? "checkbox" : "square-outline"} size={28} color="#ffbf00" />
-                    <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through", color: "#b0b0b0" }]}>
-                      {item.name}
-                    </Text>
+                    <Ionicons name={item.checked ? "checkbox" : "square-outline"} size={28} color={getPriorityColor(item.priority || "2")} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through", color: "#b0b0b0" }]}>
+                        {item.name}
+                      </Text>
+                      {(item.date || item.time) && (
+                        <Text style={styles.dateText}>
+                          {item.date && <><Ionicons name="calendar-outline" size={14} color="#666" /> {item.date}</>}
+                          {item.date && item.time && " • "}
+                          {item.time && <><Ionicons name="time-outline" size={14} color="#666" /> {item.time}</>}
+                        </Text>
+                      )}
+                    </View>
+                    {item.points > 0 && (
+                      <Text style={styles.pointsBadge}>❤️ {item.points}</Text>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => startEditItem(item)}>
@@ -217,23 +422,124 @@ export default function TodoList() {
 
       <Modal visible={editModalVisible} transparent animationType="fade">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>Modifier</Text>
+          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%", maxHeight: "80%" }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20 }}>Modifier la tâche</Text>
 
+            <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Nom de la tâche</Text>
             <TextInput
               value={editText}
               onChangeText={setEditText}
-              onSubmitEditing={editingItem?.name ? saveItemEdit : saveListEdit}
-              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
+              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+              placeholder="Nom de la tâche"
             />
 
+            <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Points ❤️</Text>
+            <TextInput
+              value={editPoints}
+              onChangeText={setEditPoints}
+              keyboardType="numeric"
+              maxLength={3}
+              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+              placeholder="Points"
+            />
+
+            <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Priorité</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 15 }}>
+              <TouchableOpacity
+                onPress={() => setEditPriority("1")}
+                style={[
+                  styles.priorityButton,
+                  { borderColor: getPriorityColor("1"), backgroundColor: editPriority === "1" ? getPriorityColor("1") : "white" }
+                ]}
+              >
+                <Text style={{ color: editPriority === "1" ? "white" : getPriorityColor("1"), fontWeight: "600", fontSize: 12 }}>Basse</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => setEditPriority("2")}
+                style={[
+                  styles.priorityButton,
+                  { borderColor: getPriorityColor("2"), backgroundColor: editPriority === "2" ? getPriorityColor("2") : "white" }
+                ]}
+              >
+                <Text style={{ color: editPriority === "2" ? "white" : getPriorityColor("2"), fontWeight: "600", fontSize: 12 }}>Moyenne</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => setEditPriority("3")}
+                style={[
+                  styles.priorityButton,
+                  { borderColor: getPriorityColor("3"), backgroundColor: editPriority === "3" ? getPriorityColor("3") : "white" }
+                ]}
+              >
+                <Text style={{ color: editPriority === "3" ? "white" : getPriorityColor("3"), fontWeight: "600", fontSize: 12 }}>Haute</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() => setEditPriority("4")}
+                style={[
+                  styles.priorityButton,
+                  { borderColor: getPriorityColor("4"), backgroundColor: editPriority === "4" ? getPriorityColor("4") : "white" }
+                ]}
+              >
+                <Text style={{ color: editPriority === "4" ? "white" : getPriorityColor("4"), fontWeight: "600", fontSize: 12 }}>Urgente</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>📅 Date</Text>
+                <TextInput
+                  value={editDate}
+                  onChangeText={(text) => {
+                    let formatted = text.replace(/[^0-9]/g, '');
+                    if (formatted.length >= 2) {
+                      formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
+                    }
+                    if (formatted.length >= 5) {
+                      formatted = formatted.slice(0, 5) + '/' + formatted.slice(5, 9);
+                    }
+                    setEditDate(formatted);
+                  }}
+                  placeholder="JJ/MM/AAAA"
+                  maxLength={10}
+                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>⏰ Heure</Text>
+                <TextInput
+                  value={editTime}
+                  onChangeText={(text) => {
+                    let formatted = text.replace(/[^0-9]/g, '');
+                    if (formatted.length >= 2) {
+                      formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                    }
+                    setEditTime(formatted);
+                  }}
+                  placeholder="HH:MM"
+                  maxLength={5}
+                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
+                />
+              </View>
+            </View>
+
             <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Text style={{ fontSize: 15, color: "red" }}>Annuler</Text>
+              <TouchableOpacity onPress={() => {
+                setEditModalVisible(false);
+                setEditingItem(null);
+                setEditText("");
+                setEditPoints("");
+                setEditDate("");
+                setEditTime("");
+                setEditPriority("2");
+              }}>
+                <Text style={{ fontSize: 15, color: "red", fontWeight: "600" }}>Annuler</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={editingItem?.name ? saveItemEdit : saveListEdit}>
-                <Text style={{ fontSize: 15, color: "green" }}>Sauvegarder</Text>
+                <Text style={{ fontSize: 15, color: "green", fontWeight: "600" }}>Sauvegarder</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -278,7 +584,69 @@ const styles = StyleSheet.create({
     maxHeight: "80%",
   },
   modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 15, color: "#ffbf00" },
-  addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+  addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  dateRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 15,
+    paddingHorizontal: 5,
+  },
+  dateInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    padding: 10,
+    borderRadius: 10,
+    fontSize: 16,
+  },
+  timeInput: {
+    width: 80,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    padding: 10,
+    borderRadius: 10,
+    fontSize: 16,
+    textAlign: "center",
+  },
   itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12, paddingVertical: 8 },
-  itemText: { fontSize: 18, marginLeft: 10 },
+  itemText: { fontSize: 18, flex: 1 },
+  dateText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
+  },
+  pointsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginRight: 10,
+  },
+  heartIcon: {
+    fontSize: 18,
+    marginRight: 5,
+  },
+  pointsInput: {
+    width: 40,
+    textAlign: "center",
+    fontSize: 16,
+  },
+  pointsBadge: {
+    fontSize: 14,
+    color: "#ff3b30",
+    fontWeight: "bold",
+    marginLeft: 10,
+  },
+  priorityButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

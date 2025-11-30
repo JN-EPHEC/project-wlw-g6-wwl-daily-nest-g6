@@ -3,9 +3,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { auth, db } from "../../firebaseConfig";
+
+// Fonction pour obtenir la couleur en fonction de la priorité
+const getPriorityColor = (priority: string): string => {
+  switch(priority) {
+    default: return "#2196F3"; // Bleu par défaut
+    case "1": return "#4CAF50"; // Vert
+    case "2": return "#2196F3"; // Bleu
+    case "3": return "#FF9800"; // Orange
+    case "4": return "#F44336"; // Rouge
+    
+  }
+};
 
 export default function Home() {
   const [events, setEvents] = useState<{ [key: string]: any }>({});
@@ -14,7 +26,7 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { id: string;title: string; time: string }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { id: string;title: string; time: string; priority?: string }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -33,10 +45,20 @@ export default function Home() {
       const newItems: { [key: string]: any[] } = {}; 
       snapshot.forEach((doc) => { 
         const data = doc.data();
-        newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
+        
+        // Convertir JJ/MM/AAAA en YYYY-MM-DD pour le calendrier
+        let calendarDate = data.date;
+        if (data.date && data.date.includes('/')) {
+          const parts = data.date.split('/');
+          if (parts.length === 3) {
+            calendarDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+          }
+        }
+        
+        newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
 
-        if (!newItems[data.date]) newItems[data.date] = []; 
-        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time }); 
+        if (!newItems[calendarDate]) newItems[calendarDate] = []; 
+        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority }); 
       });
 
       setEvents(newEvents); 
@@ -65,9 +87,15 @@ export default function Home() {
           time: eventTime,
         });
       } else {
+        // Convertir YYYY-MM-DD (du calendrier) en JJ/MM/AAAA pour la sauvegarde
+        const dateParts = eventDate.split('-');
+        const formattedDate = dateParts.length === 3 
+          ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+          : eventDate;
+
         await addDoc(collection(db, "users", uid, "calendar"), { 
           title: eventTitle,
-          date: eventDate,
+          date: formattedDate,
           time: eventTime,
         });
       }
@@ -86,33 +114,29 @@ export default function Home() {
   };
   const deleteEvent = async (eventId: string) => {
     if (!uid) return;
-    Alert.alert(
-      "Confirmer la suppression",
-      "Êtes-vous sûr de vouloir supprimer cet événement ?",
-      [
-        { text: "Non", style: "cancel" },
-        { text: "Oui", onPress: async () => {
-            try {
-              const docRef = doc(db, "users", uid, "calendar", eventId);
-              await deleteDoc(docRef);
-              alert("Événement supprimé !");
-            } catch (err) {
-              alert("Impossible de supprimer l'événement.");
-            }
-          } 
-        }
-      ]
-    );
+    
+    const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer cet événement ?");
+    
+    if (confirmDelete) {
+      try {
+        const docRef = doc(db, "users", uid, "calendar", eventId);
+        await deleteDoc(docRef);
+        alert("Événement supprimé !");
+      } catch (err) {
+        console.error("Erreur de suppression:", err);
+        alert("Impossible de supprimer l'événement.");
+      }
+    }
   }
     
 
 
   return (
-    <View style={styles.calendarContainer}>
-      <Calendar
-        onDayPress={(day) => {
-          setSelectedDate(day.dateString); 
-          setModalViewVisible(true); 
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={styles.calendarWrapper}>
+        <Calendar
+          onDayPress={(day) => {
+            setSelectedDate(day.dateString); 
         }}
         markedDates={{
           ...events, 
@@ -133,6 +157,38 @@ export default function Home() {
           textDayHeaderFontSize: 14,
         }}
       />
+
+      {/* Container des tâches du jour sélectionné */}
+      {selectedDate && items[selectedDate] && items[selectedDate].length > 0 && (
+        <View style={styles.tasksContainer}>
+          <Text style={styles.tasksTitle}>
+            Tâches du {selectedDate.split('-').reverse().join('/')}
+          </Text>
+          {items[selectedDate].map((item, index) => (
+            <View key={item.id} style={[styles.taskItem, { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || "2") }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.taskTitle}>{item.title}</Text>
+                <Text style={styles.taskTime}>⏰ {item.time}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity onPress={() => {
+                  setEventTitle(item.title);
+                  setEventDate(selectedDate);
+                  setEventTime(item.time);
+                  setEditingIndex(index);
+                  setIsEditing(true);
+                  setModalVisible(true);
+                }}>
+                  <Ionicons name="pencil" size={20} color="orange" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteEvent(item.id)}>
+                  <Ionicons name="trash" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       <TouchableOpacity onPress={() => { 
         setIsEditing(false);
@@ -231,21 +287,61 @@ export default function Home() {
     </View>
   </View>
 </Modal>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  calendarWrapper: {
+    marginHorizontal: 10,
+    marginVertical: 10,
+  },
   calendarContainer: {
     position: "relative",
     borderRadius: 20,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#ccc",
     backgroundColor: "white",
-    width: "95%",
-    height: 400,
-    marginVertical: 10,
-    marginHorizontal: 10,
+    paddingBottom: 20,
+  },
+  tasksContainer: {
+    marginTop: 20,
+    marginHorizontal: 15,
+    padding: 15,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+  },
+  tasksTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffbf00",
+    marginBottom: 15,
+  },
+  taskItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#ffbf00",
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  taskTime: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
   },
   Button: {
     position: "absolute",
