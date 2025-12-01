@@ -5,9 +5,21 @@ import { useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import { auth, db } from "../../firebaseConfig";
+
+// Fonction pour obtenir la couleur en fonction de la priorité
+const getPriorityColor = (priority: string): string => {
+  switch(priority) {
+    default: return "#2196F3"; // Bleu par défaut
+    case "1": return "#4CAF50"; // Vert
+    case "2": return "#2196F3"; // Bleu
+    case "3": return "#FF9800"; // Orange
+    case "4": return "#F44336"; // Rouge
+    
+  }
+};
 
 export default function Home() {
   const [events, setEvents] = useState<{ [key: string]: any }>({});
@@ -16,7 +28,7 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { id: string;title: string; time: string }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { id: string;title: string; time: string; priority?: string }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -288,6 +300,38 @@ const saveEvent = async () => {
         }}
       />
 
+      {/* Container des tâches du jour sélectionné */}
+      {selectedDate && items[selectedDate] && items[selectedDate].length > 0 && (
+        <View style={styles.tasksContainer}>
+          <Text style={styles.tasksTitle}>
+            Tâches du {selectedDate.split('-').reverse().join('/')}
+          </Text>
+          {items[selectedDate].map((item, index) => (
+            <View key={item.id} style={[styles.taskItem, { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || "2") }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.taskTitle}>{item.title}</Text>
+                <Text style={styles.taskTime}>⏰ {item.time}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity onPress={() => {
+                  setEventTitle(item.title);
+                  setEventDate(selectedDate);
+                  setEventTime(item.time);
+                  setEditingIndex(index);
+                  setIsEditing(true);
+                  setModalVisible(true);
+                }}>
+                  <Ionicons name="pencil" size={20} color="orange" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteEvent(item.id)}>
+                  <Ionicons name="trash" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <TouchableOpacity onPress={() => { 
         setIsEditing(false);
         setModalVisible(true)
@@ -407,21 +451,61 @@ const saveEvent = async () => {
     </View>
   </View>
 </Modal>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  calendarWrapper: {
+    marginHorizontal: 10,
+    marginVertical: 10,
+  },
   calendarContainer: {
     position: "relative",
     borderRadius: 20,
-    overflow: "hidden",
     borderWidth: 1,
     borderColor: "#ccc",
     backgroundColor: "white",
-    width: "95%",
-    height: 400,
-    marginVertical: 10,
-    marginHorizontal: 10,
+    paddingBottom: 20,
+  },
+  tasksContainer: {
+    marginTop: 20,
+    marginHorizontal: 15,
+    padding: 15,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+  },
+  tasksTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffbf00",
+    marginBottom: 15,
+  },
+  taskItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#ffbf00",
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  taskTime: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
   },
   Button: {
     position: "absolute",

@@ -110,7 +110,7 @@ useEffect(() => {
 
     await addDoc(path, {
       title: eventTitle,
-      date: eventDate,
+      date: formattedDate,
       time: eventTime,
     });
 
