@@ -36,6 +36,7 @@ export default function TodoList() {
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editPriority, setEditPriority] = useState("2");
+  const [sortBy, setSortBy] = useState<"none" | "priority" | "date">("none"); // Tri par priorité ou date
 
   const user = auth.currentUser;
   if (!user) return <Text>Chargement...</Text>;
@@ -275,6 +276,22 @@ export default function TodoList() {
 
             <Text style={styles.modalTitle}>{selectedList?.title}</Text>
 
+            {/* Liste déroulante de tri */}
+            <View style={{ marginBottom: 15, marginTop: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#333" }}>Trier par</Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={sortBy}
+                  onValueChange={(value) => setSortBy(value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Aucun tri (ordre d'ajout)" value="none" />
+                  <Picker.Item label="Par priorité" value="priority" />
+                  <Picker.Item label="Par date" value="date" />
+                </Picker>
+              </View>
+            </View>
+
             <View style={[styles.addItemRow, { marginTop: 20 }]}>
               <TextInput
                 style={[styles.input, { flex: 2 }]}
@@ -381,7 +398,39 @@ export default function TodoList() {
             </View>
 
             <FlatList
-              data={items}
+              data={(() => {
+                // Fonction de tri des tâches
+                let sortedItems = [...items];
+                
+                if (sortBy === "priority") {
+                  // Tri par priorité : 4 (urgent) → 1 (basse)
+                  sortedItems.sort((a, b) => {
+                    const priorityA = parseInt(a.priority || "2");
+                    const priorityB = parseInt(b.priority || "2");
+                    return priorityB - priorityA; // Ordre décroissant
+                  });
+                } else if (sortBy === "date") {
+                  // Tri par date
+                  sortedItems.sort((a, b) => {
+                    if (!a.date && !b.date) return 0;
+                    if (!a.date) return 1; // Pas de date va à la fin
+                    if (!b.date) return -1;
+                    
+                    // Convertir JJ/MM/AAAA en timestamp pour comparer
+                    const parseDate = (dateStr: string) => {
+                      const parts = dateStr.split('/');
+                      if (parts.length === 3) {
+                        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+                      }
+                      return 0;
+                    };
+                    
+                    return parseDate(a.date) - parseDate(b.date);
+                  });
+                }
+                
+                return sortedItems;
+              })()}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => (
                 <View style={[styles.itemRow, { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || "2") }]}>
@@ -649,5 +698,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 50,
+    width: "100%",
   },
 });
