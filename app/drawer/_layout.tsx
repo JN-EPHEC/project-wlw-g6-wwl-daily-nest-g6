@@ -26,6 +26,8 @@ export default function DrawerLayout() {
       <Drawer.Screen name="Parametres" options={{ title: "Paramètres" }} />
 
       <Drawer.Screen name="Avantages" options={{ title: "Avantages" }} />
+      
+      <Drawer.Screen name= "Famille"  options = {{title: "Famille"}} />
 
       <Drawer.Screen name="Deconnexion" options={{ title: "Déconnexion" }} />
 

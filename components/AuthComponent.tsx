@@ -71,6 +71,7 @@ WebBrowser.maybeCompleteAuthSession();
     await setDoc(doc(db, "users", uid), {
       email: userCredential.user.email,
       createdAt: new Date(),
+      familyId: null,
     }, { merge: true });
 
   } catch (error: any) {
@@ -100,6 +101,7 @@ WebBrowser.maybeCompleteAuthSession();
         await setDoc(doc(db, "users", uid), {
           email: user.email,
           createdAt: new Date(),
+          familyId: null,
         }, { merge: true });
 
         console.log("Connexion Google réussie");
