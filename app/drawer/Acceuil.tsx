@@ -4,7 +4,7 @@ import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { addDoc, collection, onSnapshot } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -30,7 +30,7 @@ const Tab = createBottomTabNavigator<TabMenuParamList>();
 
 export function Acceuil() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [modalScreen, setModalScreen] = useState<"calendrier" | "todo" | "shopping" | null>(null);
+  const [modalScreen, setModalScreen] = useState<"calendar" | "todo" | "shopping" | null>(null);
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -40,18 +40,40 @@ export function Acceuil() {
   const [todoPerson, setTodoPerson] = useState("");
   const [todoDate, setTodoDate] = useState("");
 
-  const [shoppingLists, setShoppingLists] = useState<any[]>([]);
+const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
 const [newListName, setNewListName] = useState("");
 const [shoppingItem, setShoppingItem] = useState("");
 
 
 
-  const goBack = () => { setModalScreen (null)};
-  const [modalVisible, setModalVisible] = useState(false);
-  const user = auth.currentUser;
+const goBack = () => { setModalScreen (null)};
+const [modalVisible, setModalVisible] = useState(false);
+const user = auth.currentUser;
 
-  useEffect(() => {
+const [selectedCalendarType, setSelectedCalendarType] = useState<"personal" | "family">("personal");
+const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string } | null>(null);
+const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string }[]>([]);
+
+ useEffect(() => {
+  if (!user?.email) return;
+
+  const q = query(
+    collection(db, "families"),
+    where("members", "array-contains", user.email)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const list: any[] = [];
+    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+    setFamiliesJoined(list);
+  });
+
+  return () => unsubscribe();
+}, [user?.email]);
+
+
+useEffect(() => {
   if (!user) return;
 
   const unsubscribe = onSnapshot(
@@ -67,51 +89,6 @@ const [shoppingItem, setShoppingItem] = useState("");
 }, []);
 
 
-
-
-  const saveEvent = async () => {
-    if (!eventTitle || !eventDate || !eventTime) {
-      alert ("Veuillez remplir tous les champs svpp");
-      return;
-    }
-    try {
-    // Convertir YYYY-MM-DD en JJ/MM/AAAA
-    const dateParts = eventDate.split('-');
-    const formattedDate = dateParts.length === 3 
-      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
-      : eventDate;
-
-    await addDoc(
-        collection(db, "users", user?.uid!, "calendar"), { 
-      title: eventTitle,
-      date: formattedDate,
-      time: eventTime,
-    });
-    alert ("Événement sauvegardé !");
-
-    setEventTitle("");
-    setEventDate("");
-    setEventTime("");
-
-    setModalVisible(false);
-  } 
-  
-  catch (err) {
-    console.log(err);
-    alert("Impossible de sauvegarder l'événement.");
-  }
-};
-
-  const openModal = (screen: "calendrier" | "todo" | "shopping") => {
-    setModalScreen(screen);
-    setMenuVisible(true);
-  };
-
-  const closeModal = () => {
-    setMenuVisible(false);
-    setModalScreen(null);
-  };
-
   const renderModalContent = () => {
   
   const saveEvent = async () => {
@@ -120,27 +97,33 @@ const [shoppingItem, setShoppingItem] = useState("");
       return;
     }
     try {
-    // Convertir YYYY-MM-DD en JJ/MM/AAAA
-    const dateParts = eventDate.split('-');
-    const formattedDate = dateParts.length === 3 
-      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
-      : eventDate;
+    let path: any;
 
-    await addDoc (collection(db, "users", user?.uid!, "calendar"), { 
+    if (selectedCalendarType === "personal") {
+      path = collection(db, "users", user?.uid!, "calendrier"); // perso
+    } else if (selectedCalendarType === "family" && selectedFamily) {
+      path = collection(db, "families", selectedFamily.id, "calendar"); // familial
+    } else {
+      alert("Sélectionnez un calendrier valide !");
+      return;
+    }
+
+    await addDoc(path, {
       title: eventTitle,
       date: formattedDate,
       time: eventTime,
     });
+
     alert("Événement sauvegardé !");
 
-      setEventTitle("");
-      setEventDate("");
-      setEventTime("");
-      setModalScreen(null);
-      setMenuVisible(false);
-  } 
-  
-  catch (err) {
+    // reset
+    setEventTitle("");
+    setEventDate("");
+    setEventTime("");
+    setModalScreen(null);
+    setMenuVisible(false);
+
+  } catch (err) {
     console.log(err);
     alert("Impossible de sauvegarder l'événement.");
   }
@@ -203,7 +186,7 @@ const saveTodo = async () => {
 
     switch (modalScreen) { 
 
-    case "calendrier":
+    case "calendar":
       return (
         <View style={styles.modalInnerContainer}>
 
@@ -214,6 +197,30 @@ const saveTodo = async () => {
             </View>
 
              <Text style={styles.modalTitle}>Nouvel Événement</Text>
+
+             <Picker
+  selectedValue={selectedCalendarType === "personal" ? "personal" : selectedFamily?.id}
+  onValueChange={(value) => {
+    if (value === "personal") {
+      setSelectedCalendarType("personal");
+      setSelectedFamily(null);
+    } else {
+      const fam = familiesJoined.find(f => f.id === value);
+      if (fam) {
+        setSelectedFamily(fam);
+        setSelectedCalendarType("family");
+      }
+    }
+  }}
+  style={styles.inputWeb} // même style que tes inputs
+>
+  <Picker.Item label="Calendrier personnel" value="personal" />
+  <Picker.Item label="── Calendriers famille ──" value="" enabled={false} />
+  {familiesJoined.map(f => (
+    <Picker.Item key={f.id} label={f.name} value={f.id} />
+  ))}
+</Picker>
+
 
           <TextInput 
           placeholder="Titre" 
@@ -377,7 +384,7 @@ const saveTodo = async () => {
 
       {!modalScreen && (
         <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("calendrier")}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("calendar")}>
             <Ionicons name="calendar-outline" size={30} color="white" />
             <Text style={styles.buttonText}>Événement</Text>
           </TouchableOpacity>

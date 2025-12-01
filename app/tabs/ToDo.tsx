@@ -106,7 +106,7 @@ export default function TodoList() {
       });
 
       if (eventId) {
-        await updateDoc(doc(db, "users", user.uid, "calendar", eventId), {
+        await updateDoc(doc(db, "users", user.uid, "calendar", eventId), { // calendrier 
           title: editText,
           date: editDate,
           time: editTime,
