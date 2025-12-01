@@ -1,362 +1,380 @@
 import { Ionicons } from "@expo/vector-icons";
-import { addDoc, collection, collectionGroup, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    onSnapshot,
+    query,
+    setDoc,
+    updateDoc,
+    where
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+    Alert,
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 export default function FamilyScreen() {
-  const [user, setUser] = useState(auth.currentUser);
   const [families, setFamilies] = useState<any[]>([]);
-  const [selectedFamily, setSelectedFamily] = useState<any>(null);
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
-  const [joinModalVisible, setJoinModalVisible] = useState(false);
-
   const [familyName, setFamilyName] = useState("");
-  const [newMember, setNewMember] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [email, setEmail] = useState(user?.email ?? null);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [joinModalVisible, setJoinModalVisible] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
+const [selectedFamily, setSelectedFamily] = useState<any>(null);
+const [familyModalVisible, setFamilyModalVisible] = useState(false);
+const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
 
-  // Charger toutes les familles où l'utilisateur est membre
-
- useEffect(() => {
-  if (!user?.email) return;
-
-  const q = query(
-    collectionGroup(db, "families"), 
-    where("members", "array-contains", user.email)
-  );
-
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const fams: any[] = [];
-    snapshot.forEach(docSnap => {
-      fams.push({ id: docSnap.id, ownerId: docSnap.ref.parent.parent?.id, ...docSnap.data() });
-    });
-    setFamilies(fams);
+useEffect(() => {
+  const unsub = auth.onAuthStateChanged((u) => {
+    setUser(u);
   });
+  return unsub;
+}, []);
+// avoir les familles en temps réel 
+  useEffect(() => {
+    if (!user?.email) return;
 
-  return () => unsubscribe();
-}, [user?.email]);
+    const q = query(
+      collection(db,"families"),
+      where("members", "array-contains", user.email)
+    );
 
-  // Créer famille
-  const createFamily = async () => {
-  if (!user || !familyName.trim()) return;
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setFamilies(list);
+    });
+
+    return () => unsub();
+  }, [user?.email]);
+
+  // Create family
+ const createFamily = async () => {
+  const currentUser = auth.currentUser;
+
+  if (!familyName.trim()) {
+    Alert.alert("Erreur", "Nom de la famille requis");
+    return;
+  }
+
+  if (!currentUser || !currentUser.email) {
+    console.log("USER IS NULL:", currentUser);
+    Alert.alert("Erreur", "Utilisateur non connecté");
+    return;
+  }
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  await addDoc(collection(db, "users", user.uid, "families"), {
+   const familyRef = await addDoc(collection(db, "families"), {
     name: familyName,
-    code,
+    ownerUid: user.uid,
+    joinCode: code,
     members: [user.email],
-    owner: user.email,
-    pendingRequests: []
+  });
+    await setDoc(doc(db, "users", user.uid, "familiesJoined", familyRef.id), {
+    familyId: familyRef.id
   });
 
-  setFamilyName("");
-  setCreateModalVisible(false);
-  // pas besoin de fetchFamilies(), le onSnapshot fera le reste
-};
+    setFamilyName("");
+    setCreateModalVisible(false);};
 
-const fetchFamilies = async () => {
-  if (!user) return;
-  const usersSnapshot = await getDocs(collection(db, "users"));
-  const allFamilies: any[] = [];
 
-  for (const u of usersSnapshot.docs) {
-    const familiesCol = collection(db, "users", u.id, "families");
-    const familiesSnap = await getDocs(familiesCol);
-    familiesSnap.forEach(f => {
-      const data = f.data();
-      if (data.members.includes(user.email)) {
-        allFamilies.push({ id: f.id, ownerId: u.id, ...data });
-      }
-    });
+  // Join family by code
+  const handleJoinFamily = async () => {
+    if (joinCode.length !== 6) return Alert.alert("Erreur", "Code invalide");
+
+    const q = query(
+      collection(db, "families"),
+      where("joinCode", "==", joinCode)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      return Alert.alert("Erreur", "Famille introuvable");
+    }
+
+    const fam = snap.docs[0];
+
+    if ((fam.data().members || []).includes(user.email)) {
+    return Alert.alert("Info", "Vous êtes déjà membre de cette famille");
   }
 
-  setFamilies(allFamilies);
+
+    await updateDoc(doc(db, "families", fam.id), {
+      members: arrayUnion(user?.email),
+    });
+
+    await addDoc(collection(db, "users", user.uid, "familiesJoined", fam.id), {
+    familyId: fam.id,
+    familyName: fam.data().name || ""
+  });
+
+    setJoinCode("");
+    setJoinModalVisible(false);
+  };
+
+  const handleDeletePress = (family: any) => {
+  Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
+    { text: "Annuler" },
+    {
+      text: "Oui",
+      onPress: async () => {
+        try {
+          await deleteDoc(doc(db, "families", family.id));
+          setFamilies(prev => prev.filter(f => f.id !== family.id));
+        } catch (err) {
+          console.log("Erreur suppression famille:", err);
+        }
+      },
+    },
+  ]);
+};
+
+const updateFamilyName = async () => {
+  if (!selectedFamily || !familyName.trim()) return;
+
+  try {
+    await updateDoc(doc(db,"families", selectedFamily.id), {
+      name: familyName,
+    });
+    setFamilies(prev =>
+      prev.map(f => (f.id === selectedFamily.id ? { ...f, name: familyName } : f))
+    );
+    setEditFamilyModalVisible(false);
+    setFamilyName("");
+  } catch (err) {
+    console.log("Erreur update famille:", err);
+  }
 };
 
 
-  // Rejoindre famille
-  const joinFamily = async () => {
-    if (!joinCode.trim() || !user) return;
-
-    try {
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      let familyFound: any = null;
-
-      for (const u of usersSnapshot.docs) {
-        const familiesCol = collection(db, "users", u.id, "families");
-        const q = query(familiesCol, where("code", "==", joinCode));
-        const qSnapshot = await getDocs(q);
-
-        if (!qSnapshot.empty) {
-          familyFound = {
-            docId: qSnapshot.docs[0].id,
-            userId: u.id,
-            data: qSnapshot.docs[0].data(),
-          };
-          break;
-        }
-      }
-
-      if (!familyFound) {
-        Alert.alert("Erreur", "Code de famille introuvable !");
-        return;
-      }
-
-      // Vérifier si déjà membre
-      if (familyFound.data.members.includes(user.email)) {
-        Alert.alert("Info", "Vous faites déjà partie de cette famille !");
-        return;
-      }
-
-      // Ajouter dans pendingRequests
-      const familyDocRef = doc(db, "users", familyFound.userId, "families", familyFound.docId);
-      await updateDoc(familyDocRef, {
-        pendingRequests: [...(familyFound.data.pendingRequests || []), { email: user.email, name: user.displayName || "" }],
-      });
-
-      Alert.alert("Demande envoyée", "L'owner doit accepter votre demande pour rejoindre la famille.");
-      setJoinCode("");
-      setJoinModalVisible(false);
-
-    } catch (error: any) {
-      console.log("Erreur rejoindre famille :", error);
-      Alert.alert("Erreur", "Impossible de rejoindre la famille. Réessayez.");
-    }
-  };
-
-  // Modifier nom famille
-  const updateFamilyName = async () => {
-    if (!familyName.trim() || !user || !selectedFamily) return;
-    const familyDocRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id);
-    await updateDoc(familyDocRef, { name: familyName });
-    setSelectedFamily({ ...selectedFamily, name: familyName });
-    setEditFamilyModalVisible(false);
-  };
-
-  // Ajouter membre
-  const addMember = async () => {
-    if (!newMember.trim() || !user || !selectedFamily) return;
-    if (!selectedFamily.members.includes(newMember)) {
-      const familyDocRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id);
-      await updateDoc(familyDocRef, {
-        members: [...selectedFamily.members, newMember],
-      });
-      setSelectedFamily({ ...selectedFamily, members: [...selectedFamily.members, newMember] });
-      setNewMember("");
-    } else {
-      Alert.alert("Erreur", "Ce membre existe déjà");
-    }
-  };
-
-  // Supprimer membre
-  const removeMember = async (email: string) => {
-    if (!user || !selectedFamily) return;
-    const filtered = selectedFamily.members.filter((m: string) => m !== email);
-    const familyDocRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id);
-    await updateDoc(familyDocRef, { members: filtered });
-    setSelectedFamily({ ...selectedFamily, members: filtered });
-  };
-
-  // Supprimer famille
-  const deleteFamily = async (id: string) => {
-    if (!user || !selectedFamily) return;
-    Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
-      { text: "Annuler" },
-      { text: "Oui", onPress: async () => {
-          const familyDocRef = doc(db, "users", selectedFamily.ownerId, "families", id);
-          await deleteDoc(familyDocRef);
-          setModalVisible(false);
-        } 
-      },
-    ]);
-  };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Mes Familles</Text>
+    <View style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}>
+      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 10 }}>Mes familles</Text>
 
-      <TouchableOpacity style={styles.button} onPress={() => setCreateModalVisible(true)}>
-        <Text style={styles.buttonText}>Créer une famille</Text>
+<FlatList
+  data={families}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      onPress={() => {
+        setSelectedFamily(item);
+        setFamilyModalVisible(true);
+      }}
+    >
+      <View style={styles.familyRow}>
+        <Text style={{ flex: 1, fontSize: 18 }}>{item.name}</Text>
+
+        <TouchableOpacity
+          onPress={() => {
+            setFamilyName(item.name);
+            setSelectedFamily(item);
+            setEditFamilyModalVisible(true);
+          }}
+        >
+          <Ionicons name="pencil" size={22} color="orange" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => handleDeletePress(item)}
+          style={{ marginLeft: 10 }}
+        >
+          <Ionicons name="trash" size={22} color="red" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  )}
+/>
+
+      {/* CREATE BUTTON */}
+      <TouchableOpacity
+        style={styles.btn}
+        onPress={() => setCreateModalVisible(true)}
+      >
+        <Text style={styles.btnText}>Créer une famille</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.buttonSecondary} onPress={() => setJoinModalVisible(true)}>
-        <Text style={styles.buttonText}>Rejoindre une famille avec un code</Text>
+      {/* JOIN BUTTON */}
+      <TouchableOpacity
+        style={[styles.btn, { backgroundColor: "#555" }]}
+        onPress={() => setJoinModalVisible(true)}
+      >
+        <Text style={styles.btnText}>Rejoindre une famille</Text>
       </TouchableOpacity>
 
-      <FlatList
-        data={families}
-        keyExtractor={(i) => i.id}
-        style={{ marginTop: 15 }}
-        renderItem={({ item }) => (
-          <View style={styles.familyRow}>
-            <TouchableOpacity style={{ flex: 1 }} onPress={() => { setSelectedFamily(item); setModalVisible(true); }}>
-              <Text style={styles.familyText}>{item.name}</Text>
-            </TouchableOpacity>
-
-            {item.ownerId === user?.uid && (
-              <>
-                <TouchableOpacity onPress={() => { setSelectedFamily(item); setFamilyName(item.name); setEditFamilyModalVisible(true); }}>
-                  <Ionicons name="pencil" size={22} color="orange" />
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => deleteFamily(item.id)}>
-                  <Ionicons name="trash" size={22} color="red" style={{ marginLeft: 10 }} />
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
-      />
-
-      {/* Modal famille */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.popup}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
-
-            {selectedFamily?.ownerId === user?.uid && (
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 15 }}>
-                <TouchableOpacity onPress={() => { setFamilyName(selectedFamily.name); setEditFamilyModalVisible(true); }}>
-                  <Ionicons name="pencil" size={22} color="orange" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteFamily(selectedFamily.id)}>
-                  <Ionicons name="trash" size={22} color="red" />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <Text style={{ marginBottom: 15 }}>Code : {selectedFamily?.code}</Text>
-
-            <Text style={{ fontWeight: "bold", marginBottom: 10 }}>Membres :</Text>
-            {selectedFamily?.members?.map((m: string, idx: number) => (
-              <View key={idx} style={styles.memberRow}>
-                <Text>{m}</Text>
-                {m !== selectedFamily?.owner && selectedFamily?.ownerId === user?.uid && (
-                  <TouchableOpacity onPress={() => removeMember(m)}>
-                    <Ionicons name="trash" size={20} color="red" />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-
-            {selectedFamily?.pendingRequests?.length > 0 && selectedFamily.ownerId === user?.uid && (
-              <>
-                <Text style={{ fontWeight: "bold", marginTop: 20, marginBottom: 10 }}>Demandes en attente :</Text>
-                {selectedFamily.pendingRequests.map((req: any, idx: number) => (
-                  <View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", padding: 10, backgroundColor: "#ffe7c6", borderRadius: 10, marginVertical: 5 }}>
-                    <Text>{req.email}</Text>
-                    <View style={{ flexDirection: "row" }}>
-                      <TouchableOpacity onPress={async () => {
-                        const updatedMembers = [...selectedFamily.members, req.email];
-                        const updatedRequests = selectedFamily.pendingRequests.filter((r: any) => r.email !== req.email);
-                        const familyDocRef = doc(db, "users", user.uid, "families", selectedFamily.id);
-                        await updateDoc(familyDocRef, { members: updatedMembers, pendingRequests: updatedRequests });
-                        setSelectedFamily({ ...selectedFamily, members: updatedMembers, pendingRequests: updatedRequests });
-                      }}>
-                        <Ionicons name="checkmark" size={20} color="green" style={{ marginRight: 10 }} />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={async () => {
-                        const updatedRequests = selectedFamily.pendingRequests.filter((r: any) => r.email !== req.email);
-                        const familyDocRef = doc(db, "users", user.uid, "families", selectedFamily.id);
-                        await updateDoc(familyDocRef, { pendingRequests: updatedRequests });
-                        setSelectedFamily({ ...selectedFamily, pendingRequests: updatedRequests });
-                      }}>
-                        <Ionicons name="close" size={20} color="red" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </>
-            )}
-
-            <TextInput
-              placeholder="Ajouter membre (email)"
-              style={styles.input}
-              value={newMember}
-              onChangeText={setNewMember}
-              onSubmitEditing={addMember}
-            />
-            <TouchableOpacity style={styles.button} onPress={addMember}>
-              <Text style={styles.buttonText}>Ajouter membre</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-              <Text style={{ color: "white" }}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal créer famille */}
+      {/* CREATE MODAL */}
       <Modal visible={createModalVisible} transparent animationType="fade">
-        <View style={styles.popup}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Créer une Famille</Text>
-            <TextInput style={styles.input} placeholder="Nom de la famille" value={familyName} onChangeText={setFamilyName} />
-            <TouchableOpacity style={styles.button} onPress={createFamily}>
-              <Text style={styles.buttonText}>Créer</Text>
+        <View style={styles.modalContainer}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Créer une famille</Text>
+            <TextInput
+              value={familyName}
+              onChangeText={setFamilyName}
+              placeholder="Nom de famille"
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.btn} onPress={createFamily}>
+              <Text style={styles.btnText}>Créer</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setCreateModalVisible(false)}>
-              <Text style={{ color: "white" }}>Fermer</Text>
-            </TouchableOpacity>
+            <TouchableOpacity 
+        onPress={() => setCreateModalVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+            
           </View>
         </View>
       </Modal>
 
-      {/* Modal modifier famille */}
-      <Modal visible={editFamilyModalVisible} transparent animationType="fade">
-        <View style={styles.popup}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Modifier la Famille</Text>
-            <TextInput style={styles.input} value={familyName} onChangeText={setFamilyName} />
-            <TouchableOpacity style={styles.button} onPress={updateFamilyName}>
-              <Text style={styles.buttonText}>Sauvegarder</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setEditFamilyModalVisible(false)}>
-              <Text style={{ color: "white" }}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal rejoindre famille */}
+      {/* JOIN MODAL */}
       <Modal visible={joinModalVisible} transparent animationType="fade">
-        <View style={styles.popup}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Rejoindre une Famille</Text>
-            <TextInput style={styles.input} placeholder="Code famille" value={joinCode} onChangeText={setJoinCode} keyboardType="numeric" />
-            <TouchableOpacity style={styles.button} onPress={joinFamily}>
-              <Text style={styles.buttonText}>Rejoindre</Text>
+        <View style={styles.modalContainer}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Entrer le code</Text>
+            <TextInput
+              value={joinCode}
+              onChangeText={setJoinCode}
+              placeholder="Entrez le code à 6 chiffres"
+              keyboardType="numeric"
+              maxLength={6}
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.btn} onPress={handleJoinFamily}>
+              <Text style={styles.btnText}>Rejoindre</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setJoinModalVisible(false)}>
-              <Text style={{ color: "white" }}>Fermer</Text>
-            </TouchableOpacity>
+            <TouchableOpacity 
+        onPress={() => setJoinModalVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-    </ScrollView>
+
+<Modal visible={selectedFamily !== null} transparent animationType="fade">
+    {selectedFamily && (
+  <View style={styles.modalContainer}>
+    <View style={styles.modal}>
+      <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
+
+      {/* Code seulement si owner */}
+      {selectedFamily && selectedFamily.ownerUid === user?.uid && (
+  <Text style={{ fontSize: 16, marginBottom: 10 }}>
+    Code : {selectedFamily.joinCode}
+  </Text>
+)}
+
+
+      {/* Membres */}
+      {selectedFamily?.members?.map((m: string, index: number) => (
+       <Text key={index} style={{ marginLeft: 10 }}>
+         - {m}
+       </Text>
+      ))}
+
+
+      <TouchableOpacity
+        style={{ position: "absolute", top: 10, right: 10 }}
+        onPress={() => setSelectedFamily(null)}
+      >
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+  )}
+
+</Modal>
+
+
+      <Modal visible={editFamilyModalVisible} transparent animationType="fade">
+  <View style={styles.modalContainer}>
+    <View style={styles.modal}>
+      <Text style={styles.modalTitle}>Modifier la famille</Text>
+      <TextInput
+        value={familyName}
+        onChangeText={setFamilyName}
+        placeholder="Nom de famille"
+        style={styles.input}
+      />
+      <TouchableOpacity style={styles.btn} onPress={updateFamilyName}>
+        <Text style={styles.btnText}>Sauvegarder</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        onPress={() => setEditFamilyModalVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "white" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 20 },
-  button: { backgroundColor: "#00d0ff", padding: 12, borderRadius: 12, marginTop: 10 },
-  buttonSecondary: { backgroundColor: "#0066cc", padding: 12, borderRadius: 12, marginTop: 10 },
-  buttonText: { color: "white", textAlign: "center", fontSize: 16 },
-  familyRow: { flexDirection: "row", alignItems: "center", marginBottom: 15, backgroundColor: "#f4f4f4", padding: 10, borderRadius: 10 },
-  familyText: { fontSize: 18, flex: 1 },
-  popup: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" },
-  modalContent: { backgroundColor: "white", padding: 25, borderRadius: 20, width: "85%", maxHeight: "80%" },
-  modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: "#00d0ff", padding: 12, borderRadius: 12, marginBottom: 15 },
-  closeBtn: { backgroundColor: "red", padding: 12, borderRadius: 12, marginTop: 10, alignItems: "center" },
-  memberRow: { flexDirection: "row", justifyContent: "space-between", padding: 12, backgroundColor: "#e7f3ff", borderRadius: 12, marginVertical: 5 },
+    familyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    marginVertical: 5,
+    backgroundColor: "#eee",
+    borderRadius: 10,
+  },
+  
+  familyItem: {
+    padding: 15,
+    marginVertical: 5,
+    backgroundColor: "#eee",
+    borderRadius: 10,
+  },
+  btn: {
+    backgroundColor: "black",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  btnText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    padding: 20,
+  },
+  modal: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
 });

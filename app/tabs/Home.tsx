@@ -1,8 +1,9 @@
 
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from '@react-native-picker/picker';
 import { useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
@@ -24,10 +25,13 @@ export default function Home() {
 const [selectedCalendarType, setSelectedCalendarType] = useState("personal");
 const [families, setFamilies] = useState<any[]>([]);
 const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
+const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; ownerId: string; members: string[] }[]>([]);
+
 
 
 const [uid, setUid] = useState<string | null>(null);
 const [email, setEmail] = useState<string | null>(null);
+
 
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -51,41 +55,41 @@ useEffect(() => {
   setSelectedDate("");
 }, [selectedCalendarType, selectedFamily]);
 
+// pour trouver les infos des familles 
+useEffect(() => {
+  if (!email) return;
+
+  
+
+  const q = query(collection(db, "families"), where("members", "array-contains", email ));  
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const list: any = [];
+    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+    console.log("Families joined:", list);
+    setFamiliesJoined(list);
+  });
+
+  return () => unsubscribe();
+}, [uid]);
+
+
 
 useEffect(() => {
   if (!uid) return;
 
+  let unsubscribe: any;
+
   if (selectedCalendarType === "personal") {
-    const unsubscribe = onSnapshot(collection(db, "users", uid, "calendar"), (snapshot) => {
-      const newEvents: any = {};
-      const newItems: any = {};
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
-
-        if (!newItems[data.date]) newItems[data.date] = [];
-        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time });
-      });
-
-      setEvents(newEvents);
-      setItems(newItems);
-    });
-
-    return () => unsubscribe();
-  }
-
-  if (selectedCalendarType === "family" && selectedFamily) {
-    const unsubscribe = onSnapshot(
-      collection(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar"),
+    unsubscribe = onSnapshot(
+      collection(db, "users", uid, "calendar"),
       (snapshot) => {
         const newEvents: any = {};
         const newItems: any = {};
 
-        snapshot.forEach((doc) => {
+        snapshot.forEach(doc => {
           const data = doc.data();
-          newEvents[data.date] = { marked: true, dotColor: "#ff0000" };
-
+          newEvents[data.date] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[data.date]) newItems[data.date] = [];
           newItems[data.date].push({ id: doc.id, title: data.title, time: data.time });
         });
@@ -94,10 +98,31 @@ useEffect(() => {
         setItems(newItems);
       }
     );
-
-    return () => unsubscribe();
   }
+
+  if (selectedCalendarType === "family" && selectedFamily) {
+  unsubscribe = onSnapshot(
+    collection(db, "families", selectedFamily.id, "calendar"),
+    (snapshot) => {
+      const newEvents: any = {};
+      const newItems: any = {};
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        newEvents[data.date] = { marked: true, dotColor: "#ff0000" };
+        if (!newItems[data.date]) newItems[data.date] = [];
+        newItems[data.date].push({ id: doc.id, title: data.title, time: data.time });
+      });
+      setEvents(newEvents);
+      setItems(newItems);
+    }
+    
+  );
+  console.log(familiesJoined);
+}
+
+  return () => unsubscribe && unsubscribe();
 }, [selectedCalendarType, selectedFamily, uid]);
+
 
 const saveEvent = async () => {
   if (!eventTitle || !eventDate || !eventTime) {
@@ -109,12 +134,12 @@ const saveEvent = async () => {
     let path: any;
 
     if (selectedCalendarType === "personal") {
-      if (!uid) return; // sécurité
-      path = collection(db, "users", uid, "calendar");
-    } else {
-      if (!selectedFamily || !selectedFamily.ownerId) return;
-      path = collection(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar");
-    }
+  if (!uid) return;
+  path = collection(db, "users", uid, "calendar");
+} else {
+  if (!selectedFamily || !selectedFamily.id) return;
+  path = collection(db, "families", selectedFamily.id, "calendar");
+}
 
     if (editingIndex !== null) {
       const ev = items[eventDate][editingIndex];
@@ -205,34 +230,36 @@ const saveEvent = async () => {
     width: "70%",
     boxShadow: "0px 2px 6px rgba(0,0,0,0.15)"
   }}>
-    <select
-      style={{
-        width: "100%",
-        fontSize: 16,
-        padding: 6,
-        borderRadius: 10,
-        borderWidth: 0,
-        outline: "none",
-        backgroundColor: "transparent"
-      }}
-      value={selectedCalendarType === "family" && selectedFamily ? selectedFamily.id : "personal"}
-      onChange={(e) => {
-        if (e.target.value === "personal") {
-          setSelectedCalendarType("personal");
-          setSelectedFamily(null);
-        } else {
-          const fam = families.find((f) => f.id === e.target.value);
-          setSelectedFamily(fam);
-          setSelectedCalendarType("family");
-        }
-      }}
-    >
-      <option value="personal">Calendrier personnel</option>
-      <option disabled>── Calendriers famille ──</option>
-      {families.map((f, i) => (
-        <option key={i} value={f.id}> {f.name}</option>
-      ))}
-    </select>
+    <Picker
+  selectedValue={selectedFamily?.id || "personal"}
+  onValueChange={(value) => {
+    if (value === "personal") {
+      setSelectedCalendarType("personal");
+      setSelectedFamily(null);
+    } else {
+      const fam = familiesJoined.find(f => f.id === value);
+      if (fam) {
+        setSelectedFamily(fam);
+        setSelectedCalendarType("family");
+      }
+    }
+  }}
+  style={{
+    width: '70%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  }}
+>
+  <Picker.Item label="Calendrier personnel" value="personal" />
+  <Picker.Item label="── Calendriers famille ──" value="" enabled={false} />
+  {familiesJoined.map(f => (
+    <Picker.Item key={f.id} label={f.name} value={f.id} />
+  ))}
+  
+</Picker>
+
   </View>
 </View>
 
