@@ -87,7 +87,7 @@ export default function Home() {
           time: eventTime,
         });
       } else {
-        // Convertir YYYY-MM-DD (du calendrier) en JJ/MM/AAAA pour la sauvegarde
+        // Convertir YYYY-MM-DD en JJ/MM/AAAA 
         const dateParts = eventDate.split('-');
         const formattedDate = dateParts.length === 3 
           ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
