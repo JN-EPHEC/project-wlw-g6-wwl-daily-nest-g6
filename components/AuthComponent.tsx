@@ -73,6 +73,7 @@ WebBrowser.maybeCompleteAuthSession();
     await setDoc(doc(db, "users", uid), {
       email: userCredential.user.email,
       createdAt: new Date(),
+      familyId: null,
     }, { merge: true });
 
   } catch (error: any) {
@@ -111,6 +112,7 @@ WebBrowser.maybeCompleteAuthSession();
           lastName: lastName,
           birthDate: '', // À compléter par l'utilisateur
           createdAt: new Date(),
+          familyId: null,
         }, { merge: true });
 
         console.log("Connexion Google réussie");
