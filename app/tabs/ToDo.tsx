@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -28,6 +29,7 @@ export default function TodoList() {
   const [newItemDate, setNewItemDate] = useState("");
   const [newItemTime, setNewItemTime] = useState("");
   const [newItemPriority, setNewItemPriority] = useState("2"); // 1=vert, 2=bleu, 3=orange, 4=rouge
+  const [newItemAssignedTo, setNewItemAssignedTo] = useState(""); // UID du membre assigné
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editText, setEditText] = useState("");
@@ -36,19 +38,46 @@ export default function TodoList() {
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editPriority, setEditPriority] = useState("2");
-  const [sortBy, setSortBy] = useState<"none" | "priority" | "date">("none"); // Tri par priorité ou date
+  const [editAssignedTo, setEditAssignedTo] = useState("");
+  const [sortBy, setSortBy] = useState<"none" | "priority-desc" | "priority-asc" | "date">("none"); // Tri par priorité ou date
+
+  const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
+  
+  const [selectedTodoType, setSelectedTodoType] = useState("personal");
+  const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; ownerId: string; members: string[] }[]>([]);
+  const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
+  const [uid, setUid] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
   const user = auth.currentUser;
   if (!user) return <Text>Chargement...</Text>;
   
   const deleteList = async (list: any) => {
-    await deleteDoc(doc(db, "users", user.uid, "todos", list.id));
+    if (!uid) return;
+    
+    let path: any;
+    if (selectedTodoType === "personal") {
+      path = doc(db, "users", uid, "todos", list.id);
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = doc(db, "families", selectedFamily.id, "todos", list.id);
+    }
+    
+    await deleteDoc(path);
   };
 
   const deleteItem = async (item: any) => {
-    await deleteDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", item.id)
-    );
+    if (!uid) return;
+    
+    let path: any;
+    if (selectedTodoType === "personal") {
+      path = doc(db, "users", uid, "todos", selectedList.id, "items", item.id);
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = doc(db, "families", selectedFamily.id, "todos", selectedList.id, "items", item.id);
+    }
+    
+    await deleteDoc(path);
   };
 
   const startEditList = (list: any) => {
@@ -58,8 +87,17 @@ export default function TodoList() {
   };
 
   const saveListEdit = async () => {
-    if (!editText.trim()) return;
-    await updateDoc(doc(db, "users", user.uid, "todos", editingItem.id), {
+    if (!editText.trim() || !uid) return;
+    
+    let path: any;
+    if (selectedTodoType === "personal") {
+      path = doc(db, "users", uid, "todos", editingItem.id);
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = doc(db, "families", selectedFamily.id, "todos", editingItem.id);
+    }
+    
+    await updateDoc(path, {
       title: editText,
     });
     setEditModalVisible(false);
@@ -74,39 +112,58 @@ export default function TodoList() {
     setEditDate(item.date || "");
     setEditTime(item.time || "");
     setEditPriority(item.priority || "2");
+    setEditAssignedTo(item.assignedTo || "");
     setEditModalVisible(true);
   };
 
   const saveItemEdit = async () => {
+    if (!uid) return;
+    
     const updatedData: any = {
       name: editText,
       points: parseInt(editPoints) || 0,
       date: editDate,
       time: editTime,
       priority: editPriority,
+      assignedTo: editAssignedTo,
     };
 
+    let todosPath: any;
+    let calendarPath: any;
+    
+    if (selectedTodoType === "personal") {
+      todosPath = doc(db, "users", uid, "todos", selectedList.id, "items", editingItem.id);
+      calendarPath = collection(db, "users", uid, "calendar");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      todosPath = doc(db, "families", selectedFamily.id, "todos", selectedList.id, "items", editingItem.id);
+      calendarPath = collection(db, "families", selectedFamily.id, "calendar");
+    }
+
     await updateDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", editingItem.id),
+      todosPath,
       updatedData
     );
 
     // Mettre à jour également dans le calendrier si la date existe
     if (editDate) {
-      const calendarRef = collection(db, "users", user.uid, "calendar");
-      const calendarSnapshot = await getDocs(calendarRef);
+      const calendarSnapshot = await getDocs(calendarPath);
       
       // Chercher l'événement existant lié à cette tâche
       let eventId = null;
       calendarSnapshot.forEach((doc) => {
-        const data = doc.data();
+        const data = doc.data() as any;
         if (data.title === editingItem.name && data.date === editingItem.date) {
           eventId = doc.id;
         }
       });
 
       if (eventId) {
-        await updateDoc(doc(db, "users", user.uid, "calendar", eventId), { // calendrier 
+        const eventPath = selectedTodoType === "personal" 
+          ? doc(db, "users", uid, "calendar", eventId)
+          : doc(db, "families", selectedFamily.id, "calendar", eventId);
+          
+        await updateDoc(eventPath, { // calendrier 
           title: editText,
           date: editDate,
           time: editTime,
@@ -115,7 +172,7 @@ export default function TodoList() {
         });
       } else {
         // Créer un nouvel événement si la date a été ajoutée
-        await addDoc(calendarRef, {
+        await addDoc(calendarPath, {
           title: editText,
           date: editDate,
           time: editTime,
@@ -133,23 +190,128 @@ export default function TodoList() {
     setEditDate("");
     setEditTime("");
     setEditPriority("2");
+    setEditAssignedTo("");
   };
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "todos"),
-      (snapshot) => {
-        const lists: any[] = [];
-        snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
-        setTodoLists(lists);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUid(user.uid);
+        setEmail(user.email || null);
+      } else {
+        setUid(null);
+        setEmail(null);
       }
-    );
-    return unsubscribe;
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    // Reset quand on change de type de liste
+    setTodoLists([]);
+    setSelectedList(null);
+    setItems([]);
+  }, [selectedTodoType, selectedFamily]);
+
+  // Charger les familles
+  useEffect(() => {
+    if (!email) return;
+
+    const q = query(collection(db, "families"), where("members", "array-contains", email));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: any = [];
+      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+      setFamiliesJoined(list);
+    });
+
+    return () => unsubscribe();
+  }, [email]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    let unsubscribe: any;
+
+    if (selectedTodoType === "personal") {
+      unsubscribe = onSnapshot(
+        collection(db, "users", uid, "todos"),
+        (snapshot) => {
+          const lists: any[] = [];
+          snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+          setTodoLists(lists);
+        }
+      );
+    } else if (selectedTodoType === "family" && selectedFamily) {
+      unsubscribe = onSnapshot(
+        collection(db, "families", selectedFamily.id, "todos"),
+        (snapshot) => {
+          const lists: any[] = [];
+          snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+          setTodoLists(lists);
+        }
+      );
+    }
+
+    return () => unsubscribe && unsubscribe();
+  }, [selectedTodoType, selectedFamily, uid]);
+
+  // Charger les membres de la famille
+  useEffect(() => {
+    const loadFamilyMembers = async () => {
+      try {
+        // Trouver les familles où l'utilisateur est membre
+        const familiesSnapshot = await getDocs(
+          query(collection(db, "families"), where("members", "array-contains", user.email))
+        );
+
+        const allMembers: { uid: string; firstName: string; lastName: string }[] = [];
+        
+        for (const familyDoc of familiesSnapshot.docs) {
+          const familyData = familyDoc.data();
+          const memberEmails = familyData.members || [];
+
+          // Récupérer les infos de chaque membre
+          for (const memberEmail of memberEmails) {
+            const usersSnapshot = await getDocs(
+              query(collection(db, "users"), where("email", "==", memberEmail))
+            );
+            
+            usersSnapshot.forEach(userDoc => {
+              const userData = userDoc.data();
+              if (!allMembers.find(m => m.uid === userDoc.id)) {
+                allMembers.push({
+                  uid: userDoc.id,
+                  firstName: userData.firstName || "",
+                  lastName: userData.lastName || ""
+                });
+              }
+            });
+          }
+        }
+
+        setFamilyMembers(allMembers);
+      } catch (error) {
+        console.error("Erreur lors du chargement des membres:", error);
+      }
+    };
+
+    loadFamilyMembers();
+  }, [user.email]);
+
   const createList = async () => {
-    if (!newListName.trim()) return;
-    await addDoc(collection(db, "users", user.uid, "todos"), {
+    if (!newListName.trim() || !uid) return;
+    
+    let path: any;
+    if (selectedTodoType === "personal") {
+      path = collection(db, "users", uid, "todos");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = collection(db, "families", selectedFamily.id, "todos");
+    }
+    
+    await addDoc(path, {
       title: newListName,
     });
     setNewListName("");
@@ -159,11 +321,20 @@ export default function TodoList() {
     setSelectedList(list);
     setModalVisible(true);
 
+    let path: any;
+    if (selectedTodoType === "personal" && uid) {
+      path = collection(db, "users", uid, "todos", list.id, "items");
+    } else if (selectedTodoType === "family" && selectedFamily) {
+      path = collection(db, "families", selectedFamily.id, "todos", list.id, "items");
+    } else {
+      return;
+    }
+
     const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "todos", list.id, "items"),
-      (snapshot) => {
+      path,
+      (snapshot: any) => {
         const loadedItems: any[] = [];
-        snapshot.forEach((doc) =>
+        snapshot.forEach((doc: any) =>
           loadedItems.push({ id: doc.id, ...doc.data() })
         );
         setItems(loadedItems);
@@ -174,12 +345,24 @@ export default function TodoList() {
   };
 
   const addItem = async () => {
-    if (!newItem.trim()) return;
+    if (!newItem.trim() || !uid) return;
     const points = parseInt(newItemPoints) || 0;
+    
+    let todosPath: any;
+    let calendarPath: any;
+    
+    if (selectedTodoType === "personal") {
+      todosPath = collection(db, "users", uid, "todos", selectedList.id, "items");
+      calendarPath = collection(db, "users", uid, "calendar");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      todosPath = collection(db, "families", selectedFamily.id, "todos", selectedList.id, "items");
+      calendarPath = collection(db, "families", selectedFamily.id, "calendar");
+    }
     
     // Ajouter la tâche
     await addDoc(
-      collection(db, "users", user.uid, "todos", selectedList.id, "items"),
+      todosPath,
       { 
         name: newItem, 
         checked: false, 
@@ -187,20 +370,21 @@ export default function TodoList() {
         date: newItemDate || "",
         time: newItemTime || "",
         priority: newItemPriority, // Garder en string
+        assignedTo: newItemAssignedTo || "",
       }
     );
 
     // Si une date est spécifiée, ajouter aussi dans le calendrier
     if (newItemDate.trim()) {
       await addDoc(
-        collection(db, "users", user.uid, "calendar"),
+        calendarPath,
         {
           title: newItem,
-          date: newItemDate, // Garder le format JJ/MM/AAAA
-          time: newItemTime || "00:00", // Heure saisie ou par défaut
+          date: newItemDate,
+          time: newItemTime || "00:00", 
           points: points,
-          priority: newItemPriority, // Garder en string
-          type: "todo", // Pour identifier que c'est une tâche
+          priority: newItemPriority, 
+          type: "todo", 
         }
       );
     }
@@ -210,11 +394,22 @@ export default function TodoList() {
     setNewItemDate("");
     setNewItemTime("");
     setNewItemPriority("2");
+    setNewItemAssignedTo("");
   };
 
   const toggleItem = async (item: any) => {
+    if (!uid) return;
+    
+    let path: any;
+    if (selectedTodoType === "personal") {
+      path = doc(db, "users", uid, "todos", selectedList.id, "items", item.id);
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = doc(db, "families", selectedFamily.id, "todos", selectedList.id, "items", item.id);
+    }
+    
     await updateDoc(
-      doc(db, "users", user.uid, "todos", selectedList.id, "items", item.id),
+      path,
       { checked: !item.checked }
     );
   };
@@ -222,6 +417,47 @@ export default function TodoList() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📝 Mes Listes de Tâches</Text>
+
+      <View style={{ width: "100%", padding: 10, alignItems: "center" }}>
+        <View style={{
+          borderWidth: 1,
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          backgroundColor: "white",
+          width: "70%",
+          boxShadow: "0px 2px 6px rgba(0,0,0,0.15)"
+        }}>
+          <Picker
+            selectedValue={selectedFamily?.id || "personal"}
+            onValueChange={(value) => {
+              if (value === "personal") {
+                setSelectedTodoType("personal");
+                setSelectedFamily(null);
+              } else {
+                const fam = familiesJoined.find(f => f.id === value);
+                if (fam) {
+                  setSelectedFamily(fam);
+                  setSelectedTodoType("family");
+                }
+              }
+            }}
+            style={{
+              width: '100%',
+              backgroundColor: 'white',
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}
+          >
+            <Picker.Item label="Listes personnelles" value="personal" />
+            <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+            {familiesJoined.map(f => (
+              <Picker.Item key={f.id} label={f.name} value={f.id} />
+            ))}
+          </Picker>
+        </View>
+      </View>
 
       <View style={styles.addContainer}>
         <TextInput
@@ -275,22 +511,6 @@ export default function TodoList() {
             </TouchableOpacity>
 
             <Text style={styles.modalTitle}>{selectedList?.title}</Text>
-
-            {/* Liste déroulante de tri */}
-            <View style={{ marginBottom: 15, marginTop: 10 }}>
-              <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#333" }}>Trier par</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={sortBy}
-                  onValueChange={(value) => setSortBy(value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Aucun tri (ordre d'ajout)" value="none" />
-                  <Picker.Item label="Par priorité" value="priority" />
-                  <Picker.Item label="Par date" value="date" />
-                </Picker>
-              </View>
-            </View>
 
             <View style={[styles.addItemRow, { marginTop: 20 }]}>
               <TextInput
@@ -358,24 +578,52 @@ export default function TodoList() {
               </View>
             </View>
 
+            {/* Sélectionner le membre */}
+            {familyMembers.length > 0 && (
+              <View style={{ marginTop: 20 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#333" }}>Assigner à</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={newItemAssignedTo}
+                    onValueChange={(value) => setNewItemAssignedTo(value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Moi-même" value="" />
+                    {familyMembers.map(member => (
+                      <Picker.Item 
+                        key={member.uid} 
+                        label={`${member.firstName} ${member.lastName}`} 
+                        value={member.uid} 
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            )}
+
             <View style={[styles.dateRow, { marginTop: 20 }]}>
-              <Ionicons name="calendar-outline" size={20} color="#ffbf00" style={{ marginRight: 10 }} />
-              <TextInput
-                style={styles.dateInput}
-                placeholder="Date (JJ/MM/AAAA)"
-                value={newItemDate}
-                onChangeText={(text) => {
-                  // Auto-formater la date
-                  let formatted = text.replace(/[^0-9]/g, '');
-                  if (formatted.length >= 2) {
-                    formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
+              <input
+                type="date"
+                value={newItemDate ? (() => {
+                  // input JJ/MM/AAAA en YYYY-MM-DD 
+                  const parts = newItemDate.split('/');
+                  return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                })() : ''}
+                onChange={(e) => {
+                  // stockage YYYY-MM-DD en JJ/MM/AAAA
+                  const dateParts = e.target.value.split('-');
+                  if (dateParts.length === 3) {
+                    setNewItemDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
                   }
-                  if (formatted.length >= 5) {
-                    formatted = formatted.slice(0, 5) + '/' + formatted.slice(5, 9);
-                  }
-                  setNewItemDate(formatted);
                 }}
-                maxLength={10}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: '#ffbf00',
+                  padding: 10,
+                  borderRadius: 10,
+                  fontSize: 16
+                }}
               />
               <Ionicons name="time-outline" size={20} color="#ffbf00" style={{ marginLeft: 10, marginRight: 10 }} />
               <TextInput
@@ -397,39 +645,71 @@ export default function TodoList() {
               </TouchableOpacity>
             </View>
 
+            {/* Filtre */}
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 15, marginBottom: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: "#999", marginRight: 8 }}>Trier :</Text>
+              <View style={{ width: 180, borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 6, overflow: "hidden" }}>
+                <Picker
+                  selectedValue={sortBy}
+                  onValueChange={(value) => setSortBy(value)}
+                  style={{ height: 35, fontSize: 12 }}
+                >
+                  <Picker.Item label="Aucun" value="none" />
+                  <Picker.Item label="Priorité ↑ (urgent en haut)" value="priority-desc" />
+                  <Picker.Item label="Priorité ↓ (urgent en bas)" value="priority-asc" />
+                  <Picker.Item label="Date" value="date" />
+                </Picker>
+              </View>
+            </View>
+
             <FlatList
               data={(() => {
                 // Fonction de tri des tâches
                 let sortedItems = [...items];
                 
-                if (sortBy === "priority") {
-                  // Tri par priorité : 4 (urgent) → 1 (basse)
-                  sortedItems.sort((a, b) => {
-                    const priorityA = parseInt(a.priority || "2");
-                    const priorityB = parseInt(b.priority || "2");
-                    return priorityB - priorityA; // Ordre décroissant
-                  });
-                } else if (sortBy === "date") {
-                  // Tri par date
-                  sortedItems.sort((a, b) => {
-                    if (!a.date && !b.date) return 0;
-                    if (!a.date) return 1; // Pas de date va à la fin
-                    if (!b.date) return -1;
-                    
-                    // Convertir JJ/MM/AAAA en timestamp pour comparer
-                    const parseDate = (dateStr: string) => {
-                      const parts = dateStr.split('/');
-                      if (parts.length === 3) {
-                        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
-                      }
-                      return 0;
-                    };
-                    
-                    return parseDate(a.date) - parseDate(b.date);
-                  });
-                }
+                // Séparer les tâches cochées et non cochées
+                const uncheckedItems = sortedItems.filter(item => !item.checked);
+                const checkedItems = sortedItems.filter(item => item.checked);
                 
-                return sortedItems;
+                // Fonction pour appliquer le tri
+                const applySorting = (itemsList: any[]) => {
+                  if (sortBy === "priority-desc") {
+                    itemsList.sort((a, b) => {
+                      const priorityA = parseInt(a.priority || "2");
+                      const priorityB = parseInt(b.priority || "2");
+                      return priorityB - priorityA;
+                    });
+                  } else if (sortBy === "priority-asc") {
+                    itemsList.sort((a, b) => {
+                      const priorityA = parseInt(a.priority || "2");
+                      const priorityB = parseInt(b.priority || "2");
+                      return priorityA - priorityB;
+                    });
+                  } else if (sortBy === "date") {
+                    itemsList.sort((a, b) => {
+                      if (!a.date && !b.date) return 0;
+                      if (!a.date) return 1;
+                      if (!b.date) return -1;
+                      
+                      const parseDate = (dateStr: string) => {
+                        const parts = dateStr.split('/');
+                        if (parts.length === 3) {
+                          return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+                        }
+                        return 0;
+                      };
+                      
+                      return parseDate(a.date) - parseDate(b.date);
+                    });
+                  }
+                };
+                
+                // Appliquer le tri sur chaque groupe
+                applySorting(uncheckedItems);
+                applySorting(checkedItems);
+                
+                // Combiner: non cochées d'abord, puis cochées
+                return [...uncheckedItems, ...checkedItems];
               })()}
               keyExtractor={(i) => i.id}
               renderItem={({ item }) => (
@@ -443,6 +723,13 @@ export default function TodoList() {
                       <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through", color: "#b0b0b0" }]}>
                         {item.name}
                       </Text>
+                      {/*Afficher le membre assigné */}
+                      {item.assignedTo && (
+                        <Text style={styles.assignedText}>
+                          <Ionicons name="person-outline" size={14} color="#666" /> 
+                          {" "}{familyMembers.find(m => m.uid === item.assignedTo)?.firstName || "Membre"} {familyMembers.find(m => m.uid === item.assignedTo)?.lastName || ""}
+                        </Text>
+                      )}
                       {(item.date || item.time) && (
                         <Text style={styles.dateText}>
                           {item.date && <><Ionicons name="calendar-outline" size={14} color="#666" /> {item.date}</>}
@@ -539,21 +826,21 @@ export default function TodoList() {
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
               <View style={{ flex: 1, marginRight: 10 }}>
                 <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>📅 Date</Text>
-                <TextInput
-                  value={editDate}
-                  onChangeText={(text) => {
-                    let formatted = text.replace(/[^0-9]/g, '');
-                    if (formatted.length >= 2) {
-                      formatted = formatted.slice(0, 2) + '/' + formatted.slice(2);
+                <input
+                  type="date"
+                  value={editDate ? (() => {
+                    // Convertir JJ/MM/AAAA en YYYY-MM-DD pour l'input
+                    const parts = editDate.split('/');
+                    return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                  })() : ''}
+                  onChange={(e) => {
+                    // Convertir YYYY-MM-DD en JJ/MM/AAAA pour le stockage
+                    const dateParts = e.target.value.split('-');
+                    if (dateParts.length === 3) {
+                      setEditDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
                     }
-                    if (formatted.length >= 5) {
-                      formatted = formatted.slice(0, 5) + '/' + formatted.slice(5, 9);
-                    }
-                    setEditDate(formatted);
                   }}
-                  placeholder="JJ/MM/AAAA"
-                  maxLength={10}
-                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
+                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, width: '100%' }}
                 />
               </View>
 
@@ -574,6 +861,29 @@ export default function TodoList() {
                 />
               </View>
             </View>
+
+            {/* On choisi qui est assigné */}
+            {familyMembers.length > 0 && (
+              <View style={{ marginBottom: 15 }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Assigner à</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={editAssignedTo}
+                    onValueChange={(value) => setEditAssignedTo(value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Moi-même" value="" />
+                    {familyMembers.map(member => (
+                      <Picker.Item 
+                        key={member.uid} 
+                        label={`${member.firstName} ${member.lastName}`} 
+                        value={member.uid} 
+                      />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+            )}
 
             <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
               <TouchableOpacity onPress={() => {
@@ -631,7 +941,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 20,
-    maxHeight: "80%",
+    maxHeight: "90%",
+    width: "95%",
   },
   modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 15, color: "#ffbf00" },
   addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
@@ -660,6 +971,12 @@ const styles = StyleSheet.create({
   },
   itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12, paddingVertical: 8 },
   itemText: { fontSize: 18, flex: 1 },
+    assignedText: {
+    fontSize: 12,
+    color: "#FF9800",
+    marginTop: 2,
+    fontWeight: "600",
+  },
   dateText: {
     fontSize: 12,
     color: "#666",
