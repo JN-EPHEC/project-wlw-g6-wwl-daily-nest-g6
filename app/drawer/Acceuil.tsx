@@ -359,7 +359,7 @@ const saveTodo = async () => {
   style={styles.inputWeb} // même style que tes inputs
 >
   <Picker.Item label="Calendrier personnel" value="personal" />
-  <Picker.Item label="── Calendriers famille ──" value="" enabled={false} />
+  <Picker.Item label="--- Calendriers famille ---" value="" enabled={false} />
   {familiesJoined.map(f => (
     <Picker.Item key={f.id} label={f.name} value={f.id} />
   ))}
@@ -425,13 +425,12 @@ const saveTodo = async () => {
               style={styles.inputWeb}
             >
               <Picker.Item label="Listes personnelles" value="personal" />
-              <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+              <Picker.Item label="- Listes famille -" value="" enabled={false} />
               {familiesJoined.map(f => (
                 <Picker.Item key={f.id} label={f.name} value={f.id} />
               ))}
             </Picker>
           </View>
-
           {/* Sélection de la liste de tâches */}
           <View style={{ marginBottom: 10 }}>
             <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Liste de tâches</Text>
