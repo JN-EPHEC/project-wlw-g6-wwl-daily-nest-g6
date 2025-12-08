@@ -97,6 +97,12 @@ useEffect(() => {
       return;
     }
     try {
+    // Convertir YYYY-MM-DD (du calendrier) en JJ/MM/AAAA pour la sauvegarde
+    const dateParts = eventDate.split('-');
+    const formattedDate = dateParts.length === 3 
+      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+      : eventDate;
+      
     let path: any;
 
     if (selectedCalendarType === "personal") {

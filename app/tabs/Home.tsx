@@ -177,32 +177,27 @@ const saveEvent = async () => {
 
   const deleteEvent = async (eventId: string) => {
     if (!uid) {
-  Alert.alert("Erreur", "Utilisateur non connecté");
-  return;
-}
-  Alert.alert(
-    "Confirmer la suppression",
-    "Êtes-vous sûr de vouloir supprimer cet événement ?",
-    [
-      { text: "Non", style: "cancel" },
-      { text: "Oui", onPress: async () => {
-          try {
-            let docRef;
-            if (selectedCalendarType === "personal") {
-              docRef = doc(db, "users", uid, "calendar", eventId);
-            } else {
-              docRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar", eventId);
-            }
-            await deleteDoc(docRef);
-            alert("Événement supprimé !");
-          } catch (err) {
-            alert("Impossible de supprimer l'événement.");
-          }
-        } 
+      alert("Erreur : Utilisateur non connecté");
+      return;
+    }
+    
+    const confirmDelete = window.confirm("Êtes-vous sûr de vouloir supprimer cet événement ?");
+    
+    if (confirmDelete) {
+      try {
+        let docRef;
+        if (selectedCalendarType === "personal") {
+          docRef = doc(db, "users", uid, "calendar", eventId);
+        } else {
+          docRef = doc(db, "users", selectedFamily.ownerId, "families", selectedFamily.id, "calendar", eventId);
+        }
+        await deleteDoc(docRef);
+        alert("Événement supprimé !");
+      } catch (err) {
+        alert("Impossible de supprimer l'événement.");
       }
-    ]
-  );
-};
+    }
+  };
 
   
   useEffect(() => {
@@ -230,7 +225,7 @@ const saveEvent = async () => {
 
 
   return (
-    
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={{ flexGrow: 1 }}>
 <View style={styles.calendarContainer}>
   <View style={{ width: "100%", padding: 10, alignItems: "center" }}>
   <View style={{
@@ -445,7 +440,6 @@ const saveEvent = async () => {
     <Ionicons name="add" size={26} color="white" />
   </TouchableOpacity>
 </View>
-
 )}
 
     </View>
