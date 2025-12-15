@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, increment, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -19,6 +19,7 @@ export default function Recompense() {
   const [rewardName, setRewardName] = useState("");
   const [rewardPoints, setRewardPoints] = useState("");
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Charger l'utilisateur connecté
   useEffect(() => {
@@ -102,10 +103,11 @@ export default function Recompense() {
     return () => unsubscribe && unsubscribe();
   }, [uid, selectedType, selectedFamily]);
 
-  // Charger les membres de la famille et leurs points
+  // Charger les membres de la famille
   useEffect(() => {
     if (selectedType !== "family" || !selectedFamily) {
       setFamilyMembers([]);
+      setSelectedMember(null);
       return;
     }
 
@@ -117,7 +119,9 @@ export default function Recompense() {
       const familyData = snapshot.data();
       if (!familyData || !familyData.members) return;
 
-      const membersPromises = familyData.members.map(async (memberEmail: string) => {
+      const loadedMembers: any[] = [];
+
+      for (const memberEmail of familyData.members) {
         // Récupérer les infos de l'utilisateur
         const usersQuery = query(collection(db, "users"), where("email", "==", memberEmail));
         const usersSnapshot = await onSnapshot(usersQuery, (userSnap) => {
@@ -125,32 +129,22 @@ export default function Recompense() {
             const userData = userDoc.data();
             const memberUid = userDoc.id;
 
-            // Récupérer les points du membre dans la famille
-            const memberDocRef = doc(db, "families", selectedFamily.id, "members", memberUid);
-            onSnapshot(memberDocRef, (memberSnapshot) => {
-              const memberData = memberSnapshot.data();
-              const memberPoints = memberData?.points || 0;
+            const memberInfo = {
+              uid: memberUid,
+              email: memberEmail,
+              firstName: userData.firstName || userData.prenom || userData.name || "Prénom",
+              lastName: userData.lastName || userData.nom || ""
+            };
 
-              setFamilyMembers((prev) => {
-                const existing = prev.find(m => m.uid === memberUid);
-                if (existing) {
-                  return prev.map(m => m.uid === memberUid ? { ...m, points: memberPoints } : m);
-                } else {
-                  return [...prev, {
-                    uid: memberUid,
-                    email: memberEmail,
-                    firstName: userData.firstName || userData.prenom || userData.name || "Prénom",
-                    lastName: userData.lastName || userData.nom || "",
-                    points: memberPoints
-                  }];
-                }
-              });
+            setFamilyMembers((prev) => {
+              const filtered = prev.filter(m => m.uid !== memberUid);
+              return [...filtered, memberInfo];
             });
           });
         });
 
         unsubscribes.push(usersSnapshot);
-      });
+      }
     });
 
     unsubscribes.push(unsubFamily);
@@ -159,6 +153,40 @@ export default function Recompense() {
       unsubscribes.forEach(unsub => unsub && unsub());
     };
   }, [selectedType, selectedFamily]);
+
+  // Charger les points du membre sélectionné
+  useEffect(() => {
+    if (!selectedMember || !selectedFamily) return;
+
+    const memberDocRef = doc(db, "families", selectedFamily.id, "members", selectedMember.uid);
+    const unsubscribe = onSnapshot(memberDocRef, (snapshot) => {
+      const data = snapshot.data();
+      setPoints(data?.points || 0);
+    });
+
+    return () => unsubscribe();
+  }, [selectedMember, selectedFamily]);
+
+  // Charger les récompenses du membre sélectionné (quand en mode famille avec membre sélectionné)
+  useEffect(() => {
+    if (selectedType !== "family" || !selectedFamily || !selectedMember) return;
+
+    // Charger les récompenses de la famille filtrées par membre
+    const rewardsCollection = collection(db, "families", selectedFamily.id, "rewards");
+    const unsubscribe = onSnapshot(rewardsCollection, (snapshot) => {
+      const list: any[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        // Afficher les récompenses assignées à ce membre OU les récompenses communes (sans assignedTo)
+        if (!data.assignedTo || data.assignedTo === selectedMember.uid) {
+          list.push({ id: doc.id, ...data });
+        }
+      });
+      setRewards(list.sort((a, b) => a.pointsRequired - b.pointsRequired));
+    });
+
+    return () => unsubscribe();
+  }, [selectedType, selectedFamily, selectedMember]);
 
   // Ajouter une récompense
   const addReward = async () => {
@@ -183,11 +211,19 @@ export default function Recompense() {
         return;
       }
 
-      await addDoc(rewardsCollection, {
+      const rewardData: any = {
         name: rewardName,
         pointsRequired: pointsNum,
         createdAt: new Date().toISOString()
-      });
+      };
+
+      // Si on est en mode famille avec un membre sélectionné, assigner la récompense à ce membre
+      if (selectedType === "family" && selectedMember) {
+        rewardData.assignedTo = selectedMember.uid;
+        rewardData.assignedToName = `${selectedMember.firstName} ${selectedMember.lastName}`;
+      }
+
+      await addDoc(rewardsCollection, rewardData);
 
       setRewardName("");
       setRewardPoints("");
@@ -215,6 +251,49 @@ export default function Recompense() {
       await deleteDoc(rewardDoc);
     } catch (error) {
       console.error("Erreur lors de la suppression:", error);
+    }
+  };
+
+  // Réclamer une récompense
+  const claimReward = async (reward: any) => {
+    if (!selectedMember && selectedType === "family") {
+      alert("Erreur: Aucun membre sélectionné");
+      return;
+    }
+
+    const targetUserId = selectedType === "personal" ? uid : selectedMember?.uid;
+    if (!targetUserId) return;
+
+    // Vérifier si l'utilisateur a assez de points
+    if (points < reward.pointsRequired) {
+      alert("Pas assez de points pour cette récompense !");
+      return;
+    }
+
+    const confirmClaim = window.confirm(
+      `Voulez-vous réclamer "${reward.name}" pour ${reward.pointsRequired} points ?`
+    );
+
+    if (!confirmClaim) return;
+
+    try {
+      // Retirer les points
+      if (selectedType === "personal") {
+        const userDocRef = doc(db, "users", targetUserId);
+        await updateDoc(userDocRef, {
+          points: increment(-reward.pointsRequired)
+        });
+      } else if (selectedFamily) {
+        const memberDocRef = doc(db, "families", selectedFamily.id, "members", targetUserId);
+        await updateDoc(memberDocRef, {
+          points: increment(-reward.pointsRequired)
+        });
+      }
+
+      alert(`🎉 Récompense "${reward.name}" réclamée ! ${reward.pointsRequired} points retirés.`);
+    } catch (error) {
+      console.error("Erreur lors de la réclamation:", error);
+      alert("Erreur lors de la réclamation de la récompense");
     }
   };
 
@@ -260,6 +339,36 @@ export default function Recompense() {
         </Picker>
       </View>
 
+      {/* Sélecteur de membre (uniquement en mode famille) */}
+      {selectedType === "family" && selectedFamily && familyMembers.length > 0 && (
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedMember?.uid || ""}
+            onValueChange={(value) => {
+              if (value) {
+                const member = familyMembers.find(m => m.uid === value);
+                setSelectedMember(member || null);
+              } else {
+                setSelectedMember(null);
+              }
+            }}
+            style={styles.picker}
+          >
+            <Picker.Item label="Sélectionnez un membre" value="" />
+            {familyMembers.map(member => (
+              <Picker.Item 
+                key={member.uid} 
+                label={`${member.firstName} ${member.lastName}${member.uid === uid ? " (Vous)" : ""}`} 
+                value={member.uid} 
+              />
+            ))}
+          </Picker>
+        </View>
+      )}
+
+      {/* Afficher les infos uniquement si un membre est sélectionné en mode famille */}
+      {((selectedType === "personal") || (selectedType === "family" && selectedMember)) && (
+        <>
       {/* Cercle de progression */}
       <View style={styles.circleContainer}>
         <Svg width={size} height={size}>
@@ -329,42 +438,30 @@ export default function Recompense() {
                 <Text style={styles.rewardPointsText}>
                   {item.pointsRequired} points requis
                 </Text>
+                {item.assignedToName && (
+                  <Text style={styles.assignedToText}>
+                    👤 Pour: {item.assignedToName}
+                  </Text>
+                )}
               </View>
-              <TouchableOpacity onPress={() => deleteReward(item.id)}>
-                <Ionicons name="trash" size={20} color="red" />
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {points >= item.pointsRequired && (
+                  <TouchableOpacity 
+                    onPress={() => claimReward(item)}
+                    style={styles.claimButton}
+                  >
+                    <Text style={styles.claimButtonText}>Réclamer</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => deleteReward(item.id)}>
+                  <Ionicons name="trash" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
       </View>
-
-      {/* Classement des membres de la famille */}
-      {selectedType === "family" && selectedFamily && familyMembers.length > 0 && (
-        <View style={styles.leaderboardSection}>
-          <Text style={styles.leaderboardTitle}>🏆 Classement de la famille</Text>
-          {familyMembers
-            .sort((a, b) => (b.points || 0) - (a.points || 0))
-            .map((member, index) => (
-              <View key={member.uid} style={styles.memberItem}>
-                <View style={styles.memberRank}>
-                  <Text style={styles.rankText}>
-                    {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}.`}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.memberName}>
-                    {member.firstName} {member.lastName}
-                    {member.uid === uid && " (Vous)"}
-                  </Text>
-                  <Text style={styles.memberEmail}>{member.email}</Text>
-                </View>
-                <View style={styles.memberPointsBadge}>
-                  <Ionicons name="heart" size={16} color="#ff4d6d" />
-                  <Text style={styles.memberPointsText}> {member.points || 0}</Text>
-                </View>
-              </View>
-            ))}
-        </View>
+      </>
       )}
       </ScrollView>
 
@@ -390,6 +487,12 @@ export default function Recompense() {
               value={rewardPoints}
               onChangeText={setRewardPoints}
             />
+
+            {selectedType === "family" && selectedMember && (
+              <Text style={styles.infoModalText}>
+                💡 Cette récompense sera assignée à {selectedMember.firstName} {selectedMember.lastName}
+              </Text>
+            )}
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
@@ -512,6 +615,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666"
   },
+  assignedToText: {
+    fontSize: 12,
+    color: "#ffbf00",
+    fontWeight: "600",
+    marginTop: 4
+  },
+  claimButton: {
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  claimButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold"
+  },
   emptyText: {
     textAlign: "center",
     color: "#999",
@@ -554,6 +676,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd"
   },
+  infoModalText: {
+    fontSize: 13,
+    color: "#666",
+    fontStyle: "italic",
+    marginTop: 15,
+    textAlign: "center",
+    backgroundColor: "#f0f8ff",
+    padding: 10,
+    borderRadius: 8
+  },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -576,59 +708,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold"
-  },
-  leaderboardSection: {
-    width: "100%",
-    marginTop: 30,
-    marginBottom: 20
-  },
-  leaderboardTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15
-  },
-  memberItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: "#ffbf00"
-  },
-  memberRank: {
-    width: 40,
-    alignItems: "center",
-    marginRight: 10
-  },
-  rankText: {
-    fontSize: 20,
-    fontWeight: "bold"
-  },
-  memberName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 3
-  },
-  memberEmail: {
-    fontSize: 12,
-    color: "#666"
-  },
-  memberPointsBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20
-  },
-  memberPointsText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#ff4d6d"
   }
 });
 

@@ -81,7 +81,6 @@ useEffect(() => {
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const list: any = [];
     snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-    console.log("Families joined:", list);
     setFamiliesJoined(list);
   });
 
@@ -119,7 +118,6 @@ useEffect(() => {
 
         snapshot.forEach(doc => {
           const data = doc.data();
-          console.log("📅 Event chargé:", data.title, "Date:", data.date, "Time:", data.time);
           
           // Convertir JJ/MM/AAAA en YYYY-MM-DD pour le calendrier
           let calendarDate = data.date;
@@ -129,8 +127,6 @@ useEffect(() => {
               calendarDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
           }
-          
-          console.log("📅 Converted to:", calendarDate);
           
           newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
@@ -149,10 +145,8 @@ useEffect(() => {
     (snapshot) => {
       const newEvents: any = {};
       const newItems: any = {};
-      console.log("👨‍👩‍👧‍👦 Loading family calendar, total docs:", snapshot.size);
       snapshot.forEach(doc => {
         const data = doc.data();
-        console.log("👨‍👩‍👧‍👦 Family Event:", data.title, "Date:", data.date, "Time:", data.time, "isRecurring:", data.isRecurring);
         
         // Convertir JJ/MM/AAAA en YYYY-MM-DD pour le calendrier
         let calendarDate = data.date;
@@ -163,8 +157,6 @@ useEffect(() => {
           }
         }
         
-        console.log("👨‍👩‍👧‍👦 Converted to:", calendarDate);
-        
         newEvents[calendarDate] = { marked: true, dotColor: "#ff0000" };
         if (!newItems[calendarDate]) newItems[calendarDate] = [];
         newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
@@ -174,7 +166,6 @@ useEffect(() => {
     }
     
   );
-  console.log(familiesJoined);
 }
 
   return () => unsubscribe && unsubscribe();
@@ -228,8 +219,6 @@ const saveEvent = async () => {
   const toggleEventChecked = async (eventId: string, currentChecked: boolean) => {
     if (!uid) return;
     
-    console.log("toggleEventChecked appelé:", eventId, currentChecked);
-    
     try {
       let docRef;
       if (selectedCalendarType === "personal") {
@@ -241,7 +230,6 @@ const saveEvent = async () => {
       
       const newCheckedState = !currentChecked;
       await updateDoc(docRef, { checked: newCheckedState });
-      console.log("updateDoc réussi, nouveau checked:", newCheckedState);
       
       // Récupérer les détails de l'événement pour les points
       const eventDoc = await getDoc(docRef);
@@ -276,16 +264,13 @@ const saveEvent = async () => {
               await updateDoc(memberDocRef, {
                 points: increment(pointsToAdd)
               });
-              console.log(`✅ ${pointsToAdd} points ajoutés (famille) à ${targetUserId}`);
             } else {
               // Créer le document s'il n'existe pas avec setDoc
               await setDoc(memberDocRef, {
                 points: pointsToAdd
               }, { merge: true });
-              console.log(`✅ Document créé avec ${pointsToAdd} points pour ${targetUserId}`);
             }
           }
-          console.log(`✅ ${pointsToAdd} points ajoutés à l'utilisateur ${targetUserId}`);
         } catch (error) {
           console.error("Erreur lors de l'ajout des points:", error);
         }
