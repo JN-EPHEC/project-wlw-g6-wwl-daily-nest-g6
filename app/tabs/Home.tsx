@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Calendar } from "react-native-calendars";
@@ -28,7 +28,7 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean; assignedTo?: string; isRotation?: boolean }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -45,6 +45,7 @@ const [sortBy, setSortBy] = useState<"none" | "priority-desc" | "priority-asc" |
 
 const [uid, setUid] = useState<string | null>(null);
 const [email, setEmail] = useState<string | null>(null);
+const [usersMap, setUsersMap] = useState<{ [uid: string]: { firstName: string; lastName: string } }>({});
 
 
 useEffect(() => {
@@ -87,7 +88,22 @@ useEffect(() => {
   return () => unsubscribe();
 }, [uid]);
 
+// Charger tous les utilisateurs pour afficher les noms
+useEffect(() => {
+  const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+    const users: { [uid: string]: { firstName: string; lastName: string } } = {};
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      users[doc.id] = {
+        firstName: data.prenom || data.firstName || data.firstname || data.name || "Utilisateur",
+        lastName: data.nom || data.lastName || data.lastname || "",
+      };
+    });
+    setUsersMap(users);
+  });
 
+  return () => unsubscribe();
+}, []);
 
 useEffect(() => {
   if (!uid) return;
@@ -103,6 +119,7 @@ useEffect(() => {
 
         snapshot.forEach(doc => {
           const data = doc.data();
+          console.log("📅 Event chargé:", data.title, "Date:", data.date, "Time:", data.time);
           
           // Convertir JJ/MM/AAAA en YYYY-MM-DD pour le calendrier
           let calendarDate = data.date;
@@ -113,9 +130,11 @@ useEffect(() => {
             }
           }
           
+          console.log("📅 Converted to:", calendarDate);
+          
           newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
-          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false });
+          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
         });
 
         setEvents(newEvents);
@@ -130,8 +149,10 @@ useEffect(() => {
     (snapshot) => {
       const newEvents: any = {};
       const newItems: any = {};
+      console.log("👨‍👩‍👧‍👦 Loading family calendar, total docs:", snapshot.size);
       snapshot.forEach(doc => {
         const data = doc.data();
+        console.log("👨‍👩‍👧‍👦 Family Event:", data.title, "Date:", data.date, "Time:", data.time, "isRecurring:", data.isRecurring);
         
         // Convertir JJ/MM/AAAA en YYYY-MM-DD pour le calendrier
         let calendarDate = data.date;
@@ -142,9 +163,11 @@ useEffect(() => {
           }
         }
         
+        console.log("👨‍👩‍👧‍👦 Converted to:", calendarDate);
+        
         newEvents[calendarDate] = { marked: true, dotColor: "#ff0000" };
         if (!newItems[calendarDate]) newItems[calendarDate] = [];
-        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false });
+        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
       });
       setEvents(newEvents);
       setItems(newItems);
@@ -216,8 +239,57 @@ const saveEvent = async () => {
         docRef = doc(db, "families", selectedFamily.id, "calendar", eventId);
       }
       
-      await updateDoc(docRef, { checked: !currentChecked });
-      console.log("updateDoc réussi, nouveau checked:", !currentChecked);
+      const newCheckedState = !currentChecked;
+      await updateDoc(docRef, { checked: newCheckedState });
+      console.log("updateDoc réussi, nouveau checked:", newCheckedState);
+      
+      // Récupérer les détails de l'événement pour les points
+      const eventDoc = await getDoc(docRef);
+      const eventData = eventDoc.data();
+      
+      // Ajouter ou retirer des points si l'événement en a
+      if (eventData && eventData.points && eventData.points > 0) {
+        const pointsToAdd = newCheckedState ? eventData.points : -eventData.points;
+        
+        // Déterminer qui reçoit les points
+        let targetUserId = uid; // Par défaut, l'utilisateur actuel
+        
+        // Si l'événement est assigné à quelqu'un, cette personne reçoit les points
+        if (eventData.assignedTo) {
+          targetUserId = eventData.assignedTo;
+        }
+        
+        try {
+          if (selectedCalendarType === "personal") {
+            // Points personnels
+            const userDocRef = doc(db, "users", targetUserId);
+            await updateDoc(userDocRef, {
+              points: increment(pointsToAdd)
+            });
+          } else if (selectedFamily) {
+            // Points dans la famille
+            const memberDocRef = doc(db, "families", selectedFamily.id, "members", targetUserId);
+            
+            // Vérifier si le document membre existe
+            const memberDoc = await getDoc(memberDocRef);
+            if (memberDoc.exists()) {
+              await updateDoc(memberDocRef, {
+                points: increment(pointsToAdd)
+              });
+              console.log(`✅ ${pointsToAdd} points ajoutés (famille) à ${targetUserId}`);
+            } else {
+              // Créer le document s'il n'existe pas avec setDoc
+              await setDoc(memberDocRef, {
+                points: pointsToAdd
+              }, { merge: true });
+              console.log(`✅ Document créé avec ${pointsToAdd} points pour ${targetUserId}`);
+            }
+          }
+          console.log(`✅ ${pointsToAdd} points ajoutés à l'utilisateur ${targetUserId}`);
+        } catch (error) {
+          console.error("Erreur lors de l'ajout des points:", error);
+        }
+      }
     } catch (err) {
       console.error("Erreur toggle:", err);
     }
@@ -413,6 +485,11 @@ const saveEvent = async () => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.taskTitle, item.checked && { textDecorationLine: "line-through", color: "#999" }]}>{item.title}</Text>
                 <Text style={[styles.taskTime, item.checked && { color: "#999" }]}>⏰ {item.time}</Text>
+                {item.assignedTo && usersMap[item.assignedTo] && (
+                  <Text style={[styles.taskTime, item.checked && { color: "#999" }, { color: "#ffbf00", fontWeight: "600" }]}>
+                    {item.isRotation && "🔄 "}👤 {usersMap[item.assignedTo].firstName} {usersMap[item.assignedTo].lastName}
+                  </Text>
+                )}
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity onPress={() => {
