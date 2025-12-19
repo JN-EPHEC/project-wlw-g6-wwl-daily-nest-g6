@@ -7,8 +7,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { TouchableOpacity, } from "react-native";
 export  function Budget() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Budget 💰</Text>
+    <View className= "bg-bleue-600 mt-4">
+      <ThemedText className="font-bold text-2xl">Budget 💰</ThemedText>
       <Text>Gère ton budget familial ici.</Text>
     </View>
   );

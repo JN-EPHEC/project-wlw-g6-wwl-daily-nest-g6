@@ -4,13 +4,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
-  // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithCredential,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  User,
+  createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -172,11 +166,22 @@ WebBrowser.maybeCompleteAuthSession();
         onChangeText={(text) => {
           setPassword(text); 
           setPasswordError(false);
+          // Vérifier: min 6 caractères, 1 chiffre, 1 majuscule
+          const hasNumber = /\d/.test(text);
+          const hasUpperCase = /[A-Z]/.test(text);
+          if (text.length > 0 && (text.length < 6 || !hasNumber || !hasUpperCase)) {
+            setPasswordFormatError(true);
+          } else {
+            setPasswordFormatError(false);
+          }
         }}
         secureTextEntry
       />
       {passwordError && (
-        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères</Text>
+        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères, 1 chiffre et 1 majuscule</Text>
+      )}
+      {passwordFormatError && (
+        <Text style={styles.fieldError}>Min 6 caractères, 1 chiffre et 1 majuscule requis</Text>
       )}
 
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
