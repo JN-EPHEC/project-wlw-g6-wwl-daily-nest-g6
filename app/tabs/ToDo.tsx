@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 // Fonction pour obtenir la couleur en fonction de la priorité
@@ -25,16 +25,24 @@ export default function TodoList() {
   const [selectedList, setSelectedList] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemPoints, setNewItemPoints] = useState("");
   const [newItemDate, setNewItemDate] = useState("");
   const [newItemTime, setNewItemTime] = useState("");
   const [newItemPriority, setNewItemPriority] = useState("2"); // 1=vert, 2=bleu, 3=orange, 4=rouge
   const [newItemAssignedTo, setNewItemAssignedTo] = useState(""); // UID du membre assigné
+  const [isRotation, setIsRotation] = useState(false); // Tournante activée
+  const [rotationMembers, setRotationMembers] = useState<string[]>([]); // Membres de la tournante
+  const [isRecurring, setIsRecurring] = useState(false); // Récurrence activée
+  const [recurrenceType, setRecurrenceType] = useState<"daily" | "weekly" | "monthly">("weekly"); // Type de récurrence
+  const [selectedDays, setSelectedDays] = useState<number[]>([]); // Jours sélectionnés (0=dimanche, 1=lundi, etc.)
+  const [monthlyDay, setMonthlyDay] = useState<number>(1); // Jour du mois pour récurrence mensuelle (1-31)
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editText, setEditText] = useState("");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [editPoints, setEditPoints] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editTime, setEditTime] = useState("");
   const [editPriority, setEditPriority] = useState("2");
@@ -109,6 +117,7 @@ export default function TodoList() {
     setEditingItem(item);
     setEditText(item.name);
     setEditPoints(item.points?.toString() || "");
+    setEditDescription(item.description || "");
     setEditDate(item.date || "");
     setEditTime(item.time || "");
     setEditPriority(item.priority || "2");
@@ -121,6 +130,7 @@ export default function TodoList() {
     
     const updatedData: any = {
       name: editText,
+      description: editDescription,
       points: parseInt(editPoints) || 0,
       date: editDate,
       time: editTime,
@@ -186,6 +196,7 @@ export default function TodoList() {
     setEditModalVisible(false);
     setEditingItem(null);
     setEditText("");
+    setEditDescription("");
     setEditPoints("");
     setEditDate("");
     setEditTime("");
@@ -261,16 +272,31 @@ export default function TodoList() {
   useEffect(() => {
     const loadFamilyMembers = async () => {
       try {
-        // Trouver les familles où l'utilisateur est membre
-        const familiesSnapshot = await getDocs(
-          query(collection(db, "families"), where("members", "array-contains", user.email))
-        );
+        // Si mode personnel, ne charger que l'utilisateur actuel
+        if (selectedTodoType === "personal") {
+          if (!uid) return;
+          const userDoc = await getDocs(
+            query(collection(db, "users"), where("email", "==", user.email))
+          );
+          
+          const currentUserMembers: { uid: string; firstName: string; lastName: string }[] = [];
+          userDoc.forEach(doc => {
+            const userData = doc.data();
+            currentUserMembers.push({
+              uid: doc.id,
+              firstName: userData.firstName || "",
+              lastName: userData.lastName || ""
+            });
+          });
+          
+          setFamilyMembers(currentUserMembers);
+          return;
+        }
 
-        const allMembers: { uid: string; firstName: string; lastName: string }[] = [];
-        
-        for (const familyDoc of familiesSnapshot.docs) {
-          const familyData = familyDoc.data();
-          const memberEmails = familyData.members || [];
+        // Si mode famille, charger les membres de la famille sélectionnée
+        if (selectedTodoType === "family" && selectedFamily) {
+          const memberEmails = selectedFamily.members || [];
+          const allMembers: { uid: string; firstName: string; lastName: string }[] = [];
 
           // Récupérer les infos de chaque membre
           for (const memberEmail of memberEmails) {
@@ -289,16 +315,16 @@ export default function TodoList() {
               }
             });
           }
-        }
 
-        setFamilyMembers(allMembers);
+          setFamilyMembers(allMembers);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement des membres:", error);
       }
     };
 
     loadFamilyMembers();
-  }, [user.email]);
+  }, [user.email, selectedTodoType, selectedFamily, uid]);
 
   const createList = async () => {
     if (!newListName.trim() || !uid) return;
@@ -364,18 +390,115 @@ export default function TodoList() {
     await addDoc(
       todosPath,
       { 
-        name: newItem, 
+        name: newItem,
+        description: newItemDescription || "",
         checked: false, 
         points: points,
         date: newItemDate || "",
         time: newItemTime || "",
-        priority: newItemPriority, // Garder en string
+        priority: newItemPriority,
         assignedTo: newItemAssignedTo || "",
+        isRotation: isRotation,
+        rotationMembers: isRotation ? rotationMembers : [],
+        currentRotationIndex: 0,
+        isRecurring: isRecurring,
+        recurrenceType: isRecurring ? recurrenceType : null,
+        selectedDays: isRecurring && recurrenceType === "weekly" ? selectedDays : [],
+        monthlyDay: isRecurring && recurrenceType === "monthly" ? monthlyDay : null,
       }
     );
 
-    // Si une date est spécifiée, ajouter aussi dans le calendrier
-    if (newItemDate.trim()) {
+    // Si récurrence activée, créer les occurrences dans le calendrier
+    console.log("🔍 Checking recurrence - isRecurring:", isRecurring, "recurrenceType:", recurrenceType);
+    if (isRecurring) {
+      console.log("✅ Entering recurrence generation");
+      const generateRecurringDates = () => {
+        const dates: string[] = [];
+        
+        // Utiliser la date fournie ou la date du jour
+        let startDate: Date;
+        if (newItemDate.trim()) {
+          const [day, month, year] = newItemDate.split('/').map(Number);
+          startDate = new Date(year, month - 1, day);
+        } else {
+          startDate = new Date(); // Date du jour par défaut
+        }
+        
+        if (recurrenceType === "daily") {
+          // Générer 30 jours à partir de la date de début
+          for (let i = 0; i < 30; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = currentDate.getFullYear();
+            dates.push(`${dd}/${mm}/${yyyy}`);
+          }
+        } else if (recurrenceType === "weekly") {
+          // Générer 12 semaines (environ 3 mois)
+          for (let week = 0; week < 12; week++) {
+            for (const dayOfWeek of selectedDays) {
+              const currentDate = new Date(startDate);
+              currentDate.setDate(startDate.getDate() + (week * 7));
+              
+              // Ajuster au jour de la semaine sélectionné
+              const currentDay = currentDate.getDay();
+              const diff = dayOfWeek - currentDay;
+              currentDate.setDate(currentDate.getDate() + diff);
+              
+              // Ne pas ajouter de dates passées
+              if (currentDate >= startDate) {
+                const dd = String(currentDate.getDate()).padStart(2, '0');
+                const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const yyyy = currentDate.getFullYear();
+                dates.push(`${dd}/${mm}/${yyyy}`);
+              }
+            }
+          }
+        } else if (recurrenceType === "monthly") {
+          // Générer 12 mois avec le jour sélectionné
+          for (let i = 0; i < 12; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setMonth(startDate.getMonth() + i);
+            currentDate.setDate(monthlyDay); // Utiliser le jour sélectionné
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = currentDate.getFullYear();
+            dates.push(`${dd}/${mm}/${yyyy}`);
+          }
+        }
+        
+        return dates;
+      };
+
+      const recurringDates = generateRecurringDates();
+      console.log("🔄 Generating recurring events:", recurringDates.length, "dates");
+      console.log("🔄 First few dates:", recurringDates.slice(0, 5));
+      
+      // Ajouter chaque occurrence dans le calendrier
+      for (const date of recurringDates) {
+        try {
+          await addDoc(
+            calendarPath,
+            {
+              title: newItem,
+              date: date,
+              time: newItemTime || "00:00",
+              points: points,
+              priority: newItemPriority,
+              type: "todo",
+              isRecurring: true,
+              recurrenceType: recurrenceType,
+            }
+          );
+          console.log("✅ Added recurring event for", date);
+        } catch (err) {
+          console.error("❌ Error adding recurring event:", err);
+        }
+      }
+      console.log("🔄 Finished adding", recurringDates.length, "recurring events");
+    } else if (newItemDate.trim()) {
+      // Si pas de récurrence mais une date, ajouter une seule occurrence
       await addDoc(
         calendarPath,
         {
@@ -390,11 +513,18 @@ export default function TodoList() {
     }
 
     setNewItem("");
+    setNewItemDescription("");
     setNewItemPoints("");
     setNewItemDate("");
     setNewItemTime("");
     setNewItemPriority("2");
     setNewItemAssignedTo("");
+    setIsRotation(false);
+    setRotationMembers([]);
+    setIsRecurring(false);
+    setRecurrenceType("weekly");
+    setSelectedDays([]);
+    setMonthlyDay(1);
   };
 
   const toggleItem = async (item: any) => {
@@ -408,10 +538,52 @@ export default function TodoList() {
       path = doc(db, "families", selectedFamily.id, "todos", selectedList.id, "items", item.id);
     }
     
-    await updateDoc(
-      path,
-      { checked: !item.checked }
-    );
+    const newCheckedState = !item.checked;
+    await updateDoc(path, { checked: newCheckedState });
+    
+    // Ajouter ou retirer des points
+    if (item.points && item.points > 0) {
+      const pointsToAdd = newCheckedState ? item.points : -item.points;
+      
+      // Déterminer qui reçoit les points
+      let targetUserId = uid; // Par défaut, l'utilisateur actuel
+      
+      // Si la tâche est assignée à quelqu'un, cette personne reçoit les points
+      if (item.assignedTo) {
+        targetUserId = item.assignedTo;
+      }
+      
+      try {
+        if (selectedTodoType === "personal") {
+          // Points personnels
+          const userDocRef = doc(db, "users", targetUserId);
+          await updateDoc(userDocRef, {
+            points: increment(pointsToAdd)
+          });
+        } else if (selectedFamily) {
+          // Points dans la famille
+          const memberDocRef = doc(db, "families", selectedFamily.id, "members", targetUserId);
+          
+          // Vérifier si le document membre existe
+          const memberDoc = await getDoc(memberDocRef);
+          if (memberDoc.exists()) {
+            await updateDoc(memberDocRef, {
+              points: increment(pointsToAdd)
+            });
+            console.log(`✅ ${pointsToAdd} points ajoutés (famille) à ${targetUserId}`);
+          } else {
+            // Créer le document s'il n'existe pas avec setDoc
+            await setDoc(memberDocRef, {
+              points: pointsToAdd
+            }, { merge: true });
+            console.log(`✅ Document créé avec ${pointsToAdd} points pour ${targetUserId}`);
+          }
+        }
+        console.log(`✅ ${pointsToAdd} points ajoutés à l'utilisateur ${targetUserId}`);
+      } catch (error) {
+        console.error("Erreur lors de l'ajout des points:", error);
+      }
+    }
   };
 
   return (
@@ -504,7 +676,7 @@ export default function TodoList() {
             onPress={(e) => e.stopPropagation()}
           >
             <TouchableOpacity
-              style={{ position: "absolute", top: 10, right: 10 }}
+              style={{ position: "absolute", top: 10, right: 10, zIndex: 10 }}
               onPress={() => setModalVisible(false)}
             >
               <Ionicons name="close" size={30} color="black" />
@@ -512,10 +684,12 @@ export default function TodoList() {
 
             <Text style={styles.modalTitle}>{selectedList?.title}</Text>
 
+            <ScrollView style={{ maxHeight: "80%" }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={true}>
             <View style={[styles.addItemRow, { marginTop: 20 }]}>
               <TextInput
                 style={[styles.input, { flex: 2 }]}
                 placeholder="Ajouter une tâche"
+                placeholderTextColor="#ccc"
                 value={newItem}
                 onChangeText={setNewItem}
               />
@@ -524,12 +698,26 @@ export default function TodoList() {
                 <TextInput
                   style={styles.pointsInput}
                   placeholder="Pts"
+                  placeholderTextColor="#ccc"
                   value={newItemPoints}
                   onChangeText={setNewItemPoints}
                   keyboardType="numeric"
                   maxLength={3}
                 />
               </View>
+            </View>
+
+            {/* Description */}
+            <View style={{ marginTop: 15 }}>
+              <TextInput
+                style={[styles.input, { height: 70, textAlignVertical: 'top', paddingTop: 10 }]}
+                placeholder="Description (optionnel)"
+                placeholderTextColor="#ccc"
+                value={newItemDescription}
+                onChangeText={setNewItemDescription}
+                multiline
+                numberOfLines={3}
+              />
             </View>
 
             {/* Sélecteur de priorité */}
@@ -578,26 +766,76 @@ export default function TodoList() {
               </View>
             </View>
 
-            {/* Sélectionner le membre */}
+            {/* Sélectionner le membre ou tournante */}
             {familyMembers.length > 0 && (
               <View style={{ marginTop: 20 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#333" }}>Assigner à</Text>
-                <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={newItemAssignedTo}
-                    onValueChange={(value) => setNewItemAssignedTo(value)}
-                    style={styles.picker}
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Assigner à</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setIsRotation(!isRotation);
+                      if (!isRotation) {
+                        setNewItemAssignedTo("");
+                        setRotationMembers([]);
+                      }
+                    }}
+                    style={{ flexDirection: "row", alignItems: "center" }}
                   >
-                    <Picker.Item label="Moi-même" value="" />
-                    {familyMembers.map(member => (
-                      <Picker.Item 
-                        key={member.uid} 
-                        label={`${member.firstName} ${member.lastName}`} 
-                        value={member.uid} 
-                      />
-                    ))}
-                  </Picker>
+                    <Ionicons 
+                      name={isRotation ? "checkbox" : "square-outline"} 
+                      size={24} 
+                      color="#ffbf00" 
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={{ fontSize: 13, color: "#666" }}>Tournante</Text>
+                  </TouchableOpacity>
                 </View>
+
+                {!isRotation ? (
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={newItemAssignedTo}
+                      onValueChange={(value) => setNewItemAssignedTo(value)}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Moi-même" value="" />
+                      {familyMembers.map(member => (
+                        <Picker.Item 
+                          key={member.uid} 
+                          label={`${member.firstName} ${member.lastName}`} 
+                          value={member.uid} 
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                ) : (
+                  <View style={{ backgroundColor: "#f5f5f5", padding: 10, borderRadius: 10 }}>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 10 }}>Sélectionnez les membres de la tournante :</Text>
+                    {familyMembers.map(member => (
+                      <TouchableOpacity
+                        key={member.uid}
+                        onPress={() => {
+                          if (rotationMembers.includes(member.uid)) {
+                            setRotationMembers(rotationMembers.filter(id => id !== member.uid));
+                          } else {
+                            setRotationMembers([...rotationMembers, member.uid]);
+                          }
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
+                      >
+                        <Ionicons 
+                          name={rotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
+                          size={22} 
+                          color="#ffbf00" 
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text style={{ fontSize: 14, color: "#333" }}>
+                          {member.firstName} {member.lastName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             )}
 
@@ -640,10 +878,179 @@ export default function TodoList() {
                 }}
                 maxLength={5}
               />
-              <TouchableOpacity onPress={addItem} style={{ marginLeft: 10 }}>
-                <Ionicons name="add-circle" size={40} color="#ffbf00" />
-              </TouchableOpacity>
             </View>
+
+            {/* Récurrence */}
+            <View style={{ marginTop: 20 }}>
+              <TouchableOpacity 
+                onPress={() => setIsRecurring(!isRecurring)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+              >
+                <Ionicons 
+                  name={isRecurring ? "checkbox" : "square-outline"} 
+                  size={24} 
+                  color="#ffbf00" 
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tâche récurrente</Text>
+              </TouchableOpacity>
+
+              {isRecurring && (
+                <View style={{ backgroundColor: "#f5f5f5", padding: 12, borderRadius: 10 }}>
+                  {/* Type de récurrence */}
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Fréquence</Text>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <TouchableOpacity
+                        onPress={() => setRecurrenceType("daily")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: recurrenceType === "daily" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginRight: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: recurrenceType === "daily" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        onPress={() => setRecurrenceType("weekly")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: recurrenceType === "weekly" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginHorizontal: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: recurrenceType === "weekly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Hebdo</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        onPress={() => setRecurrenceType("monthly")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: recurrenceType === "monthly" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginLeft: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: recurrenceType === "monthly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Sélection des jours (pour hebdomadaire) */}
+                  {recurrenceType === "weekly" && (
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jours de la semaine</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {[
+                          { label: "Lun", value: 1 },
+                          { label: "Mar", value: 2 },
+                          { label: "Mer", value: 3 },
+                          { label: "Jeu", value: 4 },
+                          { label: "Ven", value: 5 },
+                          { label: "Sam", value: 6 },
+                          { label: "Dim", value: 0 }
+                        ].map(day => (
+                          <TouchableOpacity
+                            key={day.value}
+                            onPress={() => {
+                              if (selectedDays.includes(day.value)) {
+                                setSelectedDays(selectedDays.filter(d => d !== day.value));
+                              } else {
+                                setSelectedDays([...selectedDays, day.value]);
+                              }
+                            }}
+                            style={{
+                              width: 45,
+                              height: 45,
+                              borderRadius: 22.5,
+                              borderWidth: 2,
+                              borderColor: "#ffbf00",
+                              backgroundColor: selectedDays.includes(day.value) ? "#ffbf00" : "white",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ 
+                              color: selectedDays.includes(day.value) ? "white" : "#ffbf00", 
+                              fontWeight: "600",
+                              fontSize: 12
+                            }}>
+                              {day.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Sélection du jour du mois (pour mensuel) */}
+                  {recurrenceType === "monthly" && (
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jour du mois</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                          <TouchableOpacity
+                            key={day}
+                            onPress={() => setMonthlyDay(day)}
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 19,
+                              borderWidth: 2,
+                              borderColor: "#ffbf00",
+                              backgroundColor: monthlyDay === day ? "#ffbf00" : "white",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ 
+                              color: monthlyDay === day ? "white" : "#ffbf00", 
+                              fontWeight: "600",
+                              fontSize: 11
+                            }}>
+                              {day}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            </ScrollView>
+
+            {/* Bouton d'ajout */}
+            <TouchableOpacity 
+              onPress={addItem} 
+              style={{ 
+                alignSelf: "center", 
+                marginTop: 15, 
+                backgroundColor: "#ffbf00", 
+                borderRadius: 30, 
+                paddingVertical: 12, 
+                paddingHorizontal: 30,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8
+              }}
+            >
+              <Ionicons name="add-circle" size={24} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>Ajouter la tâche</Text>
+            </TouchableOpacity>
 
             {/* Filtre */}
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 15, marginBottom: 10 }}>
@@ -723,18 +1130,41 @@ export default function TodoList() {
                       <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through", color: "#b0b0b0" }]}>
                         {item.name}
                       </Text>
-                      {/*Afficher le membre assigné */}
-                      {item.assignedTo && (
+                      {item.description && (
+                        <Text style={{ fontSize: 12, color: "#666", fontStyle: "italic", marginTop: 2 }}>
+                          {item.description}
+                        </Text>
+                      )}
+                      {/*Afficher le membre assigné ou la tournante */}
+                      {item.isRotation && item.rotationMembers?.length > 0 ? (
+                        <Text style={styles.assignedText}>
+                          <Ionicons name="repeat-outline" size={14} color="#ff9800" /> 
+                          {" "}Tournante: {item.rotationMembers.map((memberId: string) => {
+                            const member = familyMembers.find(m => m.uid === memberId);
+                            return member ? `${member.firstName}` : "";
+                          }).filter(Boolean).join(", ")}
+                        </Text>
+                      ) : item.assignedTo ? (
                         <Text style={styles.assignedText}>
                           <Ionicons name="person-outline" size={14} color="#666" /> 
                           {" "}{familyMembers.find(m => m.uid === item.assignedTo)?.firstName || "Membre"} {familyMembers.find(m => m.uid === item.assignedTo)?.lastName || ""}
                         </Text>
-                      )}
+                      ) : null}
                       {(item.date || item.time) && (
                         <Text style={styles.dateText}>
                           {item.date && <><Ionicons name="calendar-outline" size={14} color="#666" /> {item.date}</>}
                           {item.date && item.time && " • "}
                           {item.time && <><Ionicons name="time-outline" size={14} color="#666" /> {item.time}</>}
+                        </Text>
+                      )}
+                      {item.isRecurring && (
+                        <Text style={styles.dateText}>
+                          <Ionicons name="sync-outline" size={14} color="#2196F3" /> 
+                          {" "}{item.recurrenceType === "daily" ? "Quotidien" : 
+                               item.recurrenceType === "weekly" ? `Hebdo (${item.selectedDays?.map((d: number) => 
+                                 ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][d]
+                               ).join(", ")})` : 
+                               `Mensuel (le ${item.monthlyDay || 1})`}
                         </Text>
                       )}
                     </View>
@@ -759,15 +1189,26 @@ export default function TodoList() {
 
       <Modal visible={editModalVisible} transparent animationType="fade">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%", maxHeight: "80%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20 }}>Modifier la tâche</Text>
+          <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%", maxHeight: "85%" }}>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>Modifier la tâche</Text>
 
+            <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Nom de la tâche</Text>
             <TextInput
               value={editText}
               onChangeText={setEditText}
               style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
               placeholder="Nom de la tâche"
+            />
+
+            <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Description</Text>
+            <TextInput
+              value={editDescription}
+              onChangeText={setEditDescription}
+              multiline
+              numberOfLines={3}
+              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15, height: 80, textAlignVertical: 'top' }}
+              placeholder="Description (optionnel)"
             />
 
             <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Points ❤️</Text>
@@ -885,11 +1326,14 @@ export default function TodoList() {
               </View>
             )}
 
+            </ScrollView>
+
             <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
               <TouchableOpacity onPress={() => {
                 setEditModalVisible(false);
                 setEditingItem(null);
                 setEditText("");
+                setEditDescription("");
                 setEditPoints("");
                 setEditDate("");
                 setEditTime("");

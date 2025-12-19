@@ -1,3 +1,4 @@
+
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -45,8 +46,21 @@ export function Acceuil() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventPriority, setEventPriority] = useState("2");
+  
+  // États pour la rotation
+  const [eventIsRotation, setEventIsRotation] = useState(false);
+  const [eventRotationMembers, setEventRotationMembers] = useState<string[]>([]);
+  
+  // États pour la récurrence
+  const [eventIsRecurring, setEventIsRecurring] = useState(false);
+  const [eventRecurrenceType, setEventRecurrenceType] = useState<"daily" | "weekly" | "monthly" | null>(null);
+  const [eventSelectedDays, setEventSelectedDays] = useState<number[]>([]);
+  const [eventMonthlyDay, setEventMonthlyDay] = useState(1);
 
   const [todoTitle, setTodoTitle] = useState("");
+  const [todoDescription, setTodoDescription] = useState("");
   const [todoPerson, setTodoPerson] = useState("");
   const [todoDate, setTodoDate] = useState("");
   const [todoTime, setTodoTime] = useState("");
@@ -56,7 +70,7 @@ export function Acceuil() {
   const [todoLists, setTodoLists] = useState<any[]>([]);
   const [selectedTodoList, setSelectedTodoList] = useState<string>("");
   const [selectedTodoType, setSelectedTodoType] = useState<"personal" | "family">("personal");
-  const [selectedTodoFamily, setSelectedTodoFamily] = useState<{ id: string; name: string } | null>(null);
+  const [selectedTodoFamily, setSelectedTodoFamily] = useState<{ id: string; name: string; members?: string[] } | null>(null);
   const [todoRemindersCount, setTodoRemindersCount] = useState<number>(0);
   const [todoReminder1Date, setTodoReminder1Date] = useState("");
   const [todoReminder1Time, setTodoReminder1Time] = useState("");
@@ -65,6 +79,16 @@ export function Acceuil() {
   const [todoReminder3Date, setTodoReminder3Date] = useState("");
   const [todoReminder3Time, setTodoReminder3Time] = useState("");
   const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
+  
+  // États pour la récurrence des todos
+  const [todoIsRecurring, setTodoIsRecurring] = useState(false);
+  const [todoRecurrenceType, setTodoRecurrenceType] = useState<"daily" | "weekly" | "monthly" | null>(null);
+  const [todoSelectedDays, setTodoSelectedDays] = useState<number[]>([]);
+  const [todoMonthlyDay, setTodoMonthlyDay] = useState(1);
+  
+  // États pour la rotation des todos
+  const [todoIsRotation, setTodoIsRotation] = useState(false);
+  const [todoRotationMembers, setTodoRotationMembers] = useState<string[]>([]);
 
 const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
@@ -78,8 +102,8 @@ const [modalVisible, setModalVisible] = useState(false);
 const user = auth.currentUser;
 
 const [selectedCalendarType, setSelectedCalendarType] = useState<"personal" | "family">("personal");
-const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string } | null>(null);
-const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string }[]>([]);
+const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string; members?: string[] } | null>(null);
+const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; members?: string[] }[]>([]);
 
  useEffect(() => {
   if (!user?.email) return;
@@ -143,48 +167,87 @@ useEffect(() => {
 }, [selectedTodoType, selectedTodoFamily, user?.uid]);
 
 useEffect(() => {
-  if (!user?.email) return;
+  if (!selectedTodoFamily || selectedTodoType !== "family") {
+    setFamilyMembers([]);
+    return;
+  }
 
   const loadFamilyMembers = async () => {
+    const familyMembers = selectedTodoFamily.members || [];
     const usersSnapshot = await collection(db, "users");
     onSnapshot(usersSnapshot, (snapshot) => {
       const members: { uid: string; firstName: string; lastName: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.email && data.email !== user.email) {
+        console.log("👤 User data for member:", data.email, data);
+        if (data.email && familyMembers.includes(data.email)) {
           members.push({
             uid: doc.id,
-            firstName: data.prenom || "Prénom",
-            lastName: data.nom || "Nom",
+            firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
+            lastName: data.nom || data.lastName || data.lastname || "",
           });
         }
       });
+      console.log("👥 Loaded family members:", members);
       setFamilyMembers(members);
     });
   };
 
   loadFamilyMembers();
-}, [user?.email]);
+}, [selectedTodoFamily, selectedTodoType, user?.email]);
+
+// Charger les membres de la famille pour le calendrier aussi
+useEffect(() => {
+  if (!selectedFamily || selectedCalendarType !== "family") {
+    return;
+  }
+
+  const loadCalendarFamilyMembers = async () => {
+    const familyMembersEmails = selectedFamily.members || [];
+    const usersSnapshot = await collection(db, "users");
+    onSnapshot(usersSnapshot, (snapshot) => {
+      const members: { uid: string; firstName: string; lastName: string }[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log("👤 Calendar user data:", data.email, data);
+        if (data.email && familyMembersEmails.includes(data.email)) {
+          members.push({
+            uid: doc.id,
+            firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
+            lastName: data.nom || data.lastName || data.lastname || "",
+          });
+        }
+      });
+      console.log("👥 Loaded calendar family members:", members);
+      setFamilyMembers(members);
+    });
+  };
+
+  loadCalendarFamilyMembers();
+}, [selectedFamily, selectedCalendarType, user?.email]);
 
 
   const renderModalContent = () => {
   
   const saveEvent = async () => {
-    if (!eventTitle || !eventDate || !eventTime) {
-      alert ("Veuillez remplir tous les champs svpp");
+    if (!eventTitle || !eventTime) {
+      alert ("Veuillez remplir au moins le titre et l'heure");
       return;
     }
     try {
     // Convertir YYYY-MM-DD (du calendrier) en JJ/MM/AAAA pour la sauvegarde
-    const dateParts = eventDate.split('-');
-    const formattedDate = dateParts.length === 3 
-      ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
-      : eventDate;
+    let formattedDate = "";
+    if (eventDate) {
+      const dateParts = eventDate.split('-');
+      formattedDate = dateParts.length === 3 
+        ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` 
+        : eventDate;
+    }
       
     let path: any;
 
     if (selectedCalendarType === "personal") {
-      path = collection(db, "users", user?.uid!, "calendrier"); // perso
+      path = collection(db, "users", user?.uid!, "calendar"); // perso
     } else if (selectedCalendarType === "family" && selectedFamily) {
       path = collection(db, "families", selectedFamily.id, "calendar"); // familial
     } else {
@@ -192,18 +255,125 @@ useEffect(() => {
       return;
     }
 
-    await addDoc(path, {
-      title: eventTitle,
-      date: formattedDate,
-      time: eventTime,
-    });
+    // Si récurrence activée, générer les occurrences
+    if (eventIsRecurring) {
+      const generateRecurringDates = () => {
+        const dates: string[] = [];
+        
+        // Utiliser la date fournie ou la date du jour
+        let startDate: Date;
+        if (formattedDate) {
+          const [day, month, year] = formattedDate.split('/').map(Number);
+          startDate = new Date(year, month - 1, day);
+        } else {
+          startDate = new Date();
+        }
+        
+        if (eventRecurrenceType === "daily") {
+          for (let i = 0; i < 30; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = currentDate.getFullYear();
+            dates.push(`${dd}/${mm}/${yyyy}`);
+          }
+        } else if (eventRecurrenceType === "weekly") {
+          for (let week = 0; week < 12; week++) {
+            for (const dayOfWeek of eventSelectedDays) {
+              const currentDate = new Date(startDate);
+              currentDate.setDate(startDate.getDate() + (week * 7));
+              
+              const currentDay = currentDate.getDay();
+              const diff = dayOfWeek - currentDay;
+              currentDate.setDate(currentDate.getDate() + diff);
+              
+              if (currentDate >= startDate) {
+                const dd = String(currentDate.getDate()).padStart(2, '0');
+                const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const yyyy = currentDate.getFullYear();
+                dates.push(`${dd}/${mm}/${yyyy}`);
+              }
+            }
+          }
+        } else if (eventRecurrenceType === "monthly") {
+          for (let i = 0; i < 12; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setMonth(startDate.getMonth() + i);
+            currentDate.setDate(eventMonthlyDay);
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = currentDate.getFullYear();
+            dates.push(`${dd}/${mm}/${yyyy}`);
+          }
+        }
+        
+        return dates;
+      };
+
+      const recurringDates = generateRecurringDates();
+      
+      // Trier les dates pour s'assurer qu'elles sont dans l'ordre chronologique
+      recurringDates.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.split('/').map(Number);
+        const dateA = new Date(yearA, monthA - 1, dayA);
+        const dateB = new Date(yearB, monthB - 1, dayB);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      for (let i = 0; i < recurringDates.length; i++) {
+        const date = recurringDates[i];
+        let assignedTo = "";
+        let currentRotationIndex = 0;
+        
+        // Si rotation activée, assigner à tour de rôle
+        if (eventIsRotation && eventRotationMembers.length > 0) {
+          currentRotationIndex = i % eventRotationMembers.length;
+          assignedTo = eventRotationMembers[currentRotationIndex];
+        }
+        
+        await addDoc(path, {
+          title: eventTitle,
+          description: eventDescription || "",
+          date: date,
+          time: eventTime,
+          priority: eventPriority,
+          isRecurring: true,
+          recurrenceType: eventRecurrenceType,
+          isRotation: eventIsRotation,
+          rotationMembers: eventIsRotation ? eventRotationMembers : [],
+          currentRotationIndex: currentRotationIndex,
+          assignedTo: assignedTo,
+        });
+      }
+    } else {
+      // Événement simple sans récurrence
+      await addDoc(path, {
+        title: eventTitle,
+        description: eventDescription || "",
+        date: formattedDate || "",
+        time: eventTime,
+        priority: eventPriority,
+        isRotation: eventIsRotation,
+        rotationMembers: eventIsRotation ? eventRotationMembers : [],
+      });
+    }
 
     alert("Événement sauvegardé !");
 
     // reset
     setEventTitle("");
+    setEventDescription("");
     setEventDate("");
     setEventTime("");
+    setEventPriority("2");
+    setEventIsRotation(false);
+    setEventRotationMembers([]);
+    setEventIsRecurring(false);
+    setEventRecurrenceType(null);
+    setEventSelectedDays([]);
+    setEventMonthlyDay(1);
     setModalScreen(null);
     setMenuVisible(false);
 
@@ -249,6 +419,7 @@ const saveTodo = async () => {
       // Ajouter la tâche
       await addDoc(todosPath, {
         name: todoTitle,
+        description: todoDescription || "",
         checked: false,
         points: points,
         date: todoDate || "",
@@ -256,10 +427,109 @@ const saveTodo = async () => {
         priority: todoPriority,
         assignedTo: todoAssignedTo || "",
         reminders: reminders,
+        isRotation: todoIsRotation,
+        rotationMembers: todoIsRotation ? todoRotationMembers : [],
+        currentRotationIndex: 0,
+        isRecurring: todoIsRecurring,
+        recurrenceType: todoIsRecurring ? todoRecurrenceType : null,
+        selectedDays: todoIsRecurring && todoRecurrenceType === "weekly" ? todoSelectedDays : [],
+        monthlyDay: todoIsRecurring && todoRecurrenceType === "monthly" ? todoMonthlyDay : null,
       });
 
-      // Si une date est spécifiée, ajouter aussi dans le calendrier
-      if (todoDate.trim()) {
+      // Si récurrence activée, générer les occurrences dans le calendrier
+      if (todoIsRecurring) {
+        const generateRecurringDates = () => {
+          const dates: string[] = [];
+          
+          let startDate: Date;
+          if (todoDate.trim()) {
+            const [day, month, year] = todoDate.split('/').map(Number);
+            startDate = new Date(year, month - 1, day);
+          } else {
+            startDate = new Date();
+          }
+          
+          if (todoRecurrenceType === "daily") {
+            for (let i = 0; i < 30; i++) {
+              const currentDate = new Date(startDate);
+              currentDate.setDate(startDate.getDate() + i);
+              const dd = String(currentDate.getDate()).padStart(2, '0');
+              const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+              const yyyy = currentDate.getFullYear();
+              dates.push(`${dd}/${mm}/${yyyy}`);
+            }
+          } else if (todoRecurrenceType === "weekly") {
+            for (let week = 0; week < 12; week++) {
+              for (const dayOfWeek of todoSelectedDays) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + (week * 7));
+                
+                const currentDay = currentDate.getDay();
+                const diff = dayOfWeek - currentDay;
+                currentDate.setDate(currentDate.getDate() + diff);
+                
+                if (currentDate >= startDate) {
+                  const dd = String(currentDate.getDate()).padStart(2, '0');
+                  const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+                  const yyyy = currentDate.getFullYear();
+                  dates.push(`${dd}/${mm}/${yyyy}`);
+                }
+              }
+            }
+          } else if (todoRecurrenceType === "monthly") {
+            for (let i = 0; i < 12; i++) {
+              const currentDate = new Date(startDate);
+              currentDate.setMonth(startDate.getMonth() + i);
+              currentDate.setDate(todoMonthlyDay);
+              const dd = String(currentDate.getDate()).padStart(2, '0');
+              const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+              const yyyy = currentDate.getFullYear();
+              dates.push(`${dd}/${mm}/${yyyy}`);
+            }
+          }
+          
+          return dates;
+        };
+
+        const recurringDates = generateRecurringDates();
+        
+        // Trier les dates pour s'assurer qu'elles sont dans l'ordre chronologique
+        recurringDates.sort((a, b) => {
+          const [dayA, monthA, yearA] = a.split('/').map(Number);
+          const [dayB, monthB, yearB] = b.split('/').map(Number);
+          const dateA = new Date(yearA, monthA - 1, dayA);
+          const dateB = new Date(yearB, monthB - 1, dayB);
+          return dateA.getTime() - dateB.getTime();
+        });
+        
+        for (let i = 0; i < recurringDates.length; i++) {
+          const date = recurringDates[i];
+          let assignedTo = todoAssignedTo || "";
+          let currentRotationIndex = 0;
+          
+          // Si rotation activée, assigner à tour de rôle
+          if (todoIsRotation && todoRotationMembers.length > 0) {
+            currentRotationIndex = i % todoRotationMembers.length;
+            assignedTo = todoRotationMembers[currentRotationIndex];
+          }
+          
+          await addDoc(calendarPath, {
+            title: todoTitle,
+            date: date,
+            time: todoTime || "00:00",
+            points: points,
+            priority: todoPriority,
+            type: "todo",
+            isRecurring: true,
+            recurrenceType: todoRecurrenceType,
+            isRotation: todoIsRotation,
+            rotationMembers: todoIsRotation ? todoRotationMembers : [],
+            currentRotationIndex: currentRotationIndex,
+            assignedTo: assignedTo,
+          });
+        }
+      } else if (todoDate.trim()) {
+        // Si pas de récurrence mais une date, ajouter une seule occurrence
         await addDoc(calendarPath, {
           title: todoTitle,
           date: todoDate,
@@ -272,6 +542,7 @@ const saveTodo = async () => {
 
       alert("Tâche sauvegardée !");
       setTodoTitle("");
+      setTodoDescription("");
       setTodoPoints("");
       setTodoDate("");
       setTodoTime("");
@@ -285,6 +556,12 @@ const saveTodo = async () => {
       setTodoReminder2Time("");
       setTodoReminder3Date("");
       setTodoReminder3Time("");
+      setTodoIsRotation(false);
+      setTodoRotationMembers([]);
+      setTodoIsRecurring(false);
+      setTodoRecurrenceType(null);
+      setTodoSelectedDays([]);
+      setTodoMonthlyDay(1);
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -331,51 +608,68 @@ const saveTodo = async () => {
 
     case "calendar":
       return (
-        <View style={styles.modalInnerContainer}>
-
-          <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={goBack}>
+        <View style={{ width: "100%", flex: 1 }}>
+          {/* Flèche de retour fixe en haut */}
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, padding: 10, backgroundColor: "white" }}>
+            <TouchableOpacity onPress={goBack}>
               <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
             </TouchableOpacity>
-            </View>
+          </View>
 
-             <Text style={styles.modalTitle}>Nouvel Événement</Text>
+          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 30 }}>
+            <Text style={[styles.modalTitle, { fontSize: 18, marginBottom: 10, fontWeight: "bold" }]}>Nouvel Événement</Text>
 
-             <Picker
-  selectedValue={selectedCalendarType === "personal" ? "personal" : selectedFamily?.id}
-  onValueChange={(value) => {
-    if (value === "personal") {
-      setSelectedCalendarType("personal");
-      setSelectedFamily(null);
-    } else {
-      const fam = familiesJoined.find(f => f.id === value);
-      if (fam) {
-        setSelectedFamily(fam);
-        setSelectedCalendarType("family");
-      }
-    }
-  }}
-  style={styles.inputWeb} // même style que tes inputs
->
-  <Picker.Item label="Calendrier personnel" value="personal" />
-  <Picker.Item label="--- Calendriers famille ---" value="" enabled={false} />
-  {familiesJoined.map(f => (
-    <Picker.Item key={f.id} label={f.name} value={f.id} />
-  ))}
-</Picker>
+            {/* Sélection Personnel / Famille */}
+            <Picker
+              selectedValue={selectedCalendarType === "personal" ? "personal" : selectedFamily?.id}
+              onValueChange={(value) => {
+                if (value === "personal") {
+                  setSelectedCalendarType("personal");
+                  setSelectedFamily(null);
+                } else {
+                  const fam = familiesJoined.find(f => f.id === value);
+                  if (fam) {
+                    setSelectedFamily(fam);
+                    setSelectedCalendarType("family");
+                  }
+                }
+              }}
+              style={styles.inputWeb}
+            >
+              <Picker.Item label="Calendrier personnel" value="personal" />
+              <Picker.Item label="--- Calendriers famille ---" value="" enabled={false} />
+              {familiesJoined.map(f => (
+                <Picker.Item key={f.id} label={f.name} value={f.id} />
+              ))}
+            </Picker>
 
+            {/* Titre */}
+            <TextInput 
+              placeholder="Titre" 
+              placeholderTextColor="#ccc"
+              value={eventTitle} 
+              onChangeText={setEventTitle} 
+              style={styles.inputWeb} 
+            />
 
-          <TextInput 
-          placeholder="Titre" 
-          value={eventTitle} 
-          onChangeText={setEventTitle} 
-      
-          style={styles.inputWeb} />
-          <input 
+            {/* Description */}
+            <TextInput 
+              placeholder="Description (optionnel)" 
+              placeholderTextColor="#ccc"
+              value={eventDescription} 
+              onChangeText={setEventDescription} 
+              multiline
+              numberOfLines={3}
+              style={[styles.inputWeb, { height: 80, textAlignVertical: "top" }]} 
+            />
+
+            {/* Date et Heure */}
+            <input 
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}  
               style={styles.inputWeb}
+              placeholder="Date (optionnel pour récurrence)"
             />
             <input
               type="time"
@@ -383,10 +677,208 @@ const saveTodo = async () => {
               onChange={(e) => setEventTime(e.target.value)} 
               style={styles.inputWeb}
             />
-            <TouchableOpacity style={styles.saveButton} onPress={saveEvent}>
+
+            {/* Priorité */}
+            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 8, marginTop: 10, color: "#000" }}>Priorité</Text>
+            <Picker
+              selectedValue={eventPriority}
+              onValueChange={(value) => setEventPriority(value)}
+              style={styles.inputWeb}
+            >
+              <Picker.Item label="🟢 Faible (1)" value="1" />
+              <Picker.Item label="🔵 Normale (2)" value="2" />
+              <Picker.Item label="🟠 Importante (3)" value="3" />
+              <Picker.Item label="🔴 Urgente (4)" value="4" />
+            </Picker>
+
+            {/* Rotation */}
+            {selectedCalendarType === "family" && selectedFamily && (
+              <View style={{ marginTop: 15 }}>
+                <TouchableOpacity 
+                  onPress={() => setEventIsRotation(!eventIsRotation)}
+                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+                >
+                  <View style={{ 
+                    width: 20, 
+                    height: 20, 
+                    borderWidth: 2, 
+                    borderColor: "#ffbf00", 
+                    marginRight: 10,
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    {eventIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: "600" }}>Tournante entre membres</Text>
+                </TouchableOpacity>
+
+                {eventIsRotation && (
+                  <View style={{ marginLeft: 30, marginTop: 10 }}>
+                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Sélectionnez les membres :</Text>
+                    {familyMembers.map((member) => (
+                      <TouchableOpacity
+                        key={member.uid}
+                        onPress={() => {
+                          if (eventRotationMembers.includes(member.uid)) {
+                            setEventRotationMembers(eventRotationMembers.filter(id => id !== member.uid));
+                          } else {
+                            setEventRotationMembers([...eventRotationMembers, member.uid]);
+                          }
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+                      >
+                        <View style={{ 
+                          width: 20, 
+                          height: 20, 
+                          borderWidth: 2, 
+                          borderColor: "#ffbf00", 
+                          marginRight: 10,
+                          justifyContent: "center",
+                          alignItems: "center"
+                        }}>
+                          {eventRotationMembers.includes(member.uid) && 
+                            <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />
+                          }
+                        </View>
+                        <Text>{member.firstName} {member.lastName}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Récurrence */}
+            <View style={{ marginTop: 15 }}>
+              <TouchableOpacity 
+                onPress={() => setEventIsRecurring(!eventIsRecurring)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+              >
+                <View style={{ 
+                  width: 20, 
+                  height: 20, 
+                  borderWidth: 2, 
+                  borderColor: "#ffbf00", 
+                  marginRight: 10,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  {eventIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: "600" }}>Événement récurrent</Text>
+              </TouchableOpacity>
+
+              {eventIsRecurring && (
+                <View style={{ marginLeft: 30, marginTop: 10 }}>
+                  <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
+                  <View style={{ flexDirection: "row", gap: 10, marginBottom: 15 }}>
+                    <TouchableOpacity 
+                      onPress={() => setEventRecurrenceType("daily")}
+                      style={{ 
+                        paddingHorizontal: 15, 
+                        paddingVertical: 8, 
+                        backgroundColor: eventRecurrenceType === "daily" ? "#ffbf00" : "#f0f0f0",
+                        borderRadius: 5 
+                      }}
+                    >
+                      <Text style={{ color: eventRecurrenceType === "daily" ? "white" : "#333" }}>Quotidien</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setEventRecurrenceType("weekly")}
+                      style={{ 
+                        paddingHorizontal: 15, 
+                        paddingVertical: 8, 
+                        backgroundColor: eventRecurrenceType === "weekly" ? "#ffbf00" : "#f0f0f0",
+                        borderRadius: 5 
+                      }}
+                    >
+                      <Text style={{ color: eventRecurrenceType === "weekly" ? "white" : "#333" }}>Hebdo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => setEventRecurrenceType("monthly")}
+                      style={{ 
+                        paddingHorizontal: 15, 
+                        paddingVertical: 8, 
+                        backgroundColor: eventRecurrenceType === "monthly" ? "#ffbf00" : "#f0f0f0",
+                        borderRadius: 5 
+                      }}
+                    >
+                      <Text style={{ color: eventRecurrenceType === "monthly" ? "white" : "#333" }}>Mensuel</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Sélection des jours pour hebdomadaire */}
+                  {eventRecurrenceType === "weekly" && (
+                    <View style={{ marginTop: 10 }}>
+                      <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={() => {
+                              if (eventSelectedDays.includes(index)) {
+                                setEventSelectedDays(eventSelectedDays.filter(d => d !== index));
+                              } else {
+                                setEventSelectedDays([...eventSelectedDays, index]);
+                              }
+                            }}
+                            style={{
+                              width: 45,
+                              height: 45,
+                              borderRadius: 22.5,
+                              backgroundColor: eventSelectedDays.includes(index) ? "#ffbf00" : "#f0f0f0",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ color: eventSelectedDays.includes(index) ? "white" : "#333", fontSize: 12 }}>
+                              {day}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Sélection du jour pour mensuel */}
+                  {eventRecurrenceType === "monthly" && (
+                    <View style={{ marginTop: 10 }}>
+                      <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <TouchableOpacity
+                            key={day}
+                            onPress={() => setEventMonthlyDay(day)}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              backgroundColor: eventMonthlyDay === day ? "#ffbf00" : "#f0f0f0",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ color: eventMonthlyDay === day ? "white" : "#333", fontSize: 12 }}>
+                              {day}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+          </ScrollView>
+
+          {/* Bouton sauvegarder fixe en bas */}
+          <TouchableOpacity 
+            style={[styles.saveButton, { position: "absolute", bottom: 20, left: 20, right: 20 }]} 
+            onPress={saveEvent}
+          >
             <Text style={styles.saveButtonText}>Sauvegarder</Text>
           </TouchableOpacity>
-   
         </View>
       );
 
@@ -452,6 +944,17 @@ const saveTodo = async () => {
             value={todoTitle}
             onChangeText={setTodoTitle} 
             style={styles.inputWeb} 
+          />
+
+          {/* Description */}
+          <TextInput 
+            placeholder="Description (optionnel)"
+            placeholderTextColor="#ccc"
+            value={todoDescription}
+            onChangeText={setTodoDescription}
+            multiline
+            numberOfLines={3}
+            style={[styles.inputWeb, { height: 80, textAlignVertical: 'top', paddingTop: 10 }]} 
           />
 
           {/* Points */}
@@ -527,7 +1030,7 @@ const saveTodo = async () => {
           </View>
 
           {/* Assigner à (si membres famille disponibles) */}
-          {familyMembers.length > 0 && (
+          {familyMembers.length > 0 && !todoIsRotation && (
             <View style={{ marginBottom: 10 }}>
               <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Assigner à</Text>
               <Picker
@@ -736,6 +1239,185 @@ const saveTodo = async () => {
             )}
           </View>
 
+          {/* Rotation */}
+          {selectedTodoType === "family" && familyMembers.length > 0 && (
+            <View style={{ marginTop: 15 }}>
+              <TouchableOpacity 
+                onPress={() => setTodoIsRotation(!todoIsRotation)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+              >
+                <View style={{ 
+                  width: 20, 
+                  height: 20, 
+                  borderWidth: 2, 
+                  borderColor: "#ffbf00", 
+                  marginRight: 10,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  {todoIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                </View>
+                <Text style={{ fontSize: 14, fontWeight: "600" }}>Tournante entre membres</Text>
+              </TouchableOpacity>
+
+              {todoIsRotation && (
+                <View style={{ marginLeft: 30, marginTop: 10 }}>
+                  <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Sélectionnez les membres :</Text>
+                  {familyMembers.map((member) => (
+                    <TouchableOpacity
+                      key={member.uid}
+                      onPress={() => {
+                        if (todoRotationMembers.includes(member.uid)) {
+                          setTodoRotationMembers(todoRotationMembers.filter(id => id !== member.uid));
+                        } else {
+                          setTodoRotationMembers([...todoRotationMembers, member.uid]);
+                        }
+                      }}
+                      style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+                    >
+                      <View style={{ 
+                        width: 20, 
+                        height: 20, 
+                        borderWidth: 2, 
+                        borderColor: "#ffbf00", 
+                        marginRight: 10,
+                        justifyContent: "center",
+                        alignItems: "center"
+                      }}>
+                        {todoRotationMembers.includes(member.uid) && 
+                          <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />
+                        }
+                      </View>
+                      <Text>{member.firstName} {member.lastName}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Récurrence */}
+          <View style={{ marginTop: 15 }}>
+            <TouchableOpacity 
+              onPress={() => setTodoIsRecurring(!todoIsRecurring)}
+              style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+            >
+              <View style={{ 
+                width: 20, 
+                height: 20, 
+                borderWidth: 2, 
+                borderColor: "#ffbf00", 
+                marginRight: 10,
+                justifyContent: "center",
+                alignItems: "center"
+              }}>
+                {todoIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>Tâche récurrente</Text>
+            </TouchableOpacity>
+
+            {todoIsRecurring && (
+              <View style={{ marginLeft: 30, marginTop: 10 }}>
+                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
+                <View style={{ flexDirection: "row", gap: 10, marginBottom: 15 }}>
+                  <TouchableOpacity 
+                    onPress={() => setTodoRecurrenceType("daily")}
+                    style={{ 
+                      paddingHorizontal: 15, 
+                      paddingVertical: 8, 
+                      backgroundColor: todoRecurrenceType === "daily" ? "#ffbf00" : "#f0f0f0",
+                      borderRadius: 5 
+                    }}
+                  >
+                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#333" }}>Quotidien</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setTodoRecurrenceType("weekly")}
+                    style={{ 
+                      paddingHorizontal: 15, 
+                      paddingVertical: 8, 
+                      backgroundColor: todoRecurrenceType === "weekly" ? "#ffbf00" : "#f0f0f0",
+                      borderRadius: 5 
+                    }}
+                  >
+                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#333" }}>Hebdo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setTodoRecurrenceType("monthly")}
+                    style={{ 
+                      paddingHorizontal: 15, 
+                      paddingVertical: 8, 
+                      backgroundColor: todoRecurrenceType === "monthly" ? "#ffbf00" : "#f0f0f0",
+                      borderRadius: 5 
+                    }}
+                  >
+                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#333" }}>Mensuel</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Jours pour hebdomadaire */}
+                {todoRecurrenceType === "weekly" && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                      {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            if (todoSelectedDays.includes(index)) {
+                              setTodoSelectedDays(todoSelectedDays.filter(d => d !== index));
+                            } else {
+                              setTodoSelectedDays([...todoSelectedDays, index]);
+                            }
+                          }}
+                          style={{
+                            width: 45,
+                            height: 45,
+                            borderRadius: 22.5,
+                            backgroundColor: todoSelectedDays.includes(index) ? "#ffbf00" : "#f0f0f0",
+                            justifyContent: "center",
+                            alignItems: "center"
+                          }}
+                        >
+                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#333", fontSize: 12 }}>
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Jour pour mensuel */}
+                {todoRecurrenceType === "monthly" && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                        <TouchableOpacity
+                          key={day}
+                          onPress={() => setTodoMonthlyDay(day)}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: todoMonthlyDay === day ? "#ffbf00" : "#f0f0f0",
+                            justifyContent: "center",
+                            alignItems: "center"
+                          }}
+                        >
+                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#333", fontSize: 12 }}>
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+
           <TouchableOpacity style={styles.saveButton} onPress={saveTodo}>
             <Text style={styles.saveButtonText}>Sauvegarder</Text>
           </TouchableOpacity>
@@ -882,7 +1564,7 @@ const saveTodo = async () => {
 const Stack = createNativeStackNavigator();
 export default function RootStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: true}} >
+    <Stack.Navigator>
       <Stack.Screen
         name="Acceuil"
         component={Acceuil}
@@ -905,7 +1587,7 @@ export default function RootStack() {
           ),
         })}
       />
-      <Stack.Screen name="Recompense" component={Recompense}  />
+      <Stack.Screen name="Recompense" component={Recompense} />
       <Stack.Screen name="chat" component={chat} options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
