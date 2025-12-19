@@ -1588,7 +1588,7 @@ export default function RootStack() {
         })}
       />
       <Stack.Screen name="Recompense" component={Recompense} />
-      <Stack.Screen name="chat" component={chat} />
+      <Stack.Screen name="chat" component={chat} options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
 }
