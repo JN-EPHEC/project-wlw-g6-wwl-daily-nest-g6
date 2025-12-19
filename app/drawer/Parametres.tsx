@@ -264,7 +264,7 @@ export function Parametres() {
                   onPress={async () => {
                     if (!uid) return;
                     try {
-                      await updateDoc(userRef(uid), { notif: notifOptions });
+                      await updateDoc(userRef(uid), { notif: notifOptions }); 
                       setNotifVisible(false);
                       Alert.alert("Succès", "Notifications sauvegardées");
                     } catch (err) {
