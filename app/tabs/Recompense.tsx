@@ -404,19 +404,10 @@ export default function Recompense() {
         </View>
       </View>
 
-      {/* Informations supplémentaires */}
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          {progress === 1 
-            ? "🎉 Objectif atteint !" 
-            : `Plus que ${maxPoints - points} points pour atteindre l'objectif !`}
-        </Text>
-      </View>
-
       {/* Section des récompenses */}
       <View style={styles.rewardsSection}>
         <View style={styles.rewardHeader}>
-          <Text style={styles.rewardsTitle}>🎁 Récompenses disponibles</Text>
+          <Text style={styles.rewardsTitle}> Récompenses disponibles</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
             <Ionicons name="add-circle" size={32} color="#ffbf00" />
           </TouchableOpacity>
