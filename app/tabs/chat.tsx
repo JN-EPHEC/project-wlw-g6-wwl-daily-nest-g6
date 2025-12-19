@@ -10,7 +10,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator initialRouteName="ChatHome" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="ChatHome" screenOptions={{ headerShown: true }}>
       <Stack.Screen 
         name="ChatHome"
         component={ChatHome}

@@ -4,11 +4,17 @@ import { useNavigation } from "@react-navigation/native";
 import {
   addDoc,
   collection,
+  CollectionReference,
+  deleteDoc,
+  doc,
+  DocumentData,
+  FieldValue,
   getDocs,
   onSnapshot,
   query,
   serverTimestamp,
-  where
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -37,6 +43,9 @@ export default function ChatScreen() {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const userEmail = user?.email;
   const [groupName, setGroupName] = useState("");
+
+  const [editingGroup, setEditingGroup] = useState<any | null>(null);
+
 
 
   if (!user) return null;
@@ -113,7 +122,7 @@ export default function ChatScreen() {
     title = groupName.trim();
   }
 
-  await addDoc(collection(db, "conversations"), {
+  const docRef = await addDoc(collection(db, "conversations"), {
     familyId: selectedFamily.id,
     type: createType,
     title,
@@ -121,11 +130,45 @@ export default function ChatScreen() {
     createdAt: serverTimestamp(),
   });
 
+  navigation.navigate("Conversation", { conversationId: docRef.id });
+
   setModalVisible(false);
   setCreateType(null);
   setSelectedMembers([]);
   setGroupName("");
 };
+const editGroup = (group: any) => {
+
+  setEditingGroup(group);
+  setModalVisible(true);
+  setCreateType("group");
+  setGroupName(group.title);
+  setSelectedMembers(group.members.filter((m: string) => m !== userEmail));
+};
+
+const updateGroup = async () => {
+  if (!editingGroup) return;
+  const groupRef = doc(db, "conversations", editingGroup.id);
+  await updateDoc(groupRef, {
+    title: groupName.trim(),
+    members: [userEmail, ...selectedMembers],
+  });
+  setModalVisible(false);
+  setEditingGroup(null);
+  setCreateType(null);
+  setSelectedMembers([]);
+  setGroupName("");
+};
+
+const deleteGroup = async (group: any) => {
+  try {
+    await deleteDoc(doc(db, "conversations", group.id));
+    console.log("Groupe supprimé !");
+  } catch (err) {
+    console.error("Erreur suppression groupe :", err);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -167,6 +210,7 @@ export default function ChatScreen() {
           ) : null
         }
         renderItem={({ item }) => (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <TouchableOpacity
             style={styles.chatItem}
             onPress={() =>
@@ -182,6 +226,22 @@ export default function ChatScreen() {
             />
             <Text style={styles.chatText}>{item.title}</Text>
           </TouchableOpacity>
+         {item.type === "group" && (
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {/* Modifier */}
+        <TouchableOpacity onPress={() => editGroup(item)}>
+          <Ionicons name="pencil-outline" size={20} color="#555" />
+        </TouchableOpacity>
+
+        {/* Supprimer */}
+        <TouchableOpacity onPress={() => deleteGroup(item)}>
+          <Ionicons name="trash-outline" size={20} color="red" />
+        </TouchableOpacity>
+      </View>
+    )}
+  </View>
+
+
         )}
       />
 
@@ -208,17 +268,31 @@ export default function ChatScreen() {
           <View style={styles.modalContainer}>
 {!createType ? (
               <>
-                <Text style={styles.modalTitle}>Créer</Text>
+                <TouchableOpacity
+  onPress={() => {
+    if (editingGroup) {
+      updateGroup();
+    } else {
+      createConversation();
+    }
+  }}
+  style={[styles.confirmBtn, /* ton style disabled */]}
+>
+  <Text style={styles.confirmText}>
+    {editingGroup ? "Modifier le groupe" : "Créer conversation"}
+  </Text>
+</TouchableOpacity>
+
 
             <View style={styles.modalCard}>
   <TouchableOpacity onPress={() => setCreateType("private")}>
-    <Text style={styles.modalAction}>🧑 Conversation privée</Text>
+    <Text style={styles.modalAction}>Conversation privée</Text>
   </TouchableOpacity>
 </View>
 
 <View style={styles.modalCard}>
   <TouchableOpacity onPress={() => setCreateType("group")}>
-    <Text style={styles.modalAction}>👨‍👩‍👧‍👦 Groupe</Text>
+    <Text style={styles.modalAction}>👨‍👩‍👧‍👦Groupe</Text>
   </TouchableOpacity>
 </View>
               </>
@@ -277,14 +351,7 @@ export default function ChatScreen() {
 
 
 <TouchableOpacity
-  onPress={() => {
-    // Vérifier le type et le nombre de membres
-    if (createType === "private" && selectedMembers.length !== 1) return;
-    if (createType === "group" && selectedMembers.length < 2) return;
-
-    createConversation(); // ✅ pas d'arguments
-    navigation.navigate("ConversationPage", { members: selectedMembers }); // redirection
-  }}
+  onPress={createConversation}
   disabled={
     (createType === "private" && selectedMembers.length !== 1) ||
     (createType === "group" && selectedMembers.length < 2)
@@ -512,3 +579,7 @@ groupInput: {
 
 
 });
+function docRef(arg0: CollectionReference<DocumentData, DocumentData>, arg1: { familyId: any; type: "private" | "group"; title: string; members: (string | null)[]; createdAt: FieldValue; }) {
+  throw new Error("Function not implemented.");
+}
+

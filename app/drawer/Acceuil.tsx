@@ -882,7 +882,7 @@ const saveTodo = async () => {
 const Stack = createNativeStackNavigator();
 export default function RootStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: true}} >
       <Stack.Screen
         name="Acceuil"
         component={Acceuil}
@@ -905,8 +905,8 @@ export default function RootStack() {
           ),
         })}
       />
-      <Stack.Screen name="Recompense" component={Recompense} />
-      <Stack.Screen name="chat" component={chat} />
+      <Stack.Screen name="Recompense" component={Recompense}  />
+      <Stack.Screen name="chat" component={chat} options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
 }

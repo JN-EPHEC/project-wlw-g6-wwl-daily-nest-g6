@@ -20,10 +20,7 @@ type Message = {
   sender: string;
   status: "sending" | "sent" | "read" | "error";
   createdAt: any;
-  avatar?: string | null;
 };
-
-
 
 export default function ConversationScreen() {
   const route = useRoute();
@@ -53,10 +50,25 @@ export default function ConversationScreen() {
       }));
       setMessages(msgs.sort((a, b) => a.createdAt?.seconds - b.createdAt?.seconds));
     });
+     markAsRead();
 
     return () => unsub();
   }, [conversationId]);
+  
 
+  useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {  
+      sendMessage();
+    }
+  };
+
+  document.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    document.removeEventListener("keydown", handleKeyDown);
+  };
+}, [message]);
 
   //Scroll auto
   useEffect(() => {
@@ -93,7 +105,6 @@ export default function ConversationScreen() {
         sender: currentUser.email,
         createdAt: serverTimestamp(),
         status: "sent",
-        avatar:  currentUser.photoURL  || null,
       });
       // Mettre à jour le statut local
       setMessages(prev =>
@@ -131,6 +142,12 @@ export default function ConversationScreen() {
     ? new Date(item.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : "";
 
+    let statusIcon;
+  if (item.status === "sending") statusIcon = <Ionicons name="time-outline" size={14} color="#555" />;
+  else if (item.status === "error") statusIcon = <Ionicons name="alert-circle-outline" size={14} color="red" />;
+  else if (item.status === "sent") statusIcon = <Ionicons name="checkmark-outline" size={14} color="#555" />;
+  else if (item.status === "read") statusIcon = <Ionicons name="checkmark-done-outline" size={14} color="#1DA1F2" />;
+
 
 
     return (
@@ -157,28 +174,9 @@ export default function ConversationScreen() {
           <Text style={styles.messageText}>{item.text}</Text>
           <View style={styles.messageMeta}>
             <Text style={styles.timeText}>
-                {item.createdAt && new Date(item.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}          
+                {item.createdAt && new Date(item.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}  
+                {statusIcon && <View style={{ marginLeft: 4 }}>{statusIcon}</View>}        
             </Text>
-            {isMe && (
-  <>
-    {item.status === "sending" && (
-      <Ionicons name="time-outline" size={14} color="#555" />
-    )}
-    {item.status === "error" && (
-      <Ionicons name="alert-circle-outline" size={14} color="red" />
-    )}
-    {item.status === "sent" && (
-      <Ionicons name="checkmark-outline" size={14} color="#555" />
-    )}
-    {item.status === "read" && (
-      <Ionicons
-        name="checkmark-done-outline"
-        size={14}
-        color="#1DA1F2"
-      />
-    )}
-  </>
-)}
           </View>
         </View>
 {isMe && (
