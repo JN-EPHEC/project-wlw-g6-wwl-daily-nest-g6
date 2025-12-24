@@ -8,7 +8,6 @@ import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
-import { getMinutesFromLabel, requestNotificationPermissions, scheduleTaskNotification } from "../../services/notificationService";
 
 import Carnetfamiliale from "../tabs/Carnetfamiliale";
 import chat from "../tabs/chat";
@@ -104,9 +103,6 @@ const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string;
 const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; members?: string[] }[]>([]);
 
  useEffect(() => {
-  // Demander les permissions de notification au démarrage
-  requestNotificationPermissions();
-
   if (!user?.email) return;
 
   const q = query(
@@ -526,12 +522,6 @@ const saveTodo = async () => {
           priority: todoPriority,
           type: "todo",
         });
-        
-        // Planifier la notification si activée
-        if (todoNotificationEnabled && todoDate.trim() && todoTime.trim()) {
-          const minutesBefore = getMinutesFromLabel(todoNotificationTime);
-          await scheduleTaskNotification(todoTitle, todoDate, todoTime, minutesBefore);
-        }
       }
 
       alert("Tâche sauvegardée !");
