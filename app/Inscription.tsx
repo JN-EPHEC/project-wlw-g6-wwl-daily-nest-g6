@@ -284,9 +284,24 @@ export default function SignUp() {
             color={termsError ? "red" : "#00b7ff9a"} 
           />
         </TouchableOpacity>
-        <Text style={[styles.termsText, termsError && { color: "red" }]}>
-          J'accepte la Politique de confidentialité, les Conditions générales d'utilisation et les Conditions générales de vente
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.termsText, termsError && { color: "red" }]}>
+            J'accepte la{" "}
+            <Text 
+              style={styles.link}
+              onPress={() => router.push("/PolitiqueConfidentialite")}
+            >
+              Politique de confidentialité
+            </Text>
+            {" "}et les{" "}
+            <Text 
+              style={styles.link}
+              onPress={() => router.push("/ConditionsUtilisation")}
+            >
+              Conditions générales d'utilisation
+            </Text>
+          </Text>
+        </View>
       </View>
       {termsError && (
         <Text style={styles.fieldError}>Vous devez accepter les conditions pour continuer</Text>
@@ -424,5 +439,10 @@ signUpText: {
     fontSize: 12,
     color: "#666",
     lineHeight: 16,
+  },
+  link: {
+    color: "#00b7ff",
+    textDecorationLine: "underline",
+    fontWeight: "600",
   },
 });

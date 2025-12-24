@@ -47,6 +47,12 @@ export default function TodoList() {
   const [editTime, setEditTime] = useState("");
   const [editPriority, setEditPriority] = useState("2");
   const [editAssignedTo, setEditAssignedTo] = useState("");
+  const [editIsRotation, setEditIsRotation] = useState(false);
+  const [editRotationMembers, setEditRotationMembers] = useState<string[]>([]);
+  const [editIsRecurring, setEditIsRecurring] = useState(false);
+  const [editRecurrenceType, setEditRecurrenceType] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [editSelectedDays, setEditSelectedDays] = useState<number[]>([]);
+  const [editMonthlyDay, setEditMonthlyDay] = useState<number>(1);
   const [sortBy, setSortBy] = useState<"none" | "priority-desc" | "priority-asc" | "date">("none"); // Tri par priorité ou date
 
   const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
@@ -122,6 +128,12 @@ export default function TodoList() {
     setEditTime(item.time || "");
     setEditPriority(item.priority || "2");
     setEditAssignedTo(item.assignedTo || "");
+    setEditIsRotation(item.isRotation || false);
+    setEditRotationMembers(item.rotationMembers || []);
+    setEditIsRecurring(item.isRecurring || false);
+    setEditRecurrenceType(item.recurrenceType || "weekly");
+    setEditSelectedDays(item.selectedDays || []);
+    setEditMonthlyDay(item.monthlyDay || 1);
     setEditModalVisible(true);
   };
 
@@ -136,6 +148,12 @@ export default function TodoList() {
       time: editTime,
       priority: editPriority,
       assignedTo: editAssignedTo,
+      isRotation: editIsRotation,
+      rotationMembers: editIsRotation ? editRotationMembers : [],
+      isRecurring: editIsRecurring,
+      recurrenceType: editIsRecurring ? editRecurrenceType : null,
+      selectedDays: editIsRecurring && editRecurrenceType === "weekly" ? editSelectedDays : [],
+      monthlyDay: editIsRecurring && editRecurrenceType === "monthly" ? editMonthlyDay : null,
     };
 
     let todosPath: any;
@@ -202,6 +220,12 @@ export default function TodoList() {
     setEditTime("");
     setEditPriority("2");
     setEditAssignedTo("");
+    setEditIsRotation(false);
+    setEditRotationMembers([]);
+    setEditIsRecurring(false);
+    setEditRecurrenceType("weekly");
+    setEditSelectedDays([]);
+    setEditMonthlyDay(1);
   };
 
   useEffect(() => {
@@ -387,7 +411,7 @@ export default function TodoList() {
     }
     
     // Ajouter la tâche
-    await addDoc(
+    const taskDocRef = await addDoc(
       todosPath,
       { 
         name: newItem,
@@ -766,51 +790,53 @@ export default function TodoList() {
               </View>
             </View>
 
-            {/* Sélectionner le membre ou tournante */}
+            {/* Sélectionner le membre */}
             {familyMembers.length > 0 && (
               <View style={{ marginTop: 20 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Assigner à</Text>
-                  <TouchableOpacity 
-                    onPress={() => {
-                      setIsRotation(!isRotation);
-                      if (!isRotation) {
-                        setNewItemAssignedTo("");
-                        setRotationMembers([]);
-                      }
-                    }}
-                    style={{ flexDirection: "row", alignItems: "center" }}
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 10, color: "#333" }}>Assigner à</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={newItemAssignedTo}
+                    onValueChange={(value) => setNewItemAssignedTo(value)}
+                    style={styles.picker}
                   >
-                    <Ionicons 
-                      name={isRotation ? "checkbox" : "square-outline"} 
-                      size={24} 
-                      color="#ffbf00" 
-                      style={{ marginRight: 5 }}
-                    />
-                    <Text style={{ fontSize: 13, color: "#666" }}>Tournante</Text>
-                  </TouchableOpacity>
+                    <Picker.Item label="Moi-même" value="" />
+                    {familyMembers.map(member => (
+                      <Picker.Item 
+                        key={member.uid} 
+                        label={`${member.firstName} ${member.lastName}`} 
+                        value={member.uid} 
+                      />
+                    ))}
+                  </Picker>
                 </View>
+              </View>
+            )}
 
-                {!isRotation ? (
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={newItemAssignedTo}
-                      onValueChange={(value) => setNewItemAssignedTo(value)}
-                      style={styles.picker}
-                    >
-                      <Picker.Item label="Moi-même" value="" />
-                      {familyMembers.map(member => (
-                        <Picker.Item 
-                          key={member.uid} 
-                          label={`${member.firstName} ${member.lastName}`} 
-                          value={member.uid} 
-                        />
-                      ))}
-                    </Picker>
-                  </View>
-                ) : (
+            {/* Tournante entre membres */}
+            {selectedTodoType === "family" && familyMembers.length > 0 && (
+              <View style={{ marginTop: 15 }}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setIsRotation(!isRotation);
+                    if (!isRotation) {
+                      setRotationMembers([]);
+                    }
+                  }}
+                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+                >
+                  <Ionicons 
+                    name={isRotation ? "checkbox" : "square-outline"} 
+                    size={24} 
+                    color="#ffbf00" 
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tournante entre membres</Text>
+                </TouchableOpacity>
+
+                {isRotation && (
                   <View style={{ backgroundColor: "#f5f5f5", padding: 10, borderRadius: 10 }}>
-                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 10 }}>Sélectionnez les membres de la tournante :</Text>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 10 }}>Sélectionnez les membres :</Text>
                     {familyMembers.map(member => (
                       <TouchableOpacity
                         key={member.uid}
@@ -1190,8 +1216,25 @@ export default function TodoList() {
       <Modal visible={editModalVisible} transparent animationType="fade">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
           <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%", maxHeight: "85%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>Modifier la tâche</Text>
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>
+              {editingItem?.name ? "Modifier la tâche" : "Modifier la liste"}
+            </Text>
 
+            {/* Si c'est une liste, on affiche seulement le champ nom */}
+            {!editingItem?.name && (
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Nom de la liste</Text>
+                <TextInput
+                  value={editText}
+                  onChangeText={setEditText}
+                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+                  placeholder="Nom de la liste"
+                />
+              </View>
+            )}
+
+            {/* Si c'est une tâche, on affiche tous les champs */}
+            {editingItem?.name && (
             <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Nom de la tâche</Text>
             <TextInput
@@ -1326,7 +1369,203 @@ export default function TodoList() {
               </View>
             )}
 
+            {/* Rotation */}
+            {selectedTodoType === "family" && familyMembers.length > 0 && (
+              <View style={{ marginTop: 15, marginBottom: 15 }}>
+                <TouchableOpacity 
+                  onPress={() => setEditIsRotation(!editIsRotation)}
+                  style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+                >
+                  <Ionicons 
+                    name={editIsRotation ? "checkbox" : "square-outline"} 
+                    size={24} 
+                    color="#ffbf00" 
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tournante entre membres</Text>
+                </TouchableOpacity>
+
+                {editIsRotation && (
+                  <View style={{ backgroundColor: "#f5f5f5", padding: 10, borderRadius: 10 }}>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 10 }}>Sélectionnez les membres :</Text>
+                    {familyMembers.map(member => (
+                      <TouchableOpacity
+                        key={member.uid}
+                        onPress={() => {
+                          if (editRotationMembers.includes(member.uid)) {
+                            setEditRotationMembers(editRotationMembers.filter(id => id !== member.uid));
+                          } else {
+                            setEditRotationMembers([...editRotationMembers, member.uid]);
+                          }
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
+                      >
+                        <Ionicons 
+                          name={editRotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
+                          size={22} 
+                          color="#ffbf00" 
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text style={{ fontSize: 14, color: "#333" }}>
+                          {member.firstName} {member.lastName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Récurrence */}
+            <View style={{ marginTop: 15, marginBottom: 15 }}>
+              <TouchableOpacity 
+                onPress={() => setEditIsRecurring(!editIsRecurring)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+              >
+                <Ionicons 
+                  name={editIsRecurring ? "checkbox" : "square-outline"} 
+                  size={24} 
+                  color="#ffbf00" 
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tâche récurrente</Text>
+              </TouchableOpacity>
+
+              {editIsRecurring && (
+                <View style={{ backgroundColor: "#f5f5f5", padding: 12, borderRadius: 10 }}>
+                  <View style={{ marginBottom: 15 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Fréquence</Text>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <TouchableOpacity
+                        onPress={() => setEditRecurrenceType("daily")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: editRecurrenceType === "daily" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginRight: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: editRecurrenceType === "daily" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        onPress={() => setEditRecurrenceType("weekly")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: editRecurrenceType === "weekly" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginHorizontal: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: editRecurrenceType === "weekly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Hebdo</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        onPress={() => setEditRecurrenceType("monthly")}
+                        style={[
+                          styles.priorityButton,
+                          { 
+                            borderColor: "#2196F3", 
+                            backgroundColor: editRecurrenceType === "monthly" ? "#2196F3" : "white",
+                            flex: 1,
+                            marginLeft: 5
+                          }
+                        ]}
+                      >
+                        <Text style={{ color: editRecurrenceType === "monthly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {editRecurrenceType === "weekly" && (
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jours de la semaine</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                        {[
+                          { label: "Lun", value: 1 },
+                          { label: "Mar", value: 2 },
+                          { label: "Mer", value: 3 },
+                          { label: "Jeu", value: 4 },
+                          { label: "Ven", value: 5 },
+                          { label: "Sam", value: 6 },
+                          { label: "Dim", value: 0 }
+                        ].map(day => (
+                          <TouchableOpacity
+                            key={day.value}
+                            onPress={() => {
+                              if (editSelectedDays.includes(day.value)) {
+                                setEditSelectedDays(editSelectedDays.filter(d => d !== day.value));
+                              } else {
+                                setEditSelectedDays([...editSelectedDays, day.value]);
+                              }
+                            }}
+                            style={{
+                              width: 45,
+                              height: 45,
+                              borderRadius: 22.5,
+                              borderWidth: 2,
+                              borderColor: "#ffbf00",
+                              backgroundColor: editSelectedDays.includes(day.value) ? "#ffbf00" : "white",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ 
+                              color: editSelectedDays.includes(day.value) ? "white" : "#ffbf00", 
+                              fontWeight: "600",
+                              fontSize: 12
+                            }}>
+                              {day.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {editRecurrenceType === "monthly" && (
+                    <View>
+                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jour du mois</Text>
+                      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                          <TouchableOpacity
+                            key={day}
+                            onPress={() => setEditMonthlyDay(day)}
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 19,
+                              borderWidth: 2,
+                              borderColor: "#ffbf00",
+                              backgroundColor: editMonthlyDay === day ? "#ffbf00" : "white",
+                              justifyContent: "center",
+                              alignItems: "center"
+                            }}
+                          >
+                            <Text style={{ 
+                              color: editMonthlyDay === day ? "white" : "#ffbf00", 
+                              fontWeight: "600",
+                              fontSize: 11
+                            }}>
+                              {day}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
             </ScrollView>
+            )}
 
             <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
               <TouchableOpacity onPress={() => {
@@ -1338,6 +1577,13 @@ export default function TodoList() {
                 setEditDate("");
                 setEditTime("");
                 setEditPriority("2");
+                setEditAssignedTo("");
+                setEditIsRotation(false);
+                setEditRotationMembers([]);
+                setEditIsRecurring(false);
+                setEditRecurrenceType("daily");
+                setEditSelectedDays([]);
+                setEditMonthlyDay(1);
               }}>
                 <Text style={{ fontSize: 15, color: "red", fontWeight: "600" }}>Annuler</Text>
               </TouchableOpacity>

@@ -4,17 +4,17 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
-    // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    signInWithCredential,
-    signInWithEmailAndPassword,
-    signInWithPopup,
-    User,
+  // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 
 export default function AuthComponent() {
@@ -32,12 +32,18 @@ export default function AuthComponent() {
 
 WebBrowser.maybeCompleteAuthSession();
 
+  const redirectUri = makeRedirectUri({
+    scheme: 'dailynest'
+  });
+  
+  console.log('🔗 Redirect URI:', redirectUri);
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
+    androidClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
+    iosClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
     scopes: ['profile', 'email'],
-    redirectUri: makeRedirectUri({
-      scheme: "dailynest",
-    }),
+    redirectUri: redirectUri,
   });
 
   useEffect(() => {
@@ -89,15 +95,61 @@ WebBrowser.maybeCompleteAuthSession();
 
   useEffect(() => {
   if (response?.type === 'success') {
+    console.log('✅ Google auth response success');
     const { authentication } = response;
     const idToken = authentication?.idToken;
 
     if (idToken) {
+      console.log('🔑 ID Token received');
       const credential = GoogleAuthProvider.credential(idToken);
       (async () => {
+        try {
+          console.log('🔄 Signing in with credential...');
+          const result = await signInWithCredential(auth, credential);
+          const user = result.user; 
+          const uid = user.uid;
 
-        const result = await signInWithCredential(auth, credential);
-        const user = result.user; 
+          // Extraire le prénom et nom du displayName
+          const displayName = user.displayName || '';
+          const nameParts = displayName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          console.log('💾 Saving user to Firestore...');
+          await setDoc(doc(db, "users", uid), {
+            email: user.email,
+            firstName: firstName,
+            lastName: lastName,
+            birthDate: '',
+            createdAt: new Date(),
+            familyId: null,
+          }, { merge: true });
+
+          console.log("✅ Connexion Google réussie");
+        } catch (error) {
+          console.error('❌ Google sign-in error:', error);
+          Alert.alert('Erreur', 'Impossible de finaliser la connexion. Veuillez réessayer.');
+        }
+      })();
+    } else {
+      console.log('❌ No ID token in response');
+      Alert.alert('Erreur', 'Aucun token reçu de Google.');
+    }
+  } else if (response?.type === 'error') {
+    console.error('❌ Google auth error:', response.error);
+    Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
+  } else if (response?.type === 'cancel') {
+    console.log('⚠️ Google auth cancelled');
+  }
+}, [response]);
+
+  const handleGoogleSignIn = async () => {
+    // Sur le web, utiliser signInWithPopup directement
+    if (Platform.OS === 'web') {
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
         const uid = user.uid;
 
         // Extraire le prénom et nom du displayName
@@ -106,48 +158,29 @@ WebBrowser.maybeCompleteAuthSession();
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
 
+        console.log('💾 Saving user to Firestore...');
         await setDoc(doc(db, "users", uid), {
           email: user.email,
           firstName: firstName,
           lastName: lastName,
-          birthDate: '', // À compléter par l'utilisateur
+          birthDate: '',
           createdAt: new Date(),
           familyId: null,
         }, { merge: true });
 
-        console.log("Connexion Google réussie");
-      })();
-    }
-  } else if (response?.type === 'error') {
-    Alert.alert('Erreur', 'Échec de la connexion Google. Veuillez réessayer.');
-  }
-}, [response]);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const uid = user.uid;
-
-      // Extraire le prénom et nom du displayName
-      const displayName = user.displayName || '';
-      const nameParts = displayName.split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      await setDoc(doc(db, "users", uid), {
-        email: user.email,
-        firstName: firstName,
-        lastName: lastName,
-        birthDate: '', // À compléter par l'utilisateur dans son profil
-        createdAt: new Date(),
-      }, { merge: true });
-
-      console.log("Connexion Google réussie");
-    } catch (err: any) {
-      console.warn('Google sign-in error', err);
-      Alert.alert('Erreur', err.message || String(err));
+        console.log("✅ Connexion Google réussie");
+      } catch (err: any) {
+        console.error('❌ Google sign-in error:', err);
+        Alert.alert('Erreur', 'Impossible de finaliser la connexion. Veuillez réessayer.');
+      }
+    } else {
+      // Sur mobile, utiliser expo-auth-session
+      try {
+        await promptAsync();
+      } catch (err: any) {
+        console.warn('Google sign-in error', err);
+        Alert.alert('Erreur', err.message || String(err));
+      }
     }
   };
 

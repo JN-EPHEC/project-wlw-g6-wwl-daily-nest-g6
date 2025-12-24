@@ -27,7 +27,7 @@ export function Parametres() {
 
   // user data
   const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
-  const [role, setRole] = useState<"parents" | "children">("parents");
+  const [familyRoles, setFamilyRoles] = useState<{ [familyId: string]: "parents" | "children" }>({});
 
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
@@ -71,7 +71,6 @@ export function Parametres() {
         lastName: data.lastName || "",
         email: data.email || auth.currentUser?.email || "",
       });
-      setRole(data.role === "children" ? "children" : "parents");
       setPrivacyShare(!!data?.privacy?.shareData);
       setNotifOptions({
         tasks: !!data?.notif?.tasks,
@@ -89,18 +88,38 @@ export function Parametres() {
   useEffect(() => {
     if (!user?.email) return;
     const q = query(collection(db, "families"), where("members", "array-contains", user.email));
-    const unsub = onSnapshot(q, (snap) => {
-      setFamilies(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    const unsub = onSnapshot(q, async (snap) => {
+      const familiesData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setFamilies(familiesData);
+      
+      // Load roles for each family
+      const roles: { [familyId: string]: "parents" | "children" } = {};
+      for (const family of familiesData) {
+        const familyDoc = await getDoc(doc(db, "families", family.id));
+        if (familyDoc.exists()) {
+          const familyData = familyDoc.data();
+          const memberRole = familyData?.memberRoles?.[user.email];
+          roles[family.id] = memberRole === "children" ? "children" : "parents";
+        }
+      }
+      setFamilyRoles(roles);
     });
     return () => unsub();
   }, [user?.email]);
 
   // save settings
   const saveBasicSettings = async () => {
-    if (!uid) return;
+    if (!uid || !user?.email) return;
     try {
+      // Save roles for each family
+      for (const familyId in familyRoles) {
+        const familyRef = doc(db, "families", familyId);
+        await updateDoc(familyRef, {
+          [`memberRoles.${user.email.replace(/\./g, '_')}`]: familyRoles[familyId]
+        });
+      }
+      
       await updateDoc(userRef(uid), {
-        role,
         privacy: { shareData: privacyShare },
         notif: notifOptions,
       });
@@ -148,16 +167,29 @@ export function Parametres() {
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
-        {/* Role Picker */}
+        {/* Role per Family */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Rôle dans la famille</Text>
-          <Text style={styles.smallText}>Choisis un rôle pour ton profil</Text>
-          <View style={styles.pickerWrap}>
-            <Picker selectedValue={role} onValueChange={(v) => setRole(v as any)}>
-              <Picker.Item label="Parents" value="parents" />
-              <Picker.Item label="Enfants" value="children" />
-            </Picker>
-          </View>
+          <Text style={styles.sectionTitle}>Rôle dans chaque famille</Text>
+          <Text style={styles.smallText}>Choisis ton rôle pour chaque famille</Text>
+          
+          {families.length === 0 ? (
+            <Text style={styles.noFamilyText}>Tu n'appartiens à aucune famille pour le moment</Text>
+          ) : (
+            families.map((family) => (
+              <View key={family.id} style={styles.familyRoleCard}>
+                <Text style={styles.familyName}>{family.name || "Famille"}</Text>
+                <View style={styles.pickerWrap}>
+                  <Picker
+                    selectedValue={familyRoles[family.id] || "parents"}
+                    onValueChange={(v) => setFamilyRoles(prev => ({ ...prev, [family.id]: v as any }))}
+                  >
+                    <Picker.Item label="Parents" value="parents" />
+                    <Picker.Item label="Enfants" value="children" />
+                  </Picker>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Notifications */}
@@ -340,6 +372,27 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
     borderRadius: 8,
     overflow: "hidden",
+  },
+
+  familyRoleCard: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#f9f9f9",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+  },
+  familyName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  noFamilyText: {
+    color: "#999",
+    fontStyle: "italic",
+    marginTop: 8,
+    fontSize: 13,
   },
 
   saveSmallBtn: {

@@ -8,6 +8,7 @@ import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
+import { getMinutesFromLabel, requestNotificationPermissions, scheduleTaskNotification } from "../../services/notificationService";
 
 import Carnetfamiliale from "../tabs/Carnetfamiliale";
 import chat from "../tabs/chat";
@@ -71,13 +72,6 @@ export function Acceuil() {
   const [selectedTodoList, setSelectedTodoList] = useState<string>("");
   const [selectedTodoType, setSelectedTodoType] = useState<"personal" | "family">("personal");
   const [selectedTodoFamily, setSelectedTodoFamily] = useState<{ id: string; name: string; members?: string[] } | null>(null);
-  const [todoRemindersCount, setTodoRemindersCount] = useState<number>(0);
-  const [todoReminder1Date, setTodoReminder1Date] = useState("");
-  const [todoReminder1Time, setTodoReminder1Time] = useState("");
-  const [todoReminder2Date, setTodoReminder2Date] = useState("");
-  const [todoReminder2Time, setTodoReminder2Time] = useState("");
-  const [todoReminder3Date, setTodoReminder3Date] = useState("");
-  const [todoReminder3Time, setTodoReminder3Time] = useState("");
   const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
   
   // États pour la récurrence des todos
@@ -89,6 +83,10 @@ export function Acceuil() {
   // États pour la rotation des todos
   const [todoIsRotation, setTodoIsRotation] = useState(false);
   const [todoRotationMembers, setTodoRotationMembers] = useState<string[]>([]);
+
+  // États pour les notifications
+  const [todoNotificationEnabled, setTodoNotificationEnabled] = useState(false);
+  const [todoNotificationTime, setTodoNotificationTime] = useState("15 min avant");
 
 const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
@@ -106,6 +104,9 @@ const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string;
 const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; members?: string[] }[]>([]);
 
  useEffect(() => {
+  // Demander les permissions de notification au démarrage
+  requestNotificationPermissions();
+
   if (!user?.email) return;
 
   const q = query(
@@ -404,20 +405,8 @@ const saveTodo = async () => {
         calendarPath = collection(db, "families", selectedTodoFamily.id, "calendar");
       }
       
-      // Préparer les rappels
-      const reminders = [];
-      if (todoRemindersCount >= 1 && todoReminder1Date && todoReminder1Time) {
-        reminders.push({ date: todoReminder1Date, time: todoReminder1Time });
-      }
-      if (todoRemindersCount >= 2 && todoReminder2Date && todoReminder2Time) {
-        reminders.push({ date: todoReminder2Date, time: todoReminder2Time });
-      }
-      if (todoRemindersCount >= 3 && todoReminder3Date && todoReminder3Time) {
-        reminders.push({ date: todoReminder3Date, time: todoReminder3Time });
-      }
-      
       // Ajouter la tâche
-      await addDoc(todosPath, {
+      const taskDocRef = await addDoc(todosPath, {
         name: todoTitle,
         description: todoDescription || "",
         checked: false,
@@ -426,7 +415,6 @@ const saveTodo = async () => {
         time: todoTime || "",
         priority: todoPriority,
         assignedTo: todoAssignedTo || "",
-        reminders: reminders,
         isRotation: todoIsRotation,
         rotationMembers: todoIsRotation ? todoRotationMembers : [],
         currentRotationIndex: 0,
@@ -538,6 +526,12 @@ const saveTodo = async () => {
           priority: todoPriority,
           type: "todo",
         });
+        
+        // Planifier la notification si activée
+        if (todoNotificationEnabled && todoDate.trim() && todoTime.trim()) {
+          const minutesBefore = getMinutesFromLabel(todoNotificationTime);
+          await scheduleTaskNotification(todoTitle, todoDate, todoTime, minutesBefore);
+        }
       }
 
       alert("Tâche sauvegardée !");
@@ -549,19 +543,14 @@ const saveTodo = async () => {
       setTodoPriority("2");
       setTodoAssignedTo("");
       setSelectedTodoList("");
-      setTodoRemindersCount(0);
-      setTodoReminder1Date("");
-      setTodoReminder1Time("");
-      setTodoReminder2Date("");
-      setTodoReminder2Time("");
-      setTodoReminder3Date("");
-      setTodoReminder3Time("");
       setTodoIsRotation(false);
       setTodoRotationMembers([]);
       setTodoIsRecurring(false);
       setTodoRecurrenceType(null);
       setTodoSelectedDays([]);
       setTodoMonthlyDay(1);
+      setTodoNotificationEnabled(false);
+      setTodoNotificationTime("15 min avant");
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -1092,153 +1081,6 @@ const saveTodo = async () => {
             />
           </View>
 
-          {/* Rappels */}
-          <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Rappels (optionnel)</Text>
-            <Picker
-              selectedValue={todoRemindersCount}
-              onValueChange={(value) => setTodoRemindersCount(value)}
-              style={styles.inputWeb}
-            >
-              <Picker.Item label="Aucun rappel" value={0} />
-              <Picker.Item label="1 rappel" value={1} />
-              <Picker.Item label="2 rappels" value={2} />
-              <Picker.Item label="3 rappels" value={3} />
-            </Picker>
-
-            {/* Rappel 1 */}
-            {todoRemindersCount >= 1 && (
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ fontSize: 12, fontWeight: "700", marginBottom: 5, color: "#00d0ff" }}>Rappel 1</Text>
-                <View style={{ flexDirection: "row", gap: 8, marginBottom: 5 }}>
-                  <input
-                    type="date"
-                    value={todoReminder1Date ? (() => {
-                      const parts = todoReminder1Date.split('/');
-                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                    })() : ''}
-                    onChange={(e) => {
-                      const dateParts = e.target.value.split('-');
-                      if (dateParts.length === 3) {
-                        setTodoReminder1Date(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: '#00d0ff',
-                      padding: 8,
-                      borderRadius: 8,
-                      fontSize: 12
-                    }}
-                  />
-                  <TextInput
-                    style={[styles.inputWeb, { flex: 1, marginTop: 0, height: 35, fontSize: 12 }]}
-                    placeholder="HH:MM"
-                    placeholderTextColor="#ccc"
-                    value={todoReminder1Time}
-                    onChangeText={(text) => {
-                      let formatted = text.replace(/[^0-9]/g, '');
-                      if (formatted.length >= 2) {
-                        formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
-                      }
-                      setTodoReminder1Time(formatted);
-                    }}
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* Rappel 2 */}
-            {todoRemindersCount >= 2 && (
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ fontSize: 11, fontWeight: "600", marginBottom: 5, color: "#666" }}>Rappel 2</Text>
-                <View style={{ flexDirection: "row", gap: 8, marginBottom: 5 }}>
-                  <input
-                    type="date"
-                    value={todoReminder2Date ? (() => {
-                      const parts = todoReminder2Date.split('/');
-                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                    })() : ''}
-                    onChange={(e) => {
-                      const dateParts = e.target.value.split('-');
-                      if (dateParts.length === 3) {
-                        setTodoReminder2Date(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: '#00d0ff',
-                      padding: 8,
-                      borderRadius: 8,
-                      fontSize: 12
-                    }}
-                  />
-                  <TextInput
-                    style={[styles.inputWeb, { flex: 1, marginTop: 0, height: 35, fontSize: 12 }]}
-                    placeholder="HH:MM"
-                    placeholderTextColor="#ccc"
-                    value={todoReminder2Time}
-                    onChangeText={(text) => {
-                      let formatted = text.replace(/[^0-9]/g, '');
-                      if (formatted.length >= 2) {
-                        formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
-                      }
-                      setTodoReminder2Time(formatted);
-                    }}
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-            )}
-
-            {/* Rappel 3 */}
-            {todoRemindersCount >= 3 && (
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ fontSize: 11, fontWeight: "600", marginBottom: 5, color: "#666" }}>Rappel 3</Text>
-                <View style={{ flexDirection: "row", gap: 8, marginBottom: 5 }}>
-                  <input
-                    type="date"
-                    value={todoReminder3Date ? (() => {
-                      const parts = todoReminder3Date.split('/');
-                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                    })() : ''}
-                    onChange={(e) => {
-                      const dateParts = e.target.value.split('-');
-                      if (dateParts.length === 3) {
-                        setTodoReminder3Date(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: '#00d0ff',
-                      padding: 8,
-                      borderRadius: 8,
-                      fontSize: 12
-                    }}
-                  />
-                  <TextInput
-                    style={[styles.inputWeb, { flex: 1, marginTop: 0, height: 35, fontSize: 12 }]}
-                    placeholder="HH:MM"
-                    placeholderTextColor="#ccc"
-                    value={todoReminder3Time}
-                    onChangeText={(text) => {
-                      let formatted = text.replace(/[^0-9]/g, '');
-                      if (formatted.length >= 2) {
-                        formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
-                      }
-                      setTodoReminder3Time(formatted);
-                    }}
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-            )}
-          </View>
-
           {/* Rotation */}
           {selectedTodoType === "family" && familyMembers.length > 0 && (
             <View style={{ marginTop: 15 }}>
@@ -1414,6 +1256,45 @@ const saveTodo = async () => {
                     </View>
                   </View>
                 )}
+              </View>
+            )}
+          </View>
+
+          {/* Notification */}
+          <View style={{ marginTop: 15 }}>
+            <TouchableOpacity 
+              onPress={() => setTodoNotificationEnabled(!todoNotificationEnabled)}
+              style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
+            >
+              <View style={{ 
+                width: 20, 
+                height: 20, 
+                borderWidth: 2, 
+                borderColor: "#ffbf00", 
+                marginRight: 10,
+                justifyContent: "center",
+                alignItems: "center"
+              }}>
+                {todoNotificationEnabled && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>🔔 Notification</Text>
+            </TouchableOpacity>
+
+            {todoNotificationEnabled && (
+              <View style={{ marginLeft: 30, marginTop: 10 }}>
+                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Rappeler :</Text>
+                <Picker
+                  selectedValue={todoNotificationTime}
+                  onValueChange={(value) => setTodoNotificationTime(value)}
+                  style={styles.inputWeb}
+                >
+                  <Picker.Item label="5 min avant" value="5 min avant" />
+                  <Picker.Item label="10 min avant" value="10 min avant" />
+                  <Picker.Item label="15 min avant" value="15 min avant" />
+                  <Picker.Item label="1 heure avant" value="1 heure avant" />
+                  <Picker.Item label="2 heures avant" value="2 heures avant" />
+                  <Picker.Item label="1 jour avant" value="1 jour avant" />
+                </Picker>
               </View>
             )}
           </View>
