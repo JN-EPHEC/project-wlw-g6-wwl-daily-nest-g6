@@ -2,7 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+<<<<<<< HEAD
 import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
+=======
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
+>>>>>>> da6e4df (modification mdp paramètre)
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -480,7 +484,10 @@ export function Parametres() {
                   secureTextEntry
                 />
               </View>
+<<<<<<< HEAD
           
+=======
+>>>>>>> da6e4df (modification mdp paramètre)
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.iconClose} onPress={() => {
                   setPasswordVisible(false);
@@ -499,12 +506,16 @@ export function Parametres() {
               </View>
             </View>
           </View>
+<<<<<<< HEAD
           
         </Modal>
         
     <View style={{ padding: 16 }}>
     <Text style={[styles.text, isDark && styles.darkText]}>Mode sombre</Text>
     <Switch value={isDark} onValueChange={toggleTheme} />
+=======
+        </Modal>
+>>>>>>> da6e4df (modification mdp paramètre)
 
       </View>
     </ScrollView>
@@ -673,6 +684,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: "#f9f9f9",
   },
+<<<<<<< HEAD
   container: {
     flex: 1,
     padding: 16,
@@ -689,4 +701,6 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
+=======
+>>>>>>> da6e4df (modification mdp paramètre)
 });
