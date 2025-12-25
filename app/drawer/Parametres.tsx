@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -32,10 +34,16 @@ export function Parametres() {
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   // privacy & notif
   const [privacyShare, setPrivacyShare] = useState(false);
   const [notifOptions, setNotifOptions] = useState({ tasks: false, chat: false, reminders: false });
+
+  // password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const userRef = (id: string) => doc(db, "users", id);
 
@@ -130,6 +138,52 @@ export function Parametres() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!uid || !user) return;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Erreur", "Le nouveau mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    try {
+      // Réauthentifier l'utilisateur
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+      await reauthenticateWithCredential(user, credential);
+
+      // Mettre à jour le mot de passe
+      await updatePassword(user, newPassword);
+
+      Alert.alert("Succès", "Mot de passe modifié avec succès");
+      setPasswordVisible(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === "auth/wrong-password") {
+        Alert.alert("Erreur", "Mot de passe actuel incorrect");
+      } else if (err.code === "auth/requires-recent-login") {
+        Alert.alert("Erreur", "Pour des raisons de sécurité, veuillez vous reconnecter avant de changer votre mot de passe");
+      } else {
+        Alert.alert("Erreur", "Impossible de modifier le mot de passe");
+      }
+    }
+  };
+
 
   const goToProfile = () => navigation.navigate("profil");
   const goToFamily = () => navigation.navigate("Famille");
@@ -206,6 +260,15 @@ export function Parametres() {
           <View>
             <Text style={styles.rowTitle}>Confidentialité</Text>
             <Text style={styles.rowSub}>Gérer la visibilité et le partage des données</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#888" />
+        </TouchableOpacity>
+
+        {/* Mot de passe */}
+        <TouchableOpacity style={styles.cardRow} onPress={() => setPasswordVisible(true)}>
+          <View>
+            <Text style={styles.rowTitle}>Mot de passe</Text>
+            <Text style={styles.rowSub}>Modifier votre mot de passe</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
@@ -306,6 +369,70 @@ export function Parametres() {
                   }}
                 >
                   <Text style={styles.modalSaveText}>Enregistrer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Password Modal */}
+        <Modal visible={passwordVisible} transparent animationType="slide">
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Modifier le mot de passe</Text>
+                <TouchableOpacity onPress={() => {
+                  setPasswordVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}>
+                  <Ionicons name="close" size={22} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalText}>
+                Pour des raisons de sécurité, vous devez entrer votre mot de passe actuel.
+              </Text>
+              <View style={{ marginTop: 15 }}>
+                <Text style={styles.inputLabel}>Mot de passe actuel</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Mot de passe actuel"
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry
+                />
+                <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Nouveau mot de passe (min. 6 caractères)"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                />
+                <Text style={styles.inputLabel}>Confirmer le mot de passe</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirmer le nouveau mot de passe"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.iconClose} onPress={() => {
+                  setPasswordVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}>
+                  <Ionicons name="close" size={18} color="#444" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleChangePassword}
+                >
+                  <Text style={styles.modalSaveText}>Modifier</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -441,4 +568,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalSaveText: { color: "#222", fontWeight: "700" },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    backgroundColor: "#f9f9f9",
+  },
 });
