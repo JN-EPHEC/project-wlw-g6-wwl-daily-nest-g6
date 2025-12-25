@@ -3,7 +3,7 @@ import { Picker } from "@react-native-picker/picker";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -57,12 +57,28 @@ export function Budget() {
   useEffect(() => {
     if (!email) return;
 
-    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setFamiliesJoined(list);
+      const allFamilies: any[] = [];
+      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === email) {
+            return true; // Format ancien
+          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+            return true; // Format nouveau
+          }
+        }
+        return false;
+      });
+      
+      setFamiliesJoined(userFamilies);
     });
 
     return () => unsubscribe();
@@ -356,12 +372,20 @@ export function Budget() {
 
             <Text style={styles.modalTitle}>Nouveau Budget</Text>
 
+            {/* Indication du type de budget */}
+            <View style={{ backgroundColor: selectedType === 'personal' ? '#E3F2FD' : '#FFF3E0', padding: 12, borderRadius: 8, marginBottom: 15 }}>
+              <Text style={{ textAlign: 'center', fontWeight: '600', color: selectedType === 'personal' ? '#1976D2' : '#F57C00' }}>
+                {selectedType === 'personal' ? '👤 Budget Personnel' : `👨‍👩‍👧‍👦 Budget Familial: ${selectedFamily?.name}`}
+              </Text>
+            </View>
+
             <Text style={styles.label}>Nom du budget</Text>
             <TextInput
               style={styles.input}
               placeholder="Ex: Cadeaux, Courses, Loisirs..."
               value={budgetName}
               onChangeText={setBudgetName}
+              maxLength={50}
             />
 
             <Text style={styles.label}>Montant limite (€)</Text>
@@ -406,12 +430,13 @@ export function Budget() {
               <Ionicons name="close" size={30} color="black" />
             </TouchableOpacity>
 
-            {selectedBudget && (
-              <>
-                <Text style={styles.modalTitle}>{selectedBudget.name}</Text>
-                
-                {/* Indicateur de budget */}
-                <View style={styles.budgetIndicator}>
+            <ScrollView showsVerticalScrollIndicator={true}>
+              {selectedBudget && (
+                <>
+                  <Text style={styles.modalTitle}>{selectedBudget.name}</Text>
+                  
+                  {/* Indicateur de budget */}
+                  <View style={styles.budgetIndicator}>
                   <View style={styles.budgetBar}>
                     <View 
                       style={[
@@ -503,37 +528,36 @@ export function Budget() {
 
                 {/* Liste des dépenses */}
                 <Text style={styles.sectionTitle}>Historique des dépenses</Text>
-                <ScrollView style={styles.expensesList}>
-                  {expenses.length === 0 ? (
-                    <Text style={styles.noExpensesText}>Aucune dépense enregistrée</Text>
-                  ) : (
-                    expenses.map((expense) => (
-                      <View key={expense.id} style={styles.expenseCard}>
-                        <View style={styles.expenseInfo}>
-                          <Text style={styles.expenseName}>{expense.name}</Text>
-                          {expense.description ? (
-                            <Text style={styles.expenseDescription}>{expense.description}</Text>
-                          ) : null}
-                          <Text style={styles.expenseDate}>{expense.date}</Text>
-                        </View>
-                        <View style={styles.expenseRight}>
-                          <Text style={styles.expenseAmount}>{expense.amount.toFixed(2)}€</Text>
-                          <TouchableOpacity
-                            onPress={() => {
-                              if (confirm(`Supprimer la dépense "${expense.name}" ?`)) {
-                                deleteExpense(expense.id);
-                              }
-                            }}
-                          >
-                            <Ionicons name="trash-outline" size={20} color="#f44336" />
-                          </TouchableOpacity>
-                        </View>
+                {expenses.length === 0 ? (
+                  <Text style={styles.noExpensesText}>Aucune dépense enregistrée</Text>
+                ) : (
+                  expenses.map((expense) => (
+                    <View key={expense.id} style={styles.expenseCard}>
+                      <View style={styles.expenseInfo}>
+                        <Text style={styles.expenseName}>{expense.name}</Text>
+                        {expense.description ? (
+                          <Text style={styles.expenseDescription}>{expense.description}</Text>
+                        ) : null}
+                        <Text style={styles.expenseDate}>{expense.date}</Text>
                       </View>
-                    ))
-                  )}
-                </ScrollView>
+                      <View style={styles.expenseRight}>
+                        <Text style={styles.expenseAmount}>{expense.amount.toFixed(2)}€</Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (confirm(`Supprimer la dépense "${expense.name}" ?`)) {
+                              deleteExpense(expense.id);
+                            }
+                          }}
+                        >
+                          <Ionicons name="trash-outline" size={20} color="#f44336" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
               </>
             )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
