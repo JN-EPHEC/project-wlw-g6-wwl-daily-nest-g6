@@ -1,11 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
 import { onAuthStateChanged } from "firebase/auth";
+<<<<<<< HEAD
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+=======
+import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+>>>>>>> 6d82195 (Carnet familiale)
   FlatList,
   Image,
   Modal,
@@ -21,7 +28,11 @@ import { auth, db } from "../../firebaseConfig";
 type Family = {
   id: string;
   name?: string;
+<<<<<<< HEAD
   members?: string[] | Array<{email: string; role: string}>; // Support ancien format et nouveau
+=======
+  members?: string[];
+>>>>>>> 6d82195 (Carnet familiale)
 };
 
 type Contact = { name: string; phone: string };
@@ -31,6 +42,7 @@ type Document = { name: string; url: string };
 type Member = {
   id: string;
   name?: string;
+<<<<<<< HEAD
   firstName?: string;
   lastName?: string;
   role?: string;
@@ -38,6 +50,11 @@ type Member = {
   birthday?: string;
   birthDate?: string;
   gender?: string;
+=======
+  role?: string;
+  phone?: string;
+  birthday?: string;
+>>>>>>> 6d82195 (Carnet familiale)
   photo?: string;
 
   // Médecin
@@ -47,8 +64,13 @@ type Member = {
 
   // Infos médicales
   bloodGroup?: string;
+<<<<<<< HEAD
   allergies?: string[] | string;
   geneticDiseases?: string[] | string;
+=======
+  allergies?: string[];
+  geneticDiseases?: string[];
+>>>>>>> 6d82195 (Carnet familiale)
   nationalNumber?: string;
   emergencyContacts?: Contact[];
 
@@ -80,6 +102,7 @@ export default function FamilyJournal() {
  
 
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+<<<<<<< HEAD
   const [editMode, setEditMode] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   
@@ -87,6 +110,14 @@ export default function FamilyJournal() {
   const [memberDetailModalVisible, setMemberDetailModalVisible] = useState(false); // détail membre
   const [roleManagementVisible, setRoleManagementVisible] = useState(false); // gestion des rôles
   const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({}); // email -> role
+=======
+  
+
+  const [editMode, setEditMode] = useState(false);
+
+  const [membersModalVisible, setMembersModalVisible] = useState(false); // liste des membres
+const [memberDetailModalVisible, setMemberDetailModalVisible] = useState(false); // détail membre
+>>>>>>> 6d82195 (Carnet familiale)
 
 
   useEffect(() => {
@@ -101,6 +132,7 @@ export default function FamilyJournal() {
     if (!email) return setLoadingFamilies(false);
 
     setLoadingFamilies(true);
+<<<<<<< HEAD
     // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
     const q = query(collection(db, "families"));
     const unsub = onSnapshot(
@@ -123,6 +155,14 @@ export default function FamilyJournal() {
         });
         
         setFamilies(userFamilies);
+=======
+    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    const unsub = onSnapshot(
+      q,
+      snapshot => {
+        const list: Family[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        setFamilies(list);
+>>>>>>> 6d82195 (Carnet familiale)
         setLoadingFamilies(false);
       },
       err => {
@@ -134,6 +174,7 @@ export default function FamilyJournal() {
   }, [email]);
 
   // Ouvrir modal membres
+<<<<<<< HEAD
   const openMembersModal = async (family: Family) => {
     setSelectedFamily(family);
     
@@ -172,6 +213,11 @@ export default function FamilyJournal() {
       }
     }
     
+=======
+  const openMembersModal = (family: Family) => {
+    setSelectedFamily(family);
+    const memList: Member[] = (family.members || []).map(email => ({ id: email, name: email }));
+>>>>>>> 6d82195 (Carnet familiale)
     setMembers(memList);
     setMembersModalVisible(true);
   };
@@ -193,6 +239,7 @@ export default function FamilyJournal() {
     setMembers([]);
   };
 
+<<<<<<< HEAD
   // Ouvrir le modal de gestion des rôles
   const openRoleManagement = () => {
     if (!selectedFamily) return;
@@ -274,12 +321,15 @@ export default function FamilyJournal() {
     }
   };
 
+=======
+>>>>>>> 6d82195 (Carnet familiale)
   // Ouvrir modal détail membre
   const openMemberDetail = async (member: Member) => {
   try {
     const docRef = doc(db, "users", member.id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
+<<<<<<< HEAD
       const memberData = docSnap.data();
       setSelectedMember({ id: member.id, ...memberData, role: member.role }); // Utiliser le rôle depuis la famille
       console.log('📋 Membre sélectionné:', memberData.firstName, memberData.lastName);
@@ -313,6 +363,16 @@ export default function FamilyJournal() {
     setSelectedMember(member);
   }
   setEditMode(false);
+=======
+      setSelectedMember({ id: member.id, ...docSnap.data() });
+    } else {
+      setSelectedMember(member);
+    }
+  } catch (err) {
+    console.error(err);
+    setSelectedMember(member);
+  }
+>>>>>>> 6d82195 (Carnet familiale)
   setMemberDetailModalVisible(true);
 };
 
@@ -351,10 +411,15 @@ export default function FamilyJournal() {
       {/* HEADER */}
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
+<<<<<<< HEAD
         <View style={{ flexDirection: 'row', marginLeft: 'auto', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity onPress={openRoleManagement}>
             <Ionicons name="people-circle" size={24} color="#007AFF" />
           </TouchableOpacity>
+=======
+        <Text style={styles.modalTitle}>{selectedMember?.name}</Text>
+        <View style={{ flexDirection: 'row', marginLeft: 'auto', alignItems: 'center' }}>
+>>>>>>> 6d82195 (Carnet familiale)
           <TouchableOpacity onPress={closeMembersModal}>
             <Ionicons name="close" size={22} color="#333" />
           </TouchableOpacity>
@@ -363,6 +428,7 @@ export default function FamilyJournal() {
             <ScrollView>
               {members.map((m) => (
                 <TouchableOpacity key={m.id} style={styles.memberRow} onPress={() => openMemberDetail(m)}>
+<<<<<<< HEAD
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                     <Ionicons 
                       name={m.role?.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
@@ -388,6 +454,9 @@ export default function FamilyJournal() {
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#999" />
+=======
+                  <Text>{m.name}</Text>
+>>>>>>> 6d82195 (Carnet familiale)
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -406,6 +475,7 @@ export default function FamilyJournal() {
       
       {/* Header avec nom, bouton fermer à droite et engrenage */}
       <View style={styles.modalHeader}>
+<<<<<<< HEAD
         <Text style={styles.modalTitle}>{selectedMember?.firstName} {selectedMember?.lastName}</Text>
         
         <View style={{ flexDirection: "row", marginLeft: "auto", alignItems: "center", gap: 10 }}>
@@ -413,6 +483,14 @@ export default function FamilyJournal() {
           {currentUserRole?.toLowerCase() === 'parent' && selectedMember?.role?.toLowerCase() === 'enfant' && (
             <TouchableOpacity onPress={() => setEditMode(!editMode)}>
               <Ionicons name={editMode ? "checkmark" : "pencil"} size={22} color="#ff9500" />
+=======
+        <Text style={styles.modalTitle}>{selectedMember?.name}</Text>
+        
+        <View style={{ flexDirection: "row", marginLeft: "auto", alignItems: "center" }}>
+          {!editMode && (
+            <TouchableOpacity onPress={() => setEditMode(true)} style={{ marginRight: 10 }}>
+              <Ionicons name="settings" size={22} color="#333" />
+>>>>>>> 6d82195 (Carnet familiale)
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={closeMemberDetailModal}>
@@ -420,6 +498,7 @@ export default function FamilyJournal() {
           </TouchableOpacity>
         </View>
       </View>
+<<<<<<< HEAD
       
       {/* Message informatif */}
       {currentUserRole?.toLowerCase() === 'parent' && selectedMember?.role?.toLowerCase() === 'enfant' ? (
@@ -438,6 +517,8 @@ export default function FamilyJournal() {
         </View>
       )}
 
+=======
+>>>>>>> 6d82195 (Carnet familiale)
           <ScrollView style={{ marginTop: 10 }}>
         {/* PHOTO */}
         {selectedMember?.photo ? (
@@ -450,6 +531,7 @@ export default function FamilyJournal() {
 
         {/* INFOS DE BASE */}
         <Text style={styles.sectionTitle}>Infos de base</Text>
+<<<<<<< HEAD
         
         <Text style={styles.label}>Prénom</Text>
         {editMode ? (
@@ -683,12 +765,78 @@ export default function FamilyJournal() {
             onPress={handleSaveMemberInfo}
           >
             <Text style={styles.saveButtonText}>Enregistrer les modifications</Text>
+=======
+        <TextInput
+          style={[styles.input, !editMode && styles.inputDisabled]}
+          placeholder="Nom"
+          value={selectedMember?.name}
+          editable={editMode}
+          onChangeText={(text) => setSelectedMember({ ...selectedMember!, name: text })}
+        />
+
+        <Text style={{ marginBottom: 5 }}>Rôle</Text>
+        <Picker
+          enabled={editMode}
+          selectedValue={selectedMember?.role || "Enfant"}
+          onValueChange={(val) => setSelectedMember({ ...selectedMember!, role: val })}
+          style={styles.picker}
+        >
+          <Picker.Item label="Parent" value="Parent" />
+          <Picker.Item label="Enfant" value="Enfant" />
+        </Picker>
+
+        <TextInput
+          style={[styles.input, !editMode && styles.inputDisabled]}
+          placeholder="Téléphone"
+          value={selectedMember?.phone}
+          editable={editMode}
+          onChangeText={(text) => setSelectedMember({ ...selectedMember!, phone: text })}
+        />
+
+            <TextInput placeholder="Anniversaire" value={selectedMember?.birthday} onChangeText={(text) => setSelectedMember({ ...selectedMember!, birthday: text })} style={styles.input} />
+            <TextInput placeholder="Groupe sanguin" value={selectedMember?.bloodGroup} onChangeText={(text) => setSelectedMember({ ...selectedMember!, bloodGroup: text })} style={styles.input} />
+            <TextInput placeholder="Allergies" value={selectedMember?.allergies?.join(", ")} onChangeText={(text) => setSelectedMember({ ...selectedMember!, allergies: text.split(",") })} style={styles.input} />
+            <TextInput placeholder="Maladies génétiques" value={selectedMember?.geneticDiseases?.join(", ")} onChangeText={(text) => setSelectedMember({ ...selectedMember!, geneticDiseases: text.split(",") })} style={styles.input} />
+            <TextInput placeholder="Numéro national" value={selectedMember?.nationalNumber} onChangeText={(text) => setSelectedMember({ ...selectedMember!, nationalNumber: text })} style={styles.input} />
+
+            {/* Médecin */}
+            <Text style={styles.sectionTitle}>Médecin traitant</Text>
+            <TextInput placeholder="Nom médecin" value={selectedMember?.doctorName} onChangeText={(text) => setSelectedMember({ ...selectedMember!, doctorName: text })} style={styles.input} />
+            <TextInput placeholder="Téléphone médecin" value={selectedMember?.doctorPhone} onChangeText={(text) => setSelectedMember({ ...selectedMember!, doctorPhone: text })} style={styles.input} />
+            <TextInput placeholder="Adresse médecin" value={selectedMember?.doctorAddress} onChangeText={(text) => setSelectedMember({ ...selectedMember!, doctorAddress: text })} style={styles.input} />
+
+            {/* École */}
+            <Text style={styles.sectionTitle}>École</Text>
+            <TextInput placeholder="Nom école" value={selectedMember?.schoolName} onChangeText={(text) => setSelectedMember({ ...selectedMember!, schoolName: text })} style={styles.input} />
+            <TextInput placeholder="Téléphone école" value={selectedMember?.schoolPhone} onChangeText={(text) => setSelectedMember({ ...selectedMember!, schoolPhone: text })} style={styles.input} />
+            <TextInput placeholder="Adresse école" value={selectedMember?.schoolAddress} onChangeText={(text) => setSelectedMember({ ...selectedMember!, schoolAddress: text })} style={styles.input} />
+
+            {/* Couleur */}
+            <Text style={styles.sectionTitle}>Couleur du profil</Text>
+            <Picker selectedValue={selectedMember?.color} onValueChange={(val) => setSelectedMember({ ...selectedMember!, color: val })} style={styles.picker}>
+              <Picker.Item label="Rouge" value="red" />
+              <Picker.Item label="Bleu" value="blue" />
+              <Picker.Item label="Vert" value="green" />
+              <Picker.Item label="Jaune" value="yellow" />
+            </Picker>
+
+            {editMode && (
+          <TouchableOpacity
+            style={[styles.addBtn, { marginVertical: 10 }]}
+            onPress={() => {
+              // Ici tu sauvegardes dans Firestore
+              setEditMode(false);
+            }}
+          >
+            <Text style={styles.btnText}>Enregistrer</Text>
+>>>>>>> 6d82195 (Carnet familiale)
           </TouchableOpacity>
         )}
       </ScrollView>
     </View>
   </View>
 </Modal>
+<<<<<<< HEAD
 
       {/* Modal Gestion des Rôles */}
       <Modal visible={roleManagementVisible} transparent animationType="fade">
@@ -732,6 +880,8 @@ export default function FamilyJournal() {
           </View>
         </View>
       </Modal>
+=======
+>>>>>>> 6d82195 (Carnet familiale)
     </View>
   );
 }
@@ -778,6 +928,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 5,
   },
+<<<<<<< HEAD
   label: {
     fontSize: 14,
     fontWeight: '500',
@@ -793,6 +944,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
   },
+=======
+>>>>>>> 6d82195 (Carnet familiale)
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -821,6 +974,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
+<<<<<<< HEAD
   saveButton: {
     backgroundColor: '#007AFF',
     padding: 15,
@@ -834,6 +988,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+=======
+>>>>>>> 6d82195 (Carnet familiale)
   memberRow: {
   paddingVertical: 12,
   paddingHorizontal: 15,
@@ -846,6 +1002,7 @@ const styles = StyleSheet.create({
   borderRadius: 8,
   marginBottom: 5,
 },
+<<<<<<< HEAD
   roleBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -867,4 +1024,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
   },
+=======
+>>>>>>> 6d82195 (Carnet familiale)
 });
