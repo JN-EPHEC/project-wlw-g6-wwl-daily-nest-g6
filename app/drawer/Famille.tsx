@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from '@react-native-picker/picker';
 import {
     addDoc,
     arrayUnion,
     collection,
     deleteDoc,
     doc,
+    getDoc,
     getDocs,
     onSnapshot,
     query,
@@ -17,6 +19,7 @@ import {
     Alert,
     FlatList,
     Modal,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -36,6 +39,9 @@ export default function FamilyScreen() {
 const [selectedFamily, setSelectedFamily] = useState<any>(null);
 const [familyModalVisible, setFamilyModalVisible] = useState(false);
 const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
+const [roleManagementVisible, setRoleManagementVisible] = useState(false);
+const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
+const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -83,12 +89,11 @@ useEffect(() => {
     joinCode: code,
     members: [user.email],
   });
-    await setDoc(doc(db, "users", user.uid, "familiesJoined", familyRef.id), {
-    familyId: familyRef.id
-  });
 
     setFamilyName("");
-    setCreateModalVisible(false);};
+    setCreateModalVisible(false);
+    Alert.alert("Succès", "Famille créée avec succès !");
+  };
 
 
   // Join family by code
@@ -117,13 +122,9 @@ useEffect(() => {
       members: arrayUnion(user?.email),
     });
 
-    await addDoc(collection(db, "users", user.uid, "familiesJoined", fam.id), {
-    familyId: fam.id,
-    familyName: fam.data().name || ""
-  });
-
     setJoinCode("");
     setJoinModalVisible(false);
+    Alert.alert("Succès", "Vous avez rejoint la famille avec succès !");
   };
 
   const handleDeletePress = (family: any) => {
@@ -160,6 +161,54 @@ const updateFamilyName = async () => {
   }
 };
 
+// Ouvrir le modal de gestion des rôles pour une famille
+const openRoleManagementForFamily = async (family: any) => {
+  setSelectedFamilyForRoles(family);
+  
+  // Récupérer les données à jour de la famille
+  const familyDoc = await getDoc(doc(db, 'families', family.id));
+  if (!familyDoc.exists()) return;
+  
+  const familyData = familyDoc.data();
+  
+  // Initialiser les rôles actuels
+  const currentRoles: {[email: string]: string} = {};
+  const familyMembers = familyData.members || [];
+  
+  for (const memberItem of familyMembers) {
+    if (typeof memberItem === 'string') {
+      currentRoles[memberItem] = 'Enfant';
+    } else {
+      currentRoles[memberItem.email] = memberItem.role || 'Enfant';
+    }
+  }
+  
+  setRoleAssignments(currentRoles);
+  setRoleManagementVisible(true);
+};
+
+// Sauvegarder les rôles dans Firestore
+const saveRoles = async () => {
+  if (!selectedFamilyForRoles) return;
+  
+  try {
+    const newMembers = Object.entries(roleAssignments).map(([email, role]) => ({
+      email,
+      role
+    }));
+    
+    await setDoc(doc(db, 'families', selectedFamilyForRoles.id), {
+      members: newMembers
+    }, { merge: true });
+    
+    Alert.alert('Succès', 'Les rôles ont été mis à jour!');
+    setRoleManagementVisible(false);
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde des rôles:', error);
+    Alert.alert('Erreur', 'Impossible de sauvegarder les rôles');
+  }
+};
+
 
 
   return (
@@ -178,6 +227,13 @@ const updateFamilyName = async () => {
     >
       <View style={styles.familyRow}>
         <Text style={{ flex: 1, fontSize: 18 }}>{item.name}</Text>
+
+        <TouchableOpacity
+          onPress={() => openRoleManagementForFamily(item)}
+          style={{ marginRight: 10 }}
+        >
+          <Ionicons name="people-circle" size={24} color="#007AFF" />
+        </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => {
@@ -281,11 +337,26 @@ const updateFamilyName = async () => {
 
 
       {/* Membres */}
-      {selectedFamily?.members?.map((m: string, index: number) => (
-       <Text key={index} style={{ marginLeft: 10 }}>
-         - {m}
-       </Text>
-      ))}
+      {selectedFamily?.members?.map((m: any, index: number) => {
+        const email = typeof m === 'string' ? m : m.email;
+        const role = typeof m === 'string' ? 'Non défini' : (m.role || 'Non défini');
+        return (
+          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 5 }}>
+            <Text style={{ flex: 1 }}>- {email}</Text>
+            <View style={[
+              { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+              { backgroundColor: role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+            ]}>
+              <Text style={[
+                { fontSize: 11, fontWeight: '600' },
+                { color: role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+              ]}>
+                {role}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
 
 
       <TouchableOpacity
@@ -316,6 +387,50 @@ const updateFamilyName = async () => {
       </TouchableOpacity>
       <TouchableOpacity 
         onPress={() => setEditFamilyModalVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+{/* Modal Gestion des Rôles */}
+<Modal visible={roleManagementVisible} transparent animationType="fade">
+  <View style={styles.modalContainer}>
+    <View style={styles.modal}>
+      <Text style={styles.modalTitle}>Gérer les rôles - {selectedFamilyForRoles?.name}</Text>
+
+      <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+        <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
+        <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
+          Définissez le rôle de chaque membre dans cette famille.
+        </Text>
+      </View>
+
+      <ScrollView style={{ maxHeight: 300 }}>
+        {Object.entries(roleAssignments).map(([email, role]) => (
+          <View key={email} style={styles.roleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
+              <Picker
+                selectedValue={role}
+                onValueChange={(value) => setRoleAssignments({ ...roleAssignments, [email]: value })}
+                style={styles.rolePicker}
+              >
+                <Picker.Item label="Parent" value="Parent" />
+                <Picker.Item label="Enfant" value="Enfant" />
+              </Picker>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      <TouchableOpacity style={styles.saveRoleButton} onPress={saveRoles}>
+        <Text style={styles.saveRoleButtonText}>Enregistrer les rôles</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        onPress={() => setRoleManagementVisible(false)}
         style={{ position: "absolute", top: 10, right: 10 }}>
         <Ionicons name="close" size={22} color="black"/>
       </TouchableOpacity>
@@ -376,5 +491,32 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
+  },
+  roleRow: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  rolePicker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  saveRoleButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  saveRoleButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

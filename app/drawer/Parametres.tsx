@@ -1,9 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -30,6 +29,7 @@ export function Parametres() {
   // user data
   const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
   const [familyRoles, setFamilyRoles] = useState<{ [familyId: string]: "parents" | "children" }>({});
+  const [displayRoles, setDisplayRoles] = useState<Array<{familyName: string; role: string}>>([]); // Nouveaux rôles depuis members
 
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
@@ -95,22 +95,52 @@ export function Parametres() {
   // load families
   useEffect(() => {
     if (!user?.email) return;
-    const q = query(collection(db, "families"), where("members", "array-contains", user.email));
+    
+    // Charger TOUTES les familles et filtrer côté client
+    const q = query(collection(db, "families"));
     const unsub = onSnapshot(q, async (snap) => {
-      const familiesData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setFamilies(familiesData);
+      const familiesData: any[] = [];
+      const roles: Array<{familyName: string; role: string}> = [];
+      const oldRoles: { [familyId: string]: "parents" | "children" } = {};
       
-      // Load roles for each family
-      const roles: { [familyId: string]: "parents" | "children" } = {};
-      for (const family of familiesData) {
-        const familyDoc = await getDoc(doc(db, "families", family.id));
-        if (familyDoc.exists()) {
-          const familyData = familyDoc.data();
-          const memberRole = familyData?.memberRoles?.[user.email];
-          roles[family.id] = memberRole === "children" ? "children" : "parents";
+      snap.forEach(doc => {
+        const familyData = doc.data();
+        const members = familyData.members || [];
+        
+        // Vérifier si l'utilisateur fait partie de cette famille
+        let userRole = null;
+        let isMember = false;
+        
+        for (const memberItem of members) {
+          if (typeof memberItem !== 'string' && memberItem.email === user.email) {
+            // Format nouveau : {email, role}
+            isMember = true;
+            userRole = memberItem.role || 'Non défini';
+            break;
+          } else if (typeof memberItem === 'string' && memberItem === user.email) {
+            // Format ancien : simple email
+            isMember = true;
+            userRole = 'Non défini';
+            break;
+          }
         }
-      }
-      setFamilyRoles(roles);
+        
+        if (isMember) {
+          familiesData.push({ id: doc.id, ...familyData });
+          roles.push({
+            familyName: familyData.name || 'Famille sans nom',
+            role: userRole || 'Non défini'
+          });
+          
+          // Charger aussi l'ancien système pour compatibilité
+          const memberRole = familyData?.memberRoles?.[user.email];
+          oldRoles[doc.id] = memberRole === "children" ? "children" : "parents";
+        }
+      });
+      
+      setFamilies(familiesData);
+      setDisplayRoles(roles);
+      setFamilyRoles(oldRoles);
     });
     return () => unsub();
   }, [user?.email]);
@@ -221,29 +251,50 @@ export function Parametres() {
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
-        {/* Role per Family */}
+        {/* Mes rôles dans les familles */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Rôle dans chaque famille</Text>
-          <Text style={styles.smallText}>Choisis ton rôle pour chaque famille</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Mes rôles dans les familles</Text>
+          </View>
           
-          {families.length === 0 ? (
+          {displayRoles.length === 0 ? (
             <Text style={styles.noFamilyText}>Tu n'appartiens à aucune famille pour le moment</Text>
           ) : (
-            families.map((family) => (
-              <View key={family.id} style={styles.familyRoleCard}>
-                <Text style={styles.familyName}>{family.name || "Famille"}</Text>
-                <View style={styles.pickerWrap}>
-                  <Picker
-                    selectedValue={familyRoles[family.id] || "parents"}
-                    onValueChange={(v) => setFamilyRoles(prev => ({ ...prev, [family.id]: v as any }))}
-                  >
-                    <Picker.Item label="Parents" value="parents" />
-                    <Picker.Item label="Enfants" value="children" />
-                  </Picker>
+            displayRoles.map((familyRole, index) => {
+              return (
+                <View key={index} style={styles.roleDisplayCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.familyName}>{familyRole.familyName}</Text>
+                      <View style={[
+                        styles.roleBadge,
+                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+                      ]}>
+                        <Text style={[
+                          styles.roleText,
+                          { color: familyRole.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+                        ]}>
+                          {familyRole.role}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons 
+                      name={familyRole.role.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
+                      size={28} 
+                      color={familyRole.role.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
+                    />
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
+          
+          <View style={{ backgroundColor: '#E3F2FD', padding: 10, borderRadius: 8, marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="information-circle" size={18} color="#2196F3" style={{ marginRight: 8 }} />
+            <Text style={{ flex: 1, color: '#1976D2', fontSize: 11 }}>
+              Gérez les rôles depuis la page Famille via l'icône 👥.
+            </Text>
+          </View>
         </View>
 
         {/* Notifications */}
@@ -509,6 +560,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e5e5",
   },
+  roleDisplayCard: {
+    marginTop: 12,
+    padding: 14,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
   familyName: {
     fontSize: 14,
     fontWeight: "600",
@@ -520,6 +584,17 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
     fontSize: 13,
+  },
+  roleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+  },
+  roleText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   saveSmallBtn: {
