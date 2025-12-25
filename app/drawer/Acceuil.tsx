@@ -595,7 +595,7 @@ const saveTodo = async () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 30 }}>
+          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 100 }}>
             <Text style={[styles.modalTitle, { fontSize: 18, marginBottom: 10, fontWeight: "bold" }]}>Nouvel Événement</Text>
 
             {/* Sélection Personnel / Famille */}
@@ -852,12 +852,14 @@ const saveTodo = async () => {
           </ScrollView>
 
           {/* Bouton sauvegarder fixe en bas */}
-          <TouchableOpacity 
-            style={[styles.saveButton, { position: "absolute", bottom: 20, left: 20, right: 20 }]} 
-            onPress={saveEvent}
-          >
-            <Text style={styles.saveButtonText}>Sauvegarder</Text>
-          </TouchableOpacity>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 15, backgroundColor: "white" }}>
+            <TouchableOpacity 
+              style={styles.saveButton} 
+              onPress={saveEvent}
+            >
+              <Text style={styles.saveButtonText}>Sauvegarder</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
 

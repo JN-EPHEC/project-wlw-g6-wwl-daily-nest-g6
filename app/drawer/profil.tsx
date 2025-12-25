@@ -32,7 +32,10 @@ function ProfilScreen() {
   }, []);
 
   const loadUserData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -44,6 +47,9 @@ function ProfilScreen() {
         setEmail(data.email || '');
         setBirthDate(data.birthDate || '');
         setGender(data.gender || '');
+      } else {
+        // Si le document n'existe pas, créer un document vide
+        setEmail(user.email || '');
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
