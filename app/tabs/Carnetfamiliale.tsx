@@ -101,12 +101,28 @@ export default function FamilyJournal() {
     if (!email) return setLoadingFamilies(false);
 
     setLoadingFamilies(true);
-    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
     const unsub = onSnapshot(
       q,
       snapshot => {
-        const list: Family[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-        setFamilies(list);
+        const allFamilies: Family[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        
+        // Filtrer pour ne garder que les familles où l'utilisateur est membre
+        const userFamilies = allFamilies.filter(family => {
+          const members = family.members || [];
+          
+          for (const memberItem of members) {
+            if (typeof memberItem === 'string' && memberItem === email) {
+              return true; // Format ancien
+            } else if (typeof memberItem === 'object' && memberItem.email === email) {
+              return true; // Format nouveau
+            }
+          }
+          return false;
+        });
+        
+        setFamilies(userFamilies);
         setLoadingFamilies(false);
       },
       err => {

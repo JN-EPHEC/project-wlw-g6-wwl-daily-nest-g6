@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
+import { DrawerActions } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
     addDoc,
     arrayUnion,
@@ -28,7 +30,7 @@ import {
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
-export default function FamilyScreen() {
+function FamilyScreen() {
   const [families, setFamilies] = useState<any[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -53,14 +55,27 @@ useEffect(() => {
   useEffect(() => {
     if (!user?.email) return;
 
-    const q = query(
-      collection(db,"families"),
-      where("members", "array-contains", user.email)
-    );
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setFamilies(list);
+      const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === user.email) {
+            return true; // Format ancien
+          } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+            return true; // Format nouveau
+          }
+        }
+        return false;
+      });
+      
+      setFamilies(userFamilies);
     });
 
     return () => unsub();
@@ -520,3 +535,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+const Stack = createNativeStackNavigator();
+export default function () {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="FamilyMain"
+        component={FamilyScreen}
+        options={({ navigation }) => ({
+          headerTitle: "Mes familles",
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
+              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+    </Stack.Navigator>
+  );
+}
