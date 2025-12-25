@@ -87,6 +87,13 @@ export function Acceuil() {
   const [todoNotificationEnabled, setTodoNotificationEnabled] = useState(false);
   const [todoNotificationTime, setTodoNotificationTime] = useState("15 min avant");
 
+  // États pour les rappels (tableau pour supporter plusieurs rappels)
+  const [todoReminders, setTodoReminders] = useState<Array<{
+    date: string;
+    time: string;
+    message: string;
+  }>>([]);
+
 const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
 const [newListName, setNewListName] = useState("");
@@ -418,6 +425,7 @@ const saveTodo = async () => {
         recurrenceType: todoIsRecurring ? todoRecurrenceType : null,
         selectedDays: todoIsRecurring && todoRecurrenceType === "weekly" ? todoSelectedDays : [],
         monthlyDay: todoIsRecurring && todoRecurrenceType === "monthly" ? todoMonthlyDay : null,
+        reminders: todoReminders,
       });
 
       // Si récurrence activée, générer les occurrences dans le calendrier
@@ -510,6 +518,7 @@ const saveTodo = async () => {
             rotationMembers: todoIsRotation ? todoRotationMembers : [],
             currentRotationIndex: currentRotationIndex,
             assignedTo: assignedTo,
+            reminders: todoReminders,
           });
         }
       } else if (todoDate.trim()) {
@@ -521,6 +530,10 @@ const saveTodo = async () => {
           points: points,
           priority: todoPriority,
           type: "todo",
+          assignedTo: todoAssignedTo || "",
+          isRotation: todoIsRotation,
+          rotationMembers: todoIsRotation ? todoRotationMembers : [],
+          reminders: todoReminders,
         });
       }
 
@@ -541,6 +554,7 @@ const saveTodo = async () => {
       setTodoMonthlyDay(1);
       setTodoNotificationEnabled(false);
       setTodoNotificationTime("15 min avant");
+      setTodoReminders([]);
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -1153,48 +1167,53 @@ const saveTodo = async () => {
             {todoIsRecurring && (
               <View style={{ marginLeft: 30, marginTop: 10 }}>
                 <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 15 }}>
-                  <TouchableOpacity 
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("daily")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "daily" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "daily" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#333" }}>Quotidien</Text>
+                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("weekly")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "weekly" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "weekly" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#333" }}>Hebdo</Text>
+                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Hebdomadaire</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("monthly")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "monthly" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "monthly" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#333" }}>Mensuel</Text>
+                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Jours pour hebdomadaire */}
                 {todoRecurrenceType === "weekly" && (
                   <View style={{ marginTop: 10 }}>
                     <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day, index) => (
                         <TouchableOpacity
                           key={index}
                           onPress={() => {
@@ -1205,15 +1224,15 @@ const saveTodo = async () => {
                             }
                           }}
                           style={{
-                            width: 45,
-                            height: 45,
-                            borderRadius: 22.5,
-                            backgroundColor: todoSelectedDays.includes(index) ? "#ffbf00" : "#f0f0f0",
-                            justifyContent: "center",
-                            alignItems: "center"
+                            backgroundColor: todoSelectedDays.includes(index) ? "#00d0ff" : "white",
+                            borderWidth: 2,
+                            borderColor: "#00d0ff",
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
                           }}
                         >
-                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#333", fontSize: 12 }}>
+                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#00d0ff", fontSize: 12, fontWeight: "600" }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1222,7 +1241,6 @@ const saveTodo = async () => {
                   </View>
                 )}
 
-                {/* Jour pour mensuel */}
                 {todoRecurrenceType === "monthly" && (
                   <View style={{ marginTop: 10 }}>
                     <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
@@ -1232,15 +1250,17 @@ const saveTodo = async () => {
                           key={day}
                           onPress={() => setTodoMonthlyDay(day)}
                           style={{
+                            backgroundColor: todoMonthlyDay === day ? "#00d0ff" : "white",
+                            borderWidth: 2,
+                            borderColor: "#00d0ff",
                             width: 40,
                             height: 40,
                             borderRadius: 20,
-                            backgroundColor: todoMonthlyDay === day ? "#ffbf00" : "#f0f0f0",
                             justifyContent: "center",
-                            alignItems: "center"
+                            alignItems: "center",
                           }}
                         >
-                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#333", fontSize: 12 }}>
+                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#00d0ff", fontSize: 12 }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1252,43 +1272,112 @@ const saveTodo = async () => {
             )}
           </View>
 
-          {/* Notification */}
+          {/* Rappels */}
           <View style={{ marginTop: 15 }}>
-            <TouchableOpacity 
-              onPress={() => setTodoNotificationEnabled(!todoNotificationEnabled)}
-              style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}
-            >
-              <View style={{ 
-                width: 20, 
-                height: 20, 
-                borderWidth: 2, 
-                borderColor: "#ffbf00", 
-                marginRight: 10,
-                justifyContent: "center",
-                alignItems: "center"
-              }}>
-                {todoNotificationEnabled && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: "600" }}>🔔 Notification</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>📌 Rappels</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setTodoReminders([...todoReminders, { date: "", time: "", message: "" }]);
+                }}
+                style={{ 
+                  backgroundColor: "#ffbf00", 
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: 16, 
+                  justifyContent: "center", 
+                  alignItems: "center" 
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 20, fontWeight: "bold" }}>+</Text>
+              </TouchableOpacity>
+            </View>
 
-            {todoNotificationEnabled && (
-              <View style={{ marginLeft: 30, marginTop: 10 }}>
-                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Rappeler :</Text>
-                <Picker
-                  selectedValue={todoNotificationTime}
-                  onValueChange={(value) => setTodoNotificationTime(value)}
-                  style={styles.inputWeb}
-                >
-                  <Picker.Item label="5 min avant" value="5 min avant" />
-                  <Picker.Item label="10 min avant" value="10 min avant" />
-                  <Picker.Item label="15 min avant" value="15 min avant" />
-                  <Picker.Item label="1 heure avant" value="1 heure avant" />
-                  <Picker.Item label="2 heures avant" value="2 heures avant" />
-                  <Picker.Item label="1 jour avant" value="1 jour avant" />
-                </Picker>
+            {todoReminders.map((reminder, index) => (
+              <View key={index} style={{ 
+                marginBottom: 15, 
+                padding: 12, 
+                backgroundColor: "#f9f9f9", 
+                borderRadius: 10,
+                borderLeftWidth: 3,
+                borderLeftColor: "#ffbf00"
+              }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      const newReminders = todoReminders.filter((_, i) => i !== index);
+                      setTodoReminders(newReminders);
+                    }}
+                    style={{ padding: 4 }}
+                  >
+                    <Text style={{ color: "#ff4444", fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Date et heure :</Text>
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  <input
+                    type="date"
+                    value={reminder.date ? (() => {
+                      const parts = reminder.date.split('/');
+                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                    })() : ''}
+                    onChange={(e) => {
+                      const dateParts = e.target.value.split('-');
+                      const newReminders = [...todoReminders];
+                      if (dateParts.length === 3) {
+                        newReminders[index].date = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                      }
+                      setTodoReminders(newReminders);
+                    }}
+                    style={{
+                      flex: 1,
+                      borderWidth: 1,
+                      borderColor: '#ffbf00',
+                      padding: 10,
+                      borderRadius: 10,
+                      fontSize: 14
+                    }}
+                  />
+                </View>
+                <TextInput
+                  style={[styles.inputWeb, { borderColor: '#ffbf00', marginBottom: 10 }]}
+                  placeholder="HH:MM"
+                  placeholderTextColor="#ccc"
+                  value={reminder.time}
+                  onChangeText={(text) => {
+                    let formatted = text.replace(/[^0-9]/g, '');
+                    if (formatted.length >= 2) {
+                      formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                    }
+                    const newReminders = [...todoReminders];
+                    newReminders[index].time = formatted;
+                    setTodoReminders(newReminders);
+                  }}
+                  maxLength={5}
+                />
+
+                {reminder.date && reminder.time && (
+                  <View>
+                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Message (optionnel) :</Text>
+                    <TextInput
+                      style={[styles.inputWeb, { borderColor: '#ffbf00' }]}
+                      placeholder="Message personnalisé..."
+                      placeholderTextColor="#ccc"
+                      value={reminder.message}
+                      onChangeText={(text) => {
+                        const newReminders = [...todoReminders];
+                        newReminders[index].message = text;
+                        setTodoReminders(newReminders);
+                      }}
+                      multiline
+                      numberOfLines={2}
+                    />
+                  </View>
+                )}
               </View>
-            )}
+            ))}
           </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={saveTodo}>
@@ -1298,6 +1387,7 @@ const saveTodo = async () => {
         </ScrollView>
         </View>
       );
+
     case "shopping":
   return (
     <View style={styles.modalInnerContainer}>

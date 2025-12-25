@@ -28,7 +28,7 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean; assignedTo?: string; isRotation?: boolean }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean; assignedTo?: string; isRotation?: boolean; reminders?: Array<{ date: string; time: string; message: string }> }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -130,7 +130,7 @@ useEffect(() => {
           
           newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
-          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
+          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation, reminders: data.reminders || [] });
         });
 
         setEvents(newEvents);
@@ -159,7 +159,7 @@ useEffect(() => {
         
         newEvents[calendarDate] = { marked: true, dotColor: "#ff0000" };
         if (!newItems[calendarDate]) newItems[calendarDate] = [];
-        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
+        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation, reminders: data.reminders || [] });
       });
       setEvents(newEvents);
       setItems(newItems);
@@ -469,14 +469,50 @@ const saveEvent = async () => {
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.taskTitle, item.checked && { textDecorationLine: "line-through", color: "#999" }]}>{item.title}</Text>
-                <Text style={[styles.taskTime, item.checked && { color: "#999" }]}>⏰ {item.time}</Text>
+                
+                {/* Affichage de l'heure */}
+                {item.time && (
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                    <Ionicons name="time-outline" size={14} color="#666" />
+                    <Text style={[styles.taskTime, item.checked && { color: "#999" }, { marginLeft: 4 }]}>{item.time}</Text>
+                  </View>
+                )}
+                
+                {/* Affichage de la personne assignée */}
                 {item.assignedTo && usersMap[item.assignedTo] && (
-                  <Text style={[styles.taskTime, item.checked && { color: "#999" }, { color: "#ffbf00", fontWeight: "600" }]}>
-                    {item.isRotation && "🔄 "}👤 {usersMap[item.assignedTo].firstName} {usersMap[item.assignedTo].lastName}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+                    {item.isRotation && <Ionicons name="repeat-outline" size={14} color="#ff9800" style={{ marginRight: 4 }} />}
+                    <Ionicons name="person-outline" size={14} color="#ffbf00" />
+                    <Text style={[styles.taskTime, item.checked && { color: "#999" }, { color: "#ffbf00", fontWeight: "600", marginLeft: 4 }]}>
+                      {usersMap[item.assignedTo].firstName} {usersMap[item.assignedTo].lastName}
+                    </Text>
+                  </View>
+                )}
+                
+                {/* Affichage des rappels */}
+                {item.reminders && item.reminders.length > 0 && (
+                  <View style={{ marginTop: 4 }}>
+                    {item.reminders.map((reminder: any, idx: number) => (
+                      <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+                        <Ionicons name="notifications-outline" size={14} color="#2196F3" />
+                        <Text style={{ fontSize: 11, color: "#2196F3", marginLeft: 4 }}>
+                          {reminder.date} à {reminder.time}
+                          {reminder.message && ` - ${reminder.message}`}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
+                {item.assignedTo && usersMap[item.assignedTo] && (
+                  <TouchableOpacity onPress={() => {
+                    const assignedUser = usersMap[item.assignedTo!];
+                    alert(`Rappel envoyé à ${assignedUser.firstName} ${assignedUser.lastName} pour la tâche "${item.title}"`);
+                  }}>
+                    <Ionicons name="notifications" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => {
                   setEventTitle(item.title);
                   setEventDate(selectedDate);
