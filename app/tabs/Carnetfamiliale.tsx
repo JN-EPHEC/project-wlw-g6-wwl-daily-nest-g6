@@ -166,6 +166,7 @@ const [memberDetailModalVisible, setMemberDetailModalVisible] = useState(false);
 
     setLoadingFamilies(true);
 <<<<<<< HEAD
+<<<<<<< HEAD
     // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
     const q = query(collection(db, "families"));
     const unsub = onSnapshot(
@@ -196,6 +197,30 @@ const [memberDetailModalVisible, setMemberDetailModalVisible] = useState(false);
         const list: Family[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
         setFamilies(list);
 >>>>>>> 6d82195 (Carnet familiale)
+=======
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
+    const unsub = onSnapshot(
+      q,
+      snapshot => {
+        const allFamilies: Family[] = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+        
+        // Filtrer pour ne garder que les familles où l'utilisateur est membre
+        const userFamilies = allFamilies.filter(family => {
+          const members = family.members || [];
+          
+          for (const memberItem of members) {
+            if (typeof memberItem === 'string' && memberItem === email) {
+              return true; // Format ancien
+            } else if (typeof memberItem === 'object' && memberItem.email === email) {
+              return true; // Format nouveau
+            }
+          }
+          return false;
+        });
+        
+        setFamilies(userFamilies);
+>>>>>>> 160d9f6 (Display famille)
         setLoadingFamilies(false);
       },
       err => {

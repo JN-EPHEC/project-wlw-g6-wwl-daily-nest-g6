@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -28,6 +29,10 @@ import {
   TouchableOpacity,
   View
 =======
+=======
+import { DrawerActions } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+>>>>>>> 160d9f6 (Display famille)
 import {
     addDoc,
     arrayUnion,
@@ -828,8 +833,11 @@ container: {
   },
 });
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 160d9f6 (Display famille)
 const Stack = createNativeStackNavigator();
 export default function () {
   return (
@@ -848,4 +856,8 @@ export default function () {
       />
     </Stack.Navigator>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 160d9f6 (Display famille)
