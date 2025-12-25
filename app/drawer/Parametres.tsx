@@ -3,10 +3,14 @@ import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
 =======
 import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 >>>>>>> da6e4df (modification mdp paramètre)
+=======
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
+>>>>>>> 4304248 (les rôles)
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,

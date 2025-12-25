@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
+<<<<<<< HEAD
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -26,6 +27,33 @@ import {
   TextInput,
   TouchableOpacity,
   View
+=======
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    query,
+    setDoc,
+    updateDoc,
+    where
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+>>>>>>> 4304248 (les rôles)
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -43,6 +71,7 @@ const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
 const [roleManagementVisible, setRoleManagementVisible] = useState(false);
 const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
 const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
+<<<<<<< HEAD
 const [invitations, setInvitations] = useState<any[]>([]);
 
 const [eventModalVisible, setEventModalVisible] = useState(false);
@@ -62,6 +91,8 @@ const [time, setTime] = useState<string | null>(null);
 const [showTimePicker, setShowTimePicker] = useState(false);
 const [newItemDate, setNewItemDate] = useState<string>("");
 const [newItemTime, setNewItemTime] = useState<string>("");
+=======
+>>>>>>> 4304248 (les rôles)
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -127,6 +158,7 @@ useEffect(() => {
     setCreateModalVisible(false);
     Alert.alert("Succès", "Famille créée avec succès !");
   };
+<<<<<<< HEAD
 useEffect(() => {
   const loadAllFamilies = async () => {
     const snap = await getDocs(collection(db, "families"));
@@ -135,6 +167,9 @@ useEffect(() => {
   };
   loadAllFamilies();
 }, []);
+=======
+
+>>>>>>> 4304248 (les rôles)
 
   // Join family by code
   const handleJoinFamily = async () => {
@@ -165,6 +200,7 @@ useEffect(() => {
     return Alert.alert("Info", "Vous êtes déjà membre de cette famille");
   }
 
+<<<<<<< HEAD
   // Créer une invitation
   await addDoc(collection(db, "familyInvitations"), {
     familyId: famDoc.id,
@@ -199,6 +235,17 @@ const rejectInvitation = async (inv: any) => {
 };
 
 
+=======
+
+    await updateDoc(doc(db, "families", fam.id), {
+      members: arrayUnion(user?.email),
+    });
+
+    setJoinCode("");
+    setJoinModalVisible(false);
+    Alert.alert("Succès", "Vous avez rejoint la famille avec succès !");
+  };
+>>>>>>> 4304248 (les rôles)
 
   const handleDeletePress = (family: any) => {
   Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
@@ -275,6 +322,7 @@ const openRoleManagementForFamily = async (family: any) => {
   setRoleAssignments(currentRoles);
   setRoleManagementVisible(true);
 };
+<<<<<<< HEAD
 const handleSendEvent = async () => {
   console.log("🚀 Envoi événement…");
   console.log("selectedFamily:", selectedFamily);
@@ -322,6 +370,8 @@ const handleSendEvent = async () => {
     Alert.alert("Erreur", "Impossible d'envoyer l'invitation. Vérifiez vos champs et vos droits Firestore.");
   }
 };
+=======
+>>>>>>> 4304248 (les rôles)
 
 // Sauvegarder les rôles dans Firestore
 const saveRoles = async () => {
@@ -747,6 +797,33 @@ container: {
   btnText: {
     color: "white",
     fontWeight: "bold",
+    fontSize: 16,
+  },
+  roleRow: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  rolePicker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  saveRoleButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  saveRoleButtonText: {
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 16,
   },
 });
