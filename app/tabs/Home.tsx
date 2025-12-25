@@ -28,11 +28,39 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean; assignedTo?: string; isRotation?: boolean; reminders?: Array<{ date: string; time: string; message: string }> }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { 
+    id: string; 
+    title: string; 
+    time: string; 
+    description?: string;
+    points?: number;
+    priority?: string; 
+    checked?: boolean; 
+    assignedTo?: string; 
+    isRotation?: boolean;
+    rotationMembers?: string[];
+    isRecurring?: boolean;
+    recurrenceType?: "daily" | "weekly" | "monthly";
+    selectedDays?: number[];
+    monthlyDay?: number;
+    reminders?: Array<{ date: string; time: string; message: string }> 
+  }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventPoints, setEventPoints] = useState("");
+  const [eventPriority, setEventPriority] = useState("2");
+  const [eventAssignedTo, setEventAssignedTo] = useState("");
+  const [eventIsRotation, setEventIsRotation] = useState(false);
+  const [eventRotationMembers, setEventRotationMembers] = useState<string[]>([]);
+  const [eventIsRecurring, setEventIsRecurring] = useState(false);
+  const [eventRecurrenceType, setEventRecurrenceType] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [eventSelectedDays, setEventSelectedDays] = useState<number[]>([]);
+  const [eventMonthlyDay, setEventMonthlyDay] = useState<number>(1);
+  const [eventReminders, setEventReminders] = useState<Array<{ date: string; time: string; message: string }>>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [calendarTheme, setCalendarTheme] = useState("#ffbf00"); // Couleur du thème du calendrier 
 
 const [selectedCalendarType, setSelectedCalendarType] = useState("personal");
@@ -40,12 +68,14 @@ const [families, setFamilies] = useState<any[]>([]);
 const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
 const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; ownerId: string; members: string[] }[]>([]);
 const [sortBy, setSortBy] = useState<"none" | "priority-desc" | "priority-asc" | "time">("none");
+const [filterByPerson, setFilterByPerson] = useState<string | null>(null);
 
 
 
 const [uid, setUid] = useState<string | null>(null);
 const [email, setEmail] = useState<string | null>(null);
 const [usersMap, setUsersMap] = useState<{ [uid: string]: { firstName: string; lastName: string } }>({});
+const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
 
 
 useEffect(() => {
@@ -68,24 +98,39 @@ useEffect(() => {
   setEvents({});
   setItems({});
   setSelectedDate("");
+  setFilterByPerson(null);
 }, [selectedCalendarType, selectedFamily]);
 
 // pour trouver les infos des familles 
 useEffect(() => {
   if (!email) return;
 
-  
-
-  const q = query(collection(db, "families"), where("members", "array-contains", email ));  
+  // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+  const q = query(collection(db, "families"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const list: any = [];
-    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-    setFamiliesJoined(list);
+    const allFamilies: any[] = [];
+    snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+    
+    // Filtrer pour ne garder que les familles où l'utilisateur est membre
+    const userFamilies = allFamilies.filter((family: any) => {
+      const members = family.members || [];
+      
+      for (const memberItem of members) {
+        if (typeof memberItem === 'string' && memberItem === email) {
+          return true; // Format ancien (string)
+        } else if (typeof memberItem === 'object' && memberItem.email === email) {
+          return true; // Format nouveau ({email, role})
+        }
+      }
+      return false;
+    });
+    
+    setFamiliesJoined(userFamilies);
   });
 
   return () => unsubscribe();
-}, [uid]);
+}, [email]);
 
 // Charger tous les utilisateurs pour afficher les noms
 useEffect(() => {
@@ -103,6 +148,47 @@ useEffect(() => {
 
   return () => unsubscribe();
 }, []);
+
+// Charger les membres de la famille sélectionnée
+useEffect(() => {
+  if (selectedCalendarType !== "family" || !selectedFamily) {
+    setFamilyMembers([]);
+    return;
+  }
+
+  const loadFamilyMembers = async () => {
+    try {
+      const familyDoc = await getDoc(doc(db, "families", selectedFamily.id));
+      const familyData = familyDoc.data();
+      
+      if (!familyData || !familyData.members) return;
+
+      const members: { uid: string; firstName: string; lastName: string }[] = [];
+
+      for (const memberItem of familyData.members) {
+        const memberEmail = typeof memberItem === 'string' ? memberItem : memberItem.email;
+        
+        const usersQuery = query(collection(db, "users"), where("email", "==", memberEmail));
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        usersSnapshot.forEach((userDoc) => {
+          const userData = userDoc.data();
+          members.push({
+            uid: userDoc.id,
+            firstName: userData.prenom || userData.firstName || userData.firstname || userData.name || "Utilisateur",
+            lastName: userData.nom || userData.lastName || userData.lastname || ""
+          });
+        });
+      }
+      
+      setFamilyMembers(members);
+    } catch (error) {
+      console.error("Erreur lors du chargement des membres:", error);
+    }
+  };
+
+  loadFamilyMembers();
+}, [selectedCalendarType, selectedFamily]);
 
 useEffect(() => {
   if (!uid) return;
@@ -130,7 +216,23 @@ useEffect(() => {
           
           newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
-          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation, reminders: data.reminders || [] });
+          newItems[calendarDate].push({ 
+            id: doc.id, 
+            title: data.title, 
+            time: data.time, 
+            description: data.description,
+            points: data.points,
+            priority: data.priority, 
+            checked: data.checked || false, 
+            assignedTo: data.assignedTo, 
+            isRotation: data.isRotation,
+            rotationMembers: data.rotationMembers || [],
+            isRecurring: data.isRecurring,
+            recurrenceType: data.recurrenceType,
+            selectedDays: data.selectedDays || [],
+            monthlyDay: data.monthlyDay,
+            reminders: data.reminders || [] 
+          });
         });
 
         setEvents(newEvents);
@@ -159,7 +261,23 @@ useEffect(() => {
         
         newEvents[calendarDate] = { marked: true, dotColor: "#ff0000" };
         if (!newItems[calendarDate]) newItems[calendarDate] = [];
-        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation, reminders: data.reminders || [] });
+        newItems[calendarDate].push({ 
+          id: doc.id, 
+          title: data.title, 
+          time: data.time, 
+          description: data.description,
+          points: data.points,
+          priority: data.priority, 
+          checked: data.checked || false, 
+          assignedTo: data.assignedTo, 
+          isRotation: data.isRotation,
+          rotationMembers: data.rotationMembers || [],
+          isRecurring: data.isRecurring,
+          recurrenceType: data.recurrenceType,
+          selectedDays: data.selectedDays || [],
+          monthlyDay: data.monthlyDay,
+          reminders: data.reminders || [] 
+        });
       });
       setEvents(newEvents);
       setItems(newItems);
@@ -195,12 +313,44 @@ const saveEvent = async () => {
   path = collection(db, "families", selectedFamily.id, "calendar");
 }
 
-    if (editingIndex !== null) {
-      const ev = items[eventDate][editingIndex];
-      const docRef = doc(path, ev.id);
-      await updateDoc(docRef, { title: eventTitle, time: eventTime });
+    if (editingIndex !== null && editingEventId) {
+      const docRef = selectedCalendarType === "personal"
+        ? doc(db, "users", uid!, "calendar", editingEventId)
+        : doc(db, "families", selectedFamily!.id, "calendar", editingEventId);
+      
+      await updateDoc(docRef, { 
+        title: eventTitle, 
+        time: eventTime,
+        description: eventDescription,
+        points: parseInt(eventPoints) || 0,
+        priority: eventPriority,
+        assignedTo: eventAssignedTo || null,
+        isRotation: eventIsRotation,
+        rotationMembers: eventIsRotation ? eventRotationMembers : [],
+        isRecurring: eventIsRecurring,
+        recurrenceType: eventIsRecurring ? eventRecurrenceType : null,
+        selectedDays: eventIsRecurring && eventRecurrenceType === "weekly" ? eventSelectedDays : [],
+        monthlyDay: eventIsRecurring && eventRecurrenceType === "monthly" ? eventMonthlyDay : null,
+        reminders: eventReminders
+      });
     } else {
-      await addDoc(path, { title: eventTitle, date: formattedDate, time: eventTime, checked: false });
+      await addDoc(path, { 
+        title: eventTitle, 
+        date: formattedDate, 
+        time: eventTime, 
+        checked: false,
+        description: eventDescription,
+        points: parseInt(eventPoints) || 0,
+        priority: eventPriority,
+        assignedTo: eventAssignedTo || null,
+        isRotation: eventIsRotation,
+        rotationMembers: eventIsRotation ? eventRotationMembers : [],
+        isRecurring: eventIsRecurring,
+        recurrenceType: eventIsRecurring ? eventRecurrenceType : null,
+        selectedDays: eventIsRecurring && eventRecurrenceType === "weekly" ? eventSelectedDays : [],
+        monthlyDay: eventIsRecurring && eventRecurrenceType === "monthly" ? eventMonthlyDay : null,
+        reminders: eventReminders
+      });
     }
 
     alert("Événement sauvegardé !");
@@ -208,7 +358,19 @@ const saveEvent = async () => {
     setEventTitle("");
     setEventDate("");
     setEventTime("");
+    setEventDescription("");
+    setEventPoints("");
+    setEventPriority("2");
+    setEventAssignedTo("");
+    setEventIsRotation(false);
+    setEventRotationMembers([]);
+    setEventIsRecurring(false);
+    setEventRecurrenceType("weekly");
+    setEventSelectedDays([]);
+    setEventMonthlyDay(1);
+    setEventReminders([]);
     setEditingIndex(null);
+    setEditingEventId(null);
     setIsEditing(false);
 
   } catch (err) {
@@ -425,8 +587,80 @@ const saveEvent = async () => {
             </View>
           </View>
 
+          {/* Filtre par personne */}
+          {selectedCalendarType === "family" && familyMembers.length > 0 && (
+            <View style={{ marginBottom: 15 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: "#999", marginBottom: 8 }}>Filtrer par personne :</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setFilterByPerson(null)}
+                  style={[
+                    styles.personFilterChip,
+                    !filterByPerson && styles.personFilterChipActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.personFilterText,
+                    !filterByPerson && styles.personFilterTextActive
+                  ]}>Tous</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={() => setFilterByPerson(uid)}
+                  style={[
+                    styles.personFilterChip,
+                    filterByPerson === uid && styles.personFilterChipActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.personFilterText,
+                    filterByPerson === uid && styles.personFilterTextActive
+                  ]}>Moi</Text>
+                </TouchableOpacity>
+                
+                {familyMembers.filter(m => m.uid !== uid).map(member => (
+                  <TouchableOpacity
+                    key={member.uid}
+                    onPress={() => setFilterByPerson(member.uid)}
+                    style={[
+                      styles.personFilterChip,
+                      filterByPerson === member.uid && styles.personFilterChipActive
+                    ]}
+                  >
+                    <Text style={[
+                      styles.personFilterText,
+                      filterByPerson === member.uid && styles.personFilterTextActive
+                    ]}>{member.firstName}</Text>
+                  </TouchableOpacity>
+                ))}
+                
+                <TouchableOpacity
+                  onPress={() => setFilterByPerson("unassigned")}
+                  style={[
+                    styles.personFilterChip,
+                    filterByPerson === "unassigned" && styles.personFilterChipActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.personFilterText,
+                    filterByPerson === "unassigned" && styles.personFilterTextActive
+                  ]}>Non assignées</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {(() => {
             let sortedItems = [...items[selectedDate]];
+            
+            // Filtrer par personne si un filtre est actif
+            if (filterByPerson !== null) {
+              if (filterByPerson === "unassigned") {
+                sortedItems = sortedItems.filter(item => !item.assignedTo);
+              } else {
+                sortedItems = sortedItems.filter(item => item.assignedTo === filterByPerson);
+              }
+            }
             
             // D'abord séparer les tâches cochées et non cochées
             const uncheckedItems = sortedItems.filter(item => !item.checked);
@@ -517,7 +751,19 @@ const saveEvent = async () => {
                   setEventTitle(item.title);
                   setEventDate(selectedDate);
                   setEventTime(item.time);
+                  setEventDescription(item.description || "");
+                  setEventPoints(item.points?.toString() || "");
+                  setEventPriority(item.priority || "2");
+                  setEventAssignedTo(item.assignedTo || "");
+                  setEventIsRotation(item.isRotation || false);
+                  setEventRotationMembers(item.rotationMembers || []);
+                  setEventIsRecurring(item.isRecurring || false);
+                  setEventRecurrenceType(item.recurrenceType || "weekly");
+                  setEventSelectedDays(item.selectedDays || []);
+                  setEventMonthlyDay(item.monthlyDay || 1);
+                  setEventReminders(item.reminders || []);
                   setEditingIndex(index);
+                  setEditingEventId(item.id);
                   setIsEditing(true);
                   setModalVisible(true);
                 }}>
@@ -578,8 +824,9 @@ const saveEvent = async () => {
 
       <Modal transparent visible={modalVisible} animationType="slide">
         <View style={styles.modalBackground}> 
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
           <View style={styles.modalContent}>
-           <Text style={{ fontSize: 18, marginBottom: 10 }}>
+           <Text style={{ fontSize: 18, marginBottom: 10, fontWeight: "bold" }}>
             {isEditing ? "Modifier l'événement" : "Ajouter un événement"}
              </Text>
 
@@ -589,6 +836,16 @@ const saveEvent = async () => {
               onChangeText={setEventTitle} 
               style={styles.inputWeb}
             />
+            
+            <TextInput 
+              placeholder="Description (optionnel)"
+              value={eventDescription}
+              onChangeText={setEventDescription} 
+              style={styles.inputWeb}
+              multiline
+              numberOfLines={3}
+            />
+            
             <input 
               type="date"
               value={eventDate}
@@ -601,8 +858,190 @@ const saveEvent = async () => {
               onChange={(e) => setEventTime(e.target.value)} 
               style={styles.inputWeb}
             />
+            
+            <TextInput 
+              placeholder="Points accordés (optionnel)"
+              value={eventPoints}
+              onChangeText={setEventPoints}
+              keyboardType="numeric" 
+              style={styles.inputWeb}
+            />
+
+            <Text style={{ fontSize: 14, marginTop: 10, marginBottom: 5, fontWeight: "600" }}>Priorité</Text>
+            <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, overflow: "hidden" }}>
+              <Picker
+                selectedValue={eventPriority}
+                onValueChange={(value) => setEventPriority(value)}
+                style={{ height: 45 }}
+              >
+                <Picker.Item label="🟢 Basse" value="1" />
+                <Picker.Item label="🔵 Normale" value="2" />
+                <Picker.Item label="🟠 Élevée" value="3" />
+                <Picker.Item label="🔴 Urgente" value="4" />
+              </Picker>
+            </View>
+
+            {(selectedCalendarType === "family" && familyMembers.length > 0) && (
+              <>
+                <Text style={{ fontSize: 14, marginTop: 10, marginBottom: 5, fontWeight: "600" }}>Assigner à</Text>
+                <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, overflow: "hidden" }}>
+                  <Picker
+                    selectedValue={eventAssignedTo}
+                    onValueChange={(value) => setEventAssignedTo(value)}
+                    style={{ height: 45 }}
+                  >
+                    <Picker.Item label="Personne (tâche commune)" value="" />
+                    {familyMembers.map(member => (
+                      <Picker.Item 
+                        key={member.uid} 
+                        label={`${member.firstName} ${member.lastName}`} 
+                        value={member.uid} 
+                      />
+                    ))}
+                  </Picker>
+                </View>
+
+                {eventAssignedTo && (
+                  <View style={{ marginTop: 10 }}>
+                    <TouchableOpacity 
+                      onPress={() => setEventIsRotation(!eventIsRotation)}
+                      style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}
+                    >
+                      <Ionicons 
+                        name={eventIsRotation ? "checkbox" : "square-outline"} 
+                        size={24} 
+                        color="#ffbf00" 
+                      />
+                      <Text style={{ marginLeft: 8, fontSize: 14 }}>Activer la rotation (tournante)</Text>
+                    </TouchableOpacity>
+                    
+                    {eventIsRotation && (
+                      <View style={{ marginTop: 10, padding: 10, backgroundColor: "#fff3cd", borderRadius: 8 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
+                          Membres de la tournante:
+                        </Text>
+                        {familyMembers.map(member => (
+                          <TouchableOpacity
+                            key={member.uid}
+                            onPress={() => {
+                              if (eventRotationMembers.includes(member.uid)) {
+                                setEventRotationMembers(eventRotationMembers.filter(uid => uid !== member.uid));
+                              } else {
+                                setEventRotationMembers([...eventRotationMembers, member.uid]);
+                              }
+                            }}
+                            style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4 }}
+                          >
+                            <Ionicons 
+                              name={eventRotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
+                              size={20} 
+                              color="#ff9800" 
+                            />
+                            <Text style={{ marginLeft: 8, fontSize: 13 }}>
+                              {member.firstName} {member.lastName}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+
+            <View style={{ marginTop: 15 }}>
+              <TouchableOpacity 
+                onPress={() => setEventIsRecurring(!eventIsRecurring)}
+                style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}
+              >
+                <Ionicons 
+                  name={eventIsRecurring ? "checkbox" : "square-outline"} 
+                  size={24} 
+                  color="#2196F3" 
+                />
+                <Text style={{ marginLeft: 8, fontSize: 14 }}>Activer la récurrence</Text>
+              </TouchableOpacity>
+
+              {eventIsRecurring && (
+                <View style={{ marginTop: 10, padding: 10, backgroundColor: "#e3f2fd", borderRadius: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Type de récurrence:</Text>
+                  <View style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+                    <Picker
+                      selectedValue={eventRecurrenceType}
+                      onValueChange={(value) => setEventRecurrenceType(value as "daily" | "weekly" | "monthly")}
+                      style={{ height: 40 }}
+                    >
+                      <Picker.Item label="Quotidien" value="daily" />
+                      <Picker.Item label="Hebdomadaire" value="weekly" />
+                      <Picker.Item label="Mensuel" value="monthly" />
+                    </Picker>
+                  </View>
+
+                  {eventRecurrenceType === "weekly" && (
+                    <View>
+                      <Text style={{ fontSize: 12, marginBottom: 8 }}>Jours de la semaine:</Text>
+                      {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((day, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            if (eventSelectedDays.includes(index)) {
+                              setEventSelectedDays(eventSelectedDays.filter(d => d !== index));
+                            } else {
+                              setEventSelectedDays([...eventSelectedDays, index]);
+                            }
+                          }}
+                          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 3 }}
+                        >
+                          <Ionicons 
+                            name={eventSelectedDays.includes(index) ? "checkbox" : "square-outline"} 
+                            size={18} 
+                            color="#2196F3" 
+                          />
+                          <Text style={{ marginLeft: 6, fontSize: 12 }}>{day}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+
+                  {eventRecurrenceType === "monthly" && (
+                    <View>
+                      <Text style={{ fontSize: 12, marginBottom: 5 }}>Jour du mois:</Text>
+                      <TextInput
+                        value={eventMonthlyDay.toString()}
+                        onChangeText={(text) => {
+                          const num = parseInt(text) || 1;
+                          setEventMonthlyDay(Math.min(31, Math.max(1, num)));
+                        }}
+                        keyboardType="numeric"
+                        style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 5, padding: 8, fontSize: 12 }}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
   <View style={styles.buttonRow}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}> 
+              <TouchableOpacity onPress={() => {
+                setModalVisible(false);
+                // Réinitialiser tous les champs
+                setEventTitle("");
+                setEventDate("");
+                setEventTime("");
+                setEventDescription("");
+                setEventPoints("");
+                setEventPriority("2");
+                setEventAssignedTo("");
+                setEventIsRotation(false);
+                setEventRotationMembers([]);
+                setEventIsRecurring(false);
+                setEventRecurrenceType("weekly");
+                setEventSelectedDays([]);
+                setEventMonthlyDay(1);
+                setEventReminders([]);
+                setEditingIndex(null);
+                setEditingEventId(null);
+              }}> 
                 <Ionicons name="close" size={35} color="red" />
               </TouchableOpacity>
               <TouchableOpacity onPress={saveEvent}>
@@ -610,6 +1049,7 @@ const saveEvent = async () => {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -641,8 +1081,20 @@ const saveEvent = async () => {
         onPress={() => {
           setEventTitle(ev.title);    
           setEventTime(ev.time);     
-          setEventDate(selectedDate);  
-          setEditingIndex(index);       
+          setEventDate(selectedDate);
+          setEventDescription(ev.description || "");
+          setEventPoints(ev.points?.toString() || "");
+          setEventPriority(ev.priority || "2");
+          setEventAssignedTo(ev.assignedTo || "");
+          setEventIsRotation(ev.isRotation || false);
+          setEventRotationMembers(ev.rotationMembers || []);
+          setEventIsRecurring(ev.isRecurring || false);
+          setEventRecurrenceType(ev.recurrenceType || "weekly");
+          setEventSelectedDays(ev.selectedDays || []);
+          setEventMonthlyDay(ev.monthlyDay || 1);
+          setEventReminders(ev.reminders || []);
+          setEditingIndex(index);
+          setEditingEventId(ev.id);       
           setModalViewVisible(false); 
           setModalVisible(true);     
           setIsEditing(true);  
@@ -794,7 +1246,27 @@ closeButton: {
     top: 10,
     right: 10,
   },
+  personFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#f0f0f0",
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  personFilterChipActive: {
+    backgroundColor: "#ffbf00",
+    borderColor: "#ffbf00",
+  },
+  personFilterText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  personFilterTextActive: {
+    color: "white",
+    fontWeight: "bold",
+  }
 
 
 });
-

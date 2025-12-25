@@ -253,12 +253,28 @@ export default function TodoList() {
   useEffect(() => {
     if (!email) return;
 
-    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: any = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setFamiliesJoined(list);
+      const allFamilies: any[] = [];
+      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === email) {
+            return true; // Format ancien (string)
+          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+            return true; // Format nouveau ({email, role})
+          }
+        }
+        return false;
+      });
+      
+      setFamiliesJoined(userFamilies);
     });
 
     return () => unsubscribe();

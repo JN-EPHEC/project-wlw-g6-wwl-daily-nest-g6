@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, updateDoc, } from "firebase/firestore";
+import { Picker } from '@react-native-picker/picker';
+import { onAuthStateChanged } from "firebase/auth";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -12,26 +14,98 @@ export default function ShoppingList() {
   const [selectedList, setSelectedList] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [newQuantity, setNewQuantity] = useState("");
 
 const [editModalVisible, setEditModalVisible] = useState(false);
 const [editText, setEditText] = useState("");
+const [editQuantity, setEditQuantity] = useState("");
 const [editingItem, setEditingItem] = useState<any>(null);
 
+const [selectedListType, setSelectedListType] = useState("personal");
+const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string }[]>([]);
+const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
+const [uid, setUid] = useState<string | null>(null);
+const [email, setEmail] = useState<string | null>(null);
 
- 
-  
 
-  const user = auth.currentUser;
-  if (!user) return;
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setUid(user.uid);
+      setEmail(user.email || null);
+    } else {
+      setUid(null);
+      setEmail(null);
+    }
+  });
+
+  return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  // Reset quand on change de type de liste
+  setShoppingLists([]);
+  setSelectedList(null);
+  setItems([]);
+}, [selectedListType, selectedFamily]);
+
+// Charger les familles
+useEffect(() => {
+  if (!email) return;
+
+  // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+  const q = query(collection(db, "families"));
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const allFamilies: any[] = [];
+    snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+    
+    // Filtrer pour ne garder que les familles où l'utilisateur est membre
+    const userFamilies = allFamilies.filter((family: any) => {
+      const members = family.members || [];
+      
+      for (const memberItem of members) {
+        if (typeof memberItem === 'string' && memberItem === email) {
+          return true; // Format ancien (string)
+        } else if (typeof memberItem === 'object' && memberItem.email === email) {
+          return true; // Format nouveau ({email, role})
+        }
+      }
+      return false;
+    });
+    
+    setFamiliesJoined(userFamilies);
+  });
+
+  return () => unsubscribe();
+}, [email]);
   
   const deleteList = async (list: any) => {
-  await deleteDoc(doc(db, "users", user.uid, "shopping", list.id));
+  if (!uid) return;
+  
+  let path: any;
+  if (selectedListType === "personal") {
+    path = doc(db, "users", uid, "shopping", list.id);
+  } else {
+    if (!selectedFamily || !selectedFamily.id) return;
+    path = doc(db, "families", selectedFamily.id, "shopping", list.id);
+  }
+  
+  await deleteDoc(path);
 };
 
 const deleteItem = async (item: any) => {
-  await deleteDoc(
-    doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id)
-  );
+  if (!uid) return;
+  
+  let path: any;
+  if (selectedListType === "personal") {
+    path = doc(db, "users", uid, "shopping", selectedList.id, "items", item.id);
+  } else {
+    if (!selectedFamily || !selectedFamily.id) return;
+    path = doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id);
+  }
+  
+  await deleteDoc(path);
 };
 
 const startEditList = (list: any) => {
@@ -41,10 +115,17 @@ const startEditList = (list: any) => {
 };
 
 const saveListEdit = async () => {
-  if (!editText.trim()) return;
-  await updateDoc(doc(db, "users", user.uid, "shopping", editingItem.id), {
-    title: editText,
-  });
+  if (!editText.trim() || !uid) return;
+  
+  let path: any;
+  if (selectedListType === "personal") {
+    path = doc(db, "users", uid, "shopping", editingItem.id);
+  } else {
+    if (!selectedFamily || !selectedFamily.id) return;
+    path = doc(db, "families", selectedFamily.id, "shopping", editingItem.id);
+  }
+  
+  await updateDoc(path, { title: editText });
   setEditModalVisible(false);
   setEditingItem(null);
   setEditText("");
@@ -53,82 +134,161 @@ const saveListEdit = async () => {
 const startEditItem = (item: any) => {
   setEditingItem(item);
   setEditText(item.name);
+  setEditQuantity(item.quantity || "");
   setEditModalVisible(true);
 };
 
 const saveItemEdit = async () => {
-  await updateDoc(
-    doc(db, "users", user.uid, "shopping", selectedList.id, "items", editingItem.id),
-    { name: editText }
-  );
+  if (!uid) return;
+  
+  let path: any;
+  if (selectedListType === "personal") {
+    path = doc(db, "users", uid, "shopping", selectedList.id, "items", editingItem.id);
+  } else {
+    if (!selectedFamily || !selectedFamily.id) return;
+    path = doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", editingItem.id);
+  }
+  
+  await updateDoc(path, { name: editText, quantity: editQuantity });
   setEditModalVisible(false);
   setEditingItem(null);
   setEditText("");
+  setEditQuantity("");
 };
 
 
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "shopping"),
-      (snapshot) => {
-        const lists: any[] = [];
-        snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
-        setShoppingLists(lists);
-      }
-    );
+    if (!uid) return;
+    
+    let path: any;
+    if (selectedListType === "personal") {
+      path = collection(db, "users", uid, "shopping");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = collection(db, "families", selectedFamily.id, "shopping");
+    }
+    
+    const unsubscribe = onSnapshot(path, (snapshot) => {
+      const lists: any[] = [];
+      snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+      setShoppingLists(lists);
+    });
+    
     return unsubscribe;
-  }, []);
+  }, [uid, selectedListType, selectedFamily]);
 
   //Ajouter la  liste de courses 
   const createList = async () => {
-    if (!newListName.trim()) return;
-    await addDoc(collection(db, "users", user.uid, "shopping"), {
-      title: newListName,
-    });
+    if (!newListName.trim() || !uid) return;
+    
+    let path: any;
+    if (selectedListType === "personal") {
+      path = collection(db, "users", uid, "shopping");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = collection(db, "families", selectedFamily.id, "shopping");
+    }
+    
+    await addDoc(path, { title: newListName });
     setNewListName("");
   };
 
   // Ouvrir une liste et charger les produits
   const openList = (list: any) => {
+    if (!uid) return;
+    
     setSelectedList(list);
     setModalVisible(true);
 
-    const unsubscribe = onSnapshot(
-      collection(db, "users", user.uid, "shopping", list.id, "items"),
-      (snapshot) => {
-        const loadedItems: any[] = [];
-        snapshot.forEach((doc) =>
-          loadedItems.push({ id: doc.id, ...doc.data() })
-        );
-        setItems(loadedItems);
-      }
-    );
+    let path: any;
+    if (selectedListType === "personal") {
+      path = collection(db, "users", uid, "shopping", list.id, "items");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = collection(db, "families", selectedFamily.id, "shopping", list.id, "items");
+    }
+
+    const unsubscribe = onSnapshot(path, (snapshot) => {
+      const loadedItems: any[] = [];
+      snapshot.forEach((doc) =>
+        loadedItems.push({ id: doc.id, ...doc.data() })
+      );
+      setItems(loadedItems);
+    });
 
     return unsubscribe;
   };
 
   // Ajouter un produit
   const addItem = async () => {
-    if (!newItem.trim()) return;
-    await addDoc(
-      collection(db, "users", user.uid, "shopping", selectedList.id, "items"),
-      { name: newItem, checked: false }
-    );
+    if (!newItem.trim() || !uid) return;
+    
+    let path: any;
+    if (selectedListType === "personal") {
+      path = collection(db, "users", uid, "shopping", selectedList.id, "items");
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = collection(db, "families", selectedFamily.id, "shopping", selectedList.id, "items");
+    }
+    
+    await addDoc(path, { name: newItem, quantity: newQuantity, checked: false });
     setNewItem("");
+    setNewQuantity("");
   };
 
   // Cocher/Décocher produit 
   const toggleItem = async (item: any) => {
-    await updateDoc(
-      doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id),
-      { checked: !item.checked }
-    );
+    if (!uid) return;
+    
+    let path: any;
+    if (selectedListType === "personal") {
+      path = doc(db, "users", uid, "shopping", selectedList.id, "items", item.id);
+    } else {
+      if (!selectedFamily || !selectedFamily.id) return;
+      path = doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id);
+    }
+    
+    await updateDoc(path, { checked: !item.checked });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}> Listes de Courses</Text>
+
+      <View style={{ width: "100%", marginBottom: 15 }}>
+        <View style={{
+          borderWidth: 1,
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          backgroundColor: "white",
+          borderColor: "#00d0ff"
+        }}>
+          <Picker
+            selectedValue={selectedFamily?.id || "personal"}
+            onValueChange={(value) => {
+              if (value === "personal") {
+                setSelectedListType("personal");
+                setSelectedFamily(null);
+              } else {
+                const fam = familiesJoined.find(f => f.id === value);
+                if (fam) {
+                  setSelectedFamily(fam);
+                  setSelectedListType("family");
+                }
+              }
+            }}
+            style={{ width: '100%', backgroundColor: 'white' }}
+          >
+            <Picker.Item label="Mes listes personnelles" value="personal" />
+            <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+            {familiesJoined.map(f => (
+              <Picker.Item key={f.id} label={f.name} value={f.id} />
+            ))}
+          </Picker>
+        </View>
+      </View>
 
       <View style={styles.addContainer}>
         <TextInput
@@ -185,10 +345,17 @@ const saveItemEdit = async () => {
 
       <View style={styles.addItemRow}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { flex: 2 }]}
           placeholder="Ajouter un produit"
           value={newItem}
           onChangeText={setNewItem}
+          onSubmitEditing={addItem}
+        />
+        <TextInput
+          style={[styles.input, { flex: 1, marginLeft: 8 }]}
+          placeholder="Qté (ex: 3L)"
+          value={newQuantity}
+          onChangeText={setNewQuantity}
           onSubmitEditing={addItem}
         />
         <TouchableOpacity onPress={addItem}>
@@ -203,12 +370,19 @@ const saveItemEdit = async () => {
           <View style={styles.itemRow}>
             <TouchableOpacity
               onPress={() => toggleItem(item)}
-              style={{ flexDirection: "row", flex: 1 }}
+              style={{ flexDirection: "row", flex: 1, alignItems: "center" }}
             >
               <Ionicons name={item.checked ? "checkbox" : "square-outline"} size={28} color="#00d0ff" />
-              <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through" }]}>
-                {item.name}
-              </Text>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through" }]}>
+                  {item.name}
+                </Text>
+                {item.quantity && (
+                  <Text style={[styles.quantityText, item.checked && { textDecorationLine: "line-through" }]}>
+                    Quantité: {item.quantity}
+                  </Text>
+                )}
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => startEditItem(item)}>
@@ -236,9 +410,18 @@ const saveItemEdit = async () => {
       <TextInput
         value={editText}
         onChangeText={setEditText}
-        onSubmitEditing={addItem}
-        style={{ borderWidth: 1, borderColor: "#00d0ff", padding: 10, borderRadius: 10 }}
+        placeholder="Nom"
+        style={{ borderWidth: 1, borderColor: "#00d0ff", padding: 10, borderRadius: 10, marginBottom: 10 }}
       />
+
+      {editingItem?.name && (
+        <TextInput
+          value={editQuantity}
+          onChangeText={setEditQuantity}
+          placeholder="Quantité (ex: 3L, 500g, 2)"
+          style={{ borderWidth: 1, borderColor: "#00d0ff", padding: 10, borderRadius: 10 }}
+        />
+      )}
 
       <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
         <TouchableOpacity onPress={() => setEditModalVisible(false)}>
@@ -296,5 +479,6 @@ const styles = StyleSheet.create({
   addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   itemText: { fontSize: 18, marginLeft: 10 },
+  quantityText: { fontSize: 14, color: "#666", marginLeft: 10, marginTop: 2 },
 });
 
