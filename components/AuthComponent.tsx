@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
+  // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithCredential,
@@ -76,6 +77,7 @@ export default function AuthComponent() {
       await setDoc(doc(db, "users", uid), {
         email: userCredential.user.email,
         createdAt: new Date(),
+        familyId: null,
       }, { merge: true });
 
     } catch (error: any) {
@@ -101,8 +103,17 @@ export default function AuthComponent() {
           const user = result.user;
           const uid = user.uid;
 
+           // Extraire le prénom et nom du displayName
+        const displayName = user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
           await setDoc(doc(db, "users", uid), {
             email: user.email,
+            firstName: firstName,
+            lastName: lastName,
+            birthDate: '', // À compléter par l'utilisateur
             createdAt: new Date(),
           }, { merge: true });
 
@@ -129,8 +140,27 @@ export default function AuthComponent() {
           const credential = GoogleAuthProvider.credentialFromError(error);
         });
       //  await promptAsync();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const uid = user.uid;
+
+      // Extraire le prénom et nom du displayName
+      const displayName = user.displayName || '';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      await setDoc(doc(db, "users", uid), {
+        email: user.email,
+        firstName: firstName,
+        lastName: lastName,
+        birthDate: '', // À compléter par l'utilisateur dans son profil
+        createdAt: new Date(),
+      }, { merge: true });
+
+      console.log("Connexion Google réussie");
     } catch (err: any) {
-      console.warn('promptAsync error', err);
+      console.warn('Google sign-in error', err);
       Alert.alert('Erreur', err.message || String(err));
     }
   };
