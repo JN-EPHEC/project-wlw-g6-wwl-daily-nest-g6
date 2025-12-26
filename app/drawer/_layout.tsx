@@ -1,11 +1,15 @@
 import { Drawer } from "expo-router/drawer";
 
+import React from "react";
 import "react-native-reanimated";
+import { ThemeProvider } from "../Theme";
+
 
 
 
 export default function DrawerLayout() {
   return (
+    <ThemeProvider>
     <Drawer screenOptions={{ headerShown: false }}>
       <Drawer.Screen name="Acceuil" options={{ title: "Accueil" }} />
       <Drawer.Screen name="Budget" options={{ title: "Budget" }} />
@@ -15,5 +19,9 @@ export default function DrawerLayout() {
       <Drawer.Screen name="Parametres" options={{ title: "Paramètres" }} />
       <Drawer.Screen name="Déconnexion" options={{ title: "Déconnexion" }} />
     </Drawer>
+   </ThemeProvider>
+ 
   );
 }
+
+

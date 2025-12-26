@@ -1,31 +1,35 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from '@react-native-picker/picker';
+import { DrawerActions } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
-    addDoc,
-    arrayUnion,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    onSnapshot,
-    query,
-    setDoc,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  updateDoc,
+  where
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
-export default function FamilyScreen() {
+function FamilyScreen() {
   const [families, setFamilies] = useState<any[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -33,9 +37,31 @@ export default function FamilyScreen() {
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-const [selectedFamily, setSelectedFamily] = useState<any>(null);
+
 const [familyModalVisible, setFamilyModalVisible] = useState(false);
 const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
+const [roleManagementVisible, setRoleManagementVisible] = useState(false);
+const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
+const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
+const [invitations, setInvitations] = useState<any[]>([]);
+
+const [eventModalVisible, setEventModalVisible] = useState(false);
+const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
+const [allFamilies, setAllFamilies] = useState<any[]>([]);
+
+const [message, setMessage] = useState("");
+
+
+const [date, setDate] = useState<Date | null>(null);
+
+const [selectedTime, setSelectedTime] = useState<string | null>(null);
+const [showDatePicker, setShowDatePicker] = useState(false);
+
+
+const [time, setTime] = useState<string | null>(null);
+const [showTimePicker, setShowTimePicker] = useState(false);
+const [newItemDate, setNewItemDate] = useState<string>("");
+const [newItemTime, setNewItemTime] = useState<string>("");
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -47,14 +73,27 @@ useEffect(() => {
   useEffect(() => {
     if (!user?.email) return;
 
-    const q = query(
-      collection(db,"families"),
-      where("members", "array-contains", user.email)
-    );
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setFamilies(list);
+      const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === user.email) {
+            return true; // Format ancien
+          } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+            return true; // Format nouveau
+          }
+        }
+        return false;
+      });
+      
+      setFamilies(userFamilies);
     });
 
     return () => unsub();
@@ -83,48 +122,83 @@ useEffect(() => {
     joinCode: code,
     members: [user.email],
   });
-    await setDoc(doc(db, "users", user.uid, "familiesJoined", familyRef.id), {
-    familyId: familyRef.id
-  });
 
     setFamilyName("");
-    setCreateModalVisible(false);};
-
+    setCreateModalVisible(false);
+    Alert.alert("Succès", "Famille créée avec succès !");
+  };
+useEffect(() => {
+  const loadAllFamilies = async () => {
+    const snap = await getDocs(collection(db, "families"));
+    const familiesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setAllFamilies(familiesData);
+  };
+  loadAllFamilies();
+}, []);
 
   // Join family by code
   const handleJoinFamily = async () => {
-    if (joinCode.length !== 6) return Alert.alert("Erreur", "Code invalide");
+  if (joinCode.length !== 6) {
+    return Alert.alert("Erreur", "Code invalide");
+  }
 
-    const q = query(
-      collection(db, "families"),
-      where("joinCode", "==", joinCode)
-    );
+  const q = query(
+    collection(db, "families"),
+    where("joinCode", "==", joinCode)
+  );
 
-    const snap = await getDocs(q);
+  const snap = await getDocs(q);
 
-    if (snap.empty) {
-      return Alert.alert("Erreur", "Famille introuvable");
-    }
+  if (snap.empty) {
+    return Alert.alert("Erreur", "Famille introuvable");
+  }
 
-    const fam = snap.docs[0];
+  const famDoc = snap.docs[0];
+  const famData = famDoc.data();
 
-    if ((fam.data().members || []).includes(user.email)) {
+  // Déjà membre ?
+  const alreadyMember = (famData.members || []).some(
+    (m: any) => (typeof m === "string" ? m === user.email : m.email === user.email)
+  );
+
+  if (alreadyMember) {
     return Alert.alert("Info", "Vous êtes déjà membre de cette famille");
   }
 
-
-    await updateDoc(doc(db, "families", fam.id), {
-      members: arrayUnion(user?.email),
-    });
-
-    await addDoc(collection(db, "users", user.uid, "familiesJoined", fam.id), {
-    familyId: fam.id,
-    familyName: fam.data().name || ""
+  // Créer une invitation
+  await addDoc(collection(db, "familyInvitations"), {
+    familyId: famDoc.id,
+    familyName: famData.name,
+    fromEmail: user.email,
+    toOwnerUid: famData.ownerUid,
+    status: "pending",
+    createdAt: new Date(),
   });
 
-    setJoinCode("");
-    setJoinModalVisible(false);
-  };
+  setJoinCode("");
+  setJoinModalVisible(false);
+
+  Alert.alert(
+    "Demande envoyée",
+    "Une demande a été envoyée à l'administrateur de la famille."
+  );
+};
+const acceptInvitation = async (inv: any) => {
+  const familyRef = doc(db, "families", inv.familyId);
+
+
+
+  await updateDoc(doc(db, "familyInvitations", inv.id), {
+    status: "accepted",
+  });
+};
+const rejectInvitation = async (inv: any) => {
+  await updateDoc(doc(db, "familyInvitations", inv.id), {
+    status: "rejected",
+  });
+};
+
+
 
   const handleDeletePress = (family: any) => {
   Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
@@ -142,6 +216,22 @@ useEffect(() => {
     },
   ]);
 };
+useEffect(() => {
+  if (!user?.uid) return;
+
+  const q = query(
+    collection(db, "familyInvitations"),
+    where("toOwnerUid", "==", user.uid),
+    where("status", "==", "pending")
+  );
+
+  const unsub = onSnapshot(q, (snap) => {
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    setInvitations(data);
+  });
+
+  return () => unsub();
+}, [user?.uid]);
 
 const updateFamilyName = async () => {
   if (!selectedFamily || !familyName.trim()) return;
@@ -157,6 +247,101 @@ const updateFamilyName = async () => {
     setFamilyName("");
   } catch (err) {
     console.log("Erreur update famille:", err);
+  }
+};
+
+// Ouvrir le modal de gestion des rôles pour une famille
+const openRoleManagementForFamily = async (family: any) => {
+  setSelectedFamilyForRoles(family);
+  
+  // Récupérer les données à jour de la famille
+  const familyDoc = await getDoc(doc(db, 'families', family.id));
+  if (!familyDoc.exists()) return;
+  
+  const familyData = familyDoc.data();
+  
+  // Initialiser les rôles actuels
+  const currentRoles: {[email: string]: string} = {};
+  const familyMembers = familyData.members || [];
+  
+  for (const memberItem of familyMembers) {
+    if (typeof memberItem === 'string') {
+      currentRoles[memberItem] = 'Enfant';
+    } else {
+      currentRoles[memberItem.email] = memberItem.role || 'Enfant';
+    }
+  }
+  
+  setRoleAssignments(currentRoles);
+  setRoleManagementVisible(true);
+};
+const handleSendEvent = async () => {
+  console.log("🚀 Envoi événement…");
+  console.log("selectedFamily:", selectedFamily);
+  console.log("date:", date);
+  console.log("time:", time);
+  console.log("message:", message);
+  console.log("user email:", user?.email);
+
+  // Vérifications avant envoi
+  if (!selectedFamily) {
+    return Alert.alert("Erreur", "Veuillez sélectionner une famille");
+  }
+  if (!date) {
+    return Alert.alert("Erreur", "Veuillez sélectionner une date");
+  }
+  if (!time) {
+    return Alert.alert("Erreur", "Veuillez sélectionner une heure");
+  }
+  if (!user?.email) {
+    return Alert.alert("Erreur", "Utilisateur non connecté");
+  }
+
+  try {
+    await addDoc(collection(db, "familyEvents"), {
+      familyId: typeof selectedFamily === "string" ? selectedFamily : selectedFamily?.id,
+      date: date.toISOString(),
+      time,
+      message: message || "",
+      createdBy: user.email,
+      createdAt: new Date(),
+    });
+
+    console.log("✅ Événement envoyé !");
+    
+    // Réinitialiser les champs
+    setEventModalVisible(false);
+    setSelectedFamily(null);
+    setDate(null);
+    setTime(null);
+    setMessage("");
+
+    Alert.alert("Succès", "Invitation envoyée !");
+  } catch (err) {
+    console.error("❌ Erreur en envoyant l'événement :", err);
+    Alert.alert("Erreur", "Impossible d'envoyer l'invitation. Vérifiez vos champs et vos droits Firestore.");
+  }
+};
+
+// Sauvegarder les rôles dans Firestore
+const saveRoles = async () => {
+  if (!selectedFamilyForRoles) return;
+  
+  try {
+    const newMembers = Object.entries(roleAssignments).map(([email, role]) => ({
+      email,
+      role
+    }));
+    
+    await setDoc(doc(db, 'families', selectedFamilyForRoles.id), {
+      members: newMembers
+    }, { merge: true });
+    
+    Alert.alert('Succès', 'Les rôles ont été mis à jour!');
+    setRoleManagementVisible(false);
+  } catch (error) {
+    console.error('Erreur lors de la sauvegarde des rôles:', error);
+    Alert.alert('Erreur', 'Impossible de sauvegarder les rôles');
   }
 };
 
@@ -180,6 +365,13 @@ const updateFamilyName = async () => {
         <Text style={{ flex: 1, fontSize: 18 }}>{item.name}</Text>
 
         <TouchableOpacity
+          onPress={() => openRoleManagementForFamily(item)}
+          style={{ marginRight: 10 }}
+        >
+          <Ionicons name="people-circle" size={24} color="#007AFF" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           onPress={() => {
             setFamilyName(item.name);
             setSelectedFamily(item);
@@ -200,6 +392,38 @@ const updateFamilyName = async () => {
   )}
 />
 
+{invitations.length > 0 && families.some(f => f.ownerUid === user?.uid) && (
+  <>
+    <Text style={{ fontSize: 18, fontWeight: "700", marginTop: 20 }}>
+      Demandes en attente
+    </Text>
+
+    {invitations.map(inv => (
+      <View key={inv.id} style={styles.inviteRow}>
+        <Text style={{ flex: 1 }}>
+          {inv.fromEmail} → {inv.familyName}
+        </Text>
+
+        {/* ACCEPTER */}
+        <TouchableOpacity onPress={() => acceptInvitation(inv)}>
+          <Ionicons name="checkmark-circle" size={26} color="green" />
+        </TouchableOpacity>
+
+        {/* REFUSER */}
+        <TouchableOpacity onPress={() => rejectInvitation(inv)}>
+          <Ionicons name="close-circle" size={26} color="red" />
+        </TouchableOpacity>
+      </View>
+    ))}
+  </>
+)}
+{invitations.length === 0 && (
+  <Text style={{ marginTop: 20, color: "#888" }}>
+    Aucune demande en attente
+  </Text>
+)}
+
+
       {/* CREATE BUTTON */}
       <TouchableOpacity
         style={styles.btn}
@@ -215,7 +439,7 @@ const updateFamilyName = async () => {
       >
         <Text style={styles.btnText}>Rejoindre une famille</Text>
       </TouchableOpacity>
-
+ 
       {/* CREATE MODAL */}
       <Modal visible={createModalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
@@ -281,11 +505,26 @@ const updateFamilyName = async () => {
 
 
       {/* Membres */}
-      {selectedFamily?.members?.map((m: string, index: number) => (
-       <Text key={index} style={{ marginLeft: 10 }}>
-         - {m}
-       </Text>
-      ))}
+      {selectedFamily?.members?.map((m: any, index: number) => {
+        const email = typeof m === 'string' ? m : m.email;
+        const role = typeof m === 'string' ? 'Non défini' : (m.role || 'Non défini');
+        return (
+          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 5 }}>
+            <Text style={{ flex: 1 }}>- {email}</Text>
+            <View style={[
+              { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+              { backgroundColor: role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+            ]}>
+              <Text style={[
+                { fontSize: 11, fontWeight: '600' },
+                { color: role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+              ]}>
+                {role}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
 
 
       <TouchableOpacity
@@ -323,6 +562,50 @@ const updateFamilyName = async () => {
   </View>
 </Modal>
 
+{/* Modal Gestion des Rôles */}
+<Modal visible={roleManagementVisible} transparent animationType="fade">
+  <View style={styles.modalContainer}>
+    <View style={styles.modal}>
+      <Text style={styles.modalTitle}>Gérer les rôles - {selectedFamilyForRoles?.name}</Text>
+
+      <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+        <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
+        <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
+          Définissez le rôle de chaque membre dans cette famille.
+        </Text>
+      </View>
+
+      <ScrollView style={{ maxHeight: 300 }}>
+        {Object.entries(roleAssignments).map(([email, role]) => (
+          <View key={email} style={styles.roleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
+              <Picker
+                selectedValue={role}
+                onValueChange={(value) => setRoleAssignments({ ...roleAssignments, [email]: value })}
+                style={styles.rolePicker}
+              >
+                <Picker.Item label="Parent" value="Parent" />
+                <Picker.Item label="Enfant" value="Enfant" />
+              </Picker>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      <TouchableOpacity style={styles.saveRoleButton} onPress={saveRoles}>
+        <Text style={styles.saveRoleButtonText}>Enregistrer les rôles</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        onPress={() => setRoleManagementVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 }
@@ -343,6 +626,117 @@ const styles = StyleSheet.create({
     backgroundColor: "#eee",
     borderRadius: 10,
   },
+
+  modal: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  roleRow: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  rolePicker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  saveRoleButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  saveRoleButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  inviteRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 12,
+  backgroundColor: "#f1f1f1",
+  borderRadius: 10,
+  marginTop: 8,
+},
+container: { 
+    flex: 1, 
+    padding: 20, 
+    backgroundColor: "white" 
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    maxHeight: "90%",
+  },
+  modalTitle: { 
+    fontSize: 22, 
+    fontWeight: "bold", 
+    textAlign: "center", 
+    marginBottom: 20, 
+    color: "#ffbf00" 
+  },
+  addItemRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 15 
+  },
+  dateRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 15 
+  },
+  dateInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 16,
+    justifyContent: "center",
+  },
+  timeInput: {
+    width: 80,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 16,
+    textAlign: "center",
+  },
+  pickerContainer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 50,
+    width: "100%",
+  },
   btn: {
     backgroundColor: "black",
     padding: 15,
@@ -353,28 +747,28 @@ const styles = StyleSheet.create({
   btnText: {
     color: "white",
     fontWeight: "bold",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 20,
-  },
-  modal: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 12,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
+    fontSize: 16,
   },
 });
+
+
+
+const Stack = createNativeStackNavigator();
+export default function () {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="FamilyMain"
+        component={FamilyScreen}
+        options={({ navigation }) => ({
+          headerTitle: "Mes familles",
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
+              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+    </Stack.Navigator>
+  );
+}

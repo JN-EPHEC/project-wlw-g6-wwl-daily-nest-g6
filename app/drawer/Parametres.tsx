@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from "@react-native-picker/picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,13 +12,21 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
+import { useTheme } from "../Theme";
+
+
 
 export function Parametres() {
+
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
   const navigation = useNavigation() as any;
+ 
 
   const [families, setFamilies] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -28,16 +36,24 @@ export function Parametres() {
   // user data
   const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
   const [familyRoles, setFamilyRoles] = useState<{ [familyId: string]: "parents" | "children" }>({});
+  const [displayRoles, setDisplayRoles] = useState<Array<{familyName: string; role: string}>>([]); // Nouveaux rôles depuis members
 
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   // privacy & notif
   const [privacyShare, setPrivacyShare] = useState(false);
   const [notifOptions, setNotifOptions] = useState({ tasks: false, chat: false, reminders: false });
 
+  // password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const userRef = (id: string) => doc(db, "users", id);
+
 
   // auth + load user
   useEffect(() => {
@@ -87,22 +103,52 @@ export function Parametres() {
   // load families
   useEffect(() => {
     if (!user?.email) return;
-    const q = query(collection(db, "families"), where("members", "array-contains", user.email));
+    
+    // Charger TOUTES les familles et filtrer côté client
+    const q = query(collection(db, "families"));
     const unsub = onSnapshot(q, async (snap) => {
-      const familiesData = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setFamilies(familiesData);
+      const familiesData: any[] = [];
+      const roles: Array<{familyName: string; role: string}> = [];
+      const oldRoles: { [familyId: string]: "parents" | "children" } = {};
       
-      // Load roles for each family
-      const roles: { [familyId: string]: "parents" | "children" } = {};
-      for (const family of familiesData) {
-        const familyDoc = await getDoc(doc(db, "families", family.id));
-        if (familyDoc.exists()) {
-          const familyData = familyDoc.data();
-          const memberRole = familyData?.memberRoles?.[user.email];
-          roles[family.id] = memberRole === "children" ? "children" : "parents";
+      snap.forEach(doc => {
+        const familyData = doc.data();
+        const members = familyData.members || [];
+        
+        // Vérifier si l'utilisateur fait partie de cette famille
+        let userRole = null;
+        let isMember = false;
+        
+        for (const memberItem of members) {
+          if (typeof memberItem !== 'string' && memberItem.email === user.email) {
+            // Format nouveau : {email, role}
+            isMember = true;
+            userRole = memberItem.role || 'Non défini';
+            break;
+          } else if (typeof memberItem === 'string' && memberItem === user.email) {
+            // Format ancien : simple email
+            isMember = true;
+            userRole = 'Non défini';
+            break;
+          }
         }
-      }
-      setFamilyRoles(roles);
+        
+        if (isMember) {
+          familiesData.push({ id: doc.id, ...familyData });
+          roles.push({
+            familyName: familyData.name || 'Famille sans nom',
+            role: userRole || 'Non défini'
+          });
+          
+          // Charger aussi l'ancien système pour compatibilité
+          const memberRole = familyData?.memberRoles?.[user.email];
+          oldRoles[doc.id] = memberRole === "children" ? "children" : "parents";
+        }
+      });
+      
+      setFamilies(familiesData);
+      setDisplayRoles(roles);
+      setFamilyRoles(oldRoles);
     });
     return () => unsub();
   }, [user?.email]);
@@ -130,6 +176,52 @@ export function Parametres() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!uid || !user) return;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Erreur", "Le nouveau mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    try {
+      // Réauthentifier l'utilisateur
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+      await reauthenticateWithCredential(user, credential);
+
+      // Mettre à jour le mot de passe
+      await updatePassword(user, newPassword);
+
+      Alert.alert("Succès", "Mot de passe modifié avec succès");
+      setPasswordVisible(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === "auth/wrong-password") {
+        Alert.alert("Erreur", "Mot de passe actuel incorrect");
+      } else if (err.code === "auth/requires-recent-login") {
+        Alert.alert("Erreur", "Pour des raisons de sécurité, veuillez vous reconnecter avant de changer votre mot de passe");
+      } else {
+        Alert.alert("Erreur", "Impossible de modifier le mot de passe");
+      }
+    }
+  };
+
 
   const goToProfile = () => navigation.navigate("profil");
   const goToFamily = () => navigation.navigate("Famille");
@@ -143,8 +235,8 @@ export function Parametres() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.screen}>
+    <ScrollView style={[styles.screen, isDark && styles.darkContainer]}>
+     
         {/* Profile */}
         <TouchableOpacity style={styles.cardRow} onPress={goToProfile}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -152,6 +244,7 @@ export function Parametres() {
             <Text style={styles.title}>Mon Profil</Text>
           </View>
         </TouchableOpacity>
+        
 
         {/* Familles */}
         <TouchableOpacity style={styles.cardRow} onPress={goToFamily}>
@@ -167,29 +260,50 @@ export function Parametres() {
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
-        {/* Role per Family */}
+        {/* Mes rôles dans les familles */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Rôle dans chaque famille</Text>
-          <Text style={styles.smallText}>Choisis ton rôle pour chaque famille</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Mes rôles dans les familles</Text>
+          </View>
           
-          {families.length === 0 ? (
+          {displayRoles.length === 0 ? (
             <Text style={styles.noFamilyText}>Tu n'appartiens à aucune famille pour le moment</Text>
           ) : (
-            families.map((family) => (
-              <View key={family.id} style={styles.familyRoleCard}>
-                <Text style={styles.familyName}>{family.name || "Famille"}</Text>
-                <View style={styles.pickerWrap}>
-                  <Picker
-                    selectedValue={familyRoles[family.id] || "parents"}
-                    onValueChange={(v) => setFamilyRoles(prev => ({ ...prev, [family.id]: v as any }))}
-                  >
-                    <Picker.Item label="Parents" value="parents" />
-                    <Picker.Item label="Enfants" value="children" />
-                  </Picker>
+            displayRoles.map((familyRole, index) => {
+              return (
+                <View key={index} style={styles.roleDisplayCard}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.familyName}>{familyRole.familyName}</Text>
+                      <View style={[
+                        styles.roleBadge,
+                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+                      ]}>
+                        <Text style={[
+                          styles.roleText,
+                          { color: familyRole.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+                        ]}>
+                          {familyRole.role}
+                        </Text>
+                      </View>
+                    </View>
+                    <Ionicons 
+                      name={familyRole.role.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
+                      size={28} 
+                      color={familyRole.role.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
+                    />
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
+          
+          <View style={{ backgroundColor: '#E3F2FD', padding: 10, borderRadius: 8, marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="information-circle" size={18} color="#2196F3" style={{ marginRight: 8 }} />
+            <Text style={{ flex: 1, color: '#1976D2', fontSize: 11 }}>
+              Gérez les rôles depuis la page Famille via l'icône 👥.
+            </Text>
+          </View>
         </View>
 
         {/* Notifications */}
@@ -210,6 +324,15 @@ export function Parametres() {
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
+        {/* Mot de passe */}
+        <TouchableOpacity style={styles.cardRow} onPress={() => setPasswordVisible(true)}>
+          <View>
+            <Text style={styles.rowTitle}>Mot de passe</Text>
+            <Text style={styles.rowSub}>Modifier votre mot de passe</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#888" />
+        </TouchableOpacity>
+
         {/* Save button */}
         <View style={{ marginTop: 18, alignItems: "flex-end" }}>
           <TouchableOpacity style={styles.saveSmallBtn} onPress={saveBasicSettings}>
@@ -217,6 +340,7 @@ export function Parametres() {
             <Text style={styles.saveSmallText}>Sauvegarder</Text>
           </TouchableOpacity>
         </View>
+        
 
         {/* Privacy Modal */}
         <Modal visible={privacyVisible} transparent animationType="slide">
@@ -312,6 +436,76 @@ export function Parametres() {
           </View>
         </Modal>
 
+        {/* Password Modal */}
+        <Modal visible={passwordVisible} transparent animationType="slide">
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Modifier le mot de passe</Text>
+                <TouchableOpacity onPress={() => {
+                  setPasswordVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}>
+                  <Ionicons name="close" size={22} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalText}>
+                Pour des raisons de sécurité, vous devez entrer votre mot de passe actuel.
+              </Text>
+              <View style={{ marginTop: 15 }}>
+                <Text style={styles.inputLabel}>Mot de passe actuel</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Mot de passe actuel"
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry
+                />
+                <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Nouveau mot de passe (min. 6 caractères)"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                />
+                <Text style={styles.inputLabel}>Confirmer le mot de passe</Text>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirmer le nouveau mot de passe"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                />
+              </View>
+          
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.iconClose} onPress={() => {
+                  setPasswordVisible(false);
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}>
+                  <Ionicons name="close" size={18} color="#444" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleChangePassword}
+                >
+                  <Text style={styles.modalSaveText}>Modifier</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+          
+        </Modal>
+        
+    <View style={{ padding: 16 }}>
+    <Text style={[styles.text, isDark && styles.darkText]}>Mode sombre</Text>
+    <Switch value={isDark} onValueChange={toggleTheme} />
+
       </View>
     </ScrollView>
   );
@@ -341,7 +535,6 @@ export default function () {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#f7f8fa", paddingBottom: 20 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 16 },
 
   cardRow: {
     backgroundColor: "#fff",
@@ -382,6 +575,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e5e5",
   },
+  roleDisplayCard: {
+    marginTop: 12,
+    padding: 14,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
   familyName: {
     fontSize: 14,
     fontWeight: "600",
@@ -393,6 +599,17 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
     fontSize: 13,
+  },
+  roleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+  },
+  roleText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   saveSmallBtn: {
@@ -441,4 +658,35 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalSaveText: { color: "#222", fontWeight: "700" },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    backgroundColor: "#f9f9f9",
+  },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#fff",
+  },
+  darkContainer: {
+    backgroundColor: "#121212",
+  },
+  text: {
+    fontSize: 18,
+    color: "#000",
+  },
+  darkText: {
+    color: "#fff",
+  },
+
 });
