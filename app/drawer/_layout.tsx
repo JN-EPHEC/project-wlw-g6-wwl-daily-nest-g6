@@ -12,6 +12,7 @@ export default function DrawerLayout() {
       <Drawer.Screen name="Avantages" options={{ title: "Avantages" }} />
       <Drawer.Screen name="profil" options={{ title: "Profil" }} />
       <Drawer.Screen name="Famille" options={{ title: "Famille" }} />
+      <Drawer.Screen name="Invitations" options={{ title: "Invitations" }} />
       <Drawer.Screen name="Parametres" options={{ title: "Paramètres" }} />
       <Drawer.Screen name="Déconnexion" options={{ title: "Déconnexion" }} />
     </Drawer>
