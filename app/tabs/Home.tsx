@@ -60,6 +60,10 @@ export default function Home() {
   const [eventSelectedDays, setEventSelectedDays] = useState<number[]>([]);
   const [eventMonthlyDay, setEventMonthlyDay] = useState<number>(1);
   const [eventReminders, setEventReminders] = useState<Array<{ date: string; time: string; message: string }>>([]);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
+  const [reminderMessage, setReminderMessage] = useState("");
+  const [showReminderForm, setShowReminderForm] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [calendarTheme, setCalendarTheme] = useState("#ffbf00"); // Couleur du thème du calendrier 
 
@@ -1021,7 +1025,205 @@ const saveEvent = async () => {
               )}
             </View>
 
-  <View style={styles.buttonRow}>
+            {/* Rappels */}
+            <View style={{ marginTop: 20 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 15 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="push-outline" size={20} color="#e91e63" />
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: "#333" }}>Rappels</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowReminderForm(true)}
+                  style={{
+                    backgroundColor: "#ffc107",
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Liste des rappels existants */}
+              {eventReminders.map((reminder, index) => (
+                <View key={index} style={{ 
+                  backgroundColor: "#fff",
+                  padding: 15,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2
+                }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
+                    <TouchableOpacity onPress={() => {
+                      setEventReminders(eventReminders.filter((_, i) => i !== index));
+                    }}>
+                      <Ionicons name="close" size={24} color="#f44336" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  <View style={{ 
+                    borderWidth: 1.5, 
+                    borderColor: "#ffc107", 
+                    padding: 10, 
+                    borderRadius: 8,
+                    marginBottom: 8,
+                    backgroundColor: "#fff"
+                  }}>
+                    <Text style={{ fontSize: 14, color: "#333" }}>{reminder.date}</Text>
+                  </View>
+                  <View style={{ 
+                    borderWidth: 1.5, 
+                    borderColor: "#ffc107", 
+                    padding: 10, 
+                    borderRadius: 8,
+                    marginBottom: reminder.message ? 8 : 0,
+                    backgroundColor: "#fff"
+                  }}>
+                    <Text style={{ fontSize: 14, color: "#333" }}>{reminder.time}</Text>
+                  </View>
+                  {reminder.message && (
+                    <View style={{ 
+                      borderWidth: 1.5, 
+                      borderColor: "#ffc107", 
+                      padding: 10, 
+                      borderRadius: 8,
+                      backgroundColor: "#fff"
+                    }}>
+                      <Text style={{ fontSize: 14, color: "#333" }}>{reminder.message}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+
+              {/* Formulaire d'ajout de rappel */}
+              {showReminderForm && (
+                <View style={{ 
+                  backgroundColor: "#fff", 
+                  padding: 15, 
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2
+                }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Rappel {eventReminders.length + 1}</Text>
+                    <TouchableOpacity onPress={() => {
+                      setShowReminderForm(false);
+                      setReminderDate("");
+                      setReminderTime("");
+                      setReminderMessage("");
+                    }}>
+                      <Ionicons name="close" size={24} color="#f44336" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  
+                  <input
+                    type="date"
+                    value={reminderDate ? (() => {
+                      const parts = reminderDate.split('/');
+                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                    })() : ''}
+                    onChange={(e) => {
+                      const dateParts = e.target.value.split('-');
+                      if (dateParts.length === 3) {
+                        setReminderDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
+                      }
+                    }}
+                    placeholder="jj / mm / aaaa"
+                    style={{
+                      width: '100%',
+                      borderWidth: 1.5,
+                      borderColor: '#ffc107',
+                      padding: 10,
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 8,
+                      backgroundColor: '#fff'
+                    }}
+                  />
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffc107', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 8,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="HH:MM"
+                    placeholderTextColor="#999"
+                    value={reminderTime}
+                    onChangeText={(text) => {
+                      let formatted = text.replace(/[^0-9]/g, '');
+                      if (formatted.length >= 2) {
+                        formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                      }
+                      setReminderTime(formatted);
+                    }}
+                    maxLength={5}
+                  />
+                  
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffc107', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 12,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="Message (optionnel)"
+                    placeholderTextColor="#999"
+                    value={reminderMessage}
+                    onChangeText={setReminderMessage}
+                  />
+                  
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (reminderDate && reminderTime) {
+                        setEventReminders([...eventReminders, {
+                          date: reminderDate,
+                          time: reminderTime,
+                          message: reminderMessage || ""
+                        }]);
+                        setReminderDate("");
+                        setReminderTime("");
+                        setReminderMessage("");
+                        setShowReminderForm(false);
+                      } else {
+                        alert("Veuillez remplir la date et l'heure du rappel");
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#ffc107",
+                      padding: 12,
+                      borderRadius: 8,
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 14 }}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.buttonRow}>
               <TouchableOpacity onPress={() => {
                 setModalVisible(false);
                 // Réinitialiser tous les champs
@@ -1039,6 +1241,9 @@ const saveEvent = async () => {
                 setEventSelectedDays([]);
                 setEventMonthlyDay(1);
                 setEventReminders([]);
+                setReminderDate("");
+                setReminderTime("");
+                setReminderMessage("");
                 setEditingIndex(null);
                 setEditingEventId(null);
               }}> 
@@ -1115,7 +1320,22 @@ const saveEvent = async () => {
       setEventTitle("");
       setEventDate(selectedDate);
       setEventTime("");
+      setEventDescription("");
+      setEventPoints("");
+      setEventPriority("2");
+      setEventAssignedTo("");
+      setEventIsRotation(false);
+      setEventRotationMembers([]);
+      setEventIsRecurring(false);
+      setEventRecurrenceType("weekly");
+      setEventSelectedDays([]);
+      setEventMonthlyDay(1);
+      setEventReminders([]);
+      setReminderDate("");
+      setReminderTime("");
+      setReminderMessage("");
       setEditingIndex(null);
+      setEditingEventId(null);
       setModalVisible(true);
     }}
     style={{
