@@ -6,6 +6,10 @@ import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   addDoc,
+<<<<<<< HEAD
+=======
+  arrayUnion,
+>>>>>>> 0c1320a (Invitation entre les familles)
   collection,
   deleteDoc,
   doc,
@@ -16,6 +20,7 @@ import {
   setDoc,
   updateDoc,
   where
+<<<<<<< HEAD
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -59,6 +64,20 @@ import {
     TouchableOpacity,
     View
 >>>>>>> 4304248 (les rôles)
+=======
+} from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+>>>>>>> 0c1320a (Invitation entre les familles)
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -114,21 +133,27 @@ useEffect(() => {
 
     const unsub = onSnapshot(q, (snap) => {
       const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      console.log("Toutes les familles:", allFamilies.length);
+      console.log("Email utilisateur:", user.email);
       
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
+        console.log(`Famille ${family.name}, membres:`, members);
         
         for (const memberItem of members) {
           if (typeof memberItem === 'string' && memberItem === user.email) {
+            console.log(`✓ Trouvé dans ${family.name} (format ancien)`);
             return true; // Format ancien
           } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+            console.log(`✓ Trouvé dans ${family.name} (format nouveau)`);
             return true; // Format nouveau
           }
         }
         return false;
       });
       
+      console.log("Familles de l'utilisateur:", userFamilies.length);
       setFamilies(userFamilies);
     });
 
@@ -554,7 +579,7 @@ const saveRoles = async () => {
       {/* Code seulement si owner */}
       {selectedFamily && selectedFamily.ownerUid === user?.uid && (
   <Text style={{ fontSize: 16, marginBottom: 10 }}>
-    Code : {selectedFamily.joinCode}
+    Code : {selectedFamily.code}
   </Text>
 )}
 

@@ -271,7 +271,7 @@ export function Parametres() {
         {/* Mes rôles dans les familles */}
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionTitle}>👨‍👩‍👧‍👦 Mes rôles dans les familles</Text>
+            <Text style={styles.sectionTitle}>Mes rôles dans les familles</Text>
           </View>
           
           {displayRoles.length === 0 ? (
@@ -306,12 +306,7 @@ export function Parametres() {
             })
           )}
           
-          <View style={{ backgroundColor: '#E3F2FD', padding: 10, borderRadius: 8, marginTop: 10, flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="information-circle" size={18} color="#2196F3" style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, color: '#1976D2', fontSize: 11 }}>
-              Gérez les rôles depuis la page Famille via l'icône 👥.
-            </Text>
-          </View>
+
         </View>
 
         {/* Notifications */}
