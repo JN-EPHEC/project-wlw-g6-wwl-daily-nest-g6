@@ -93,6 +93,9 @@ export function Acceuil() {
     time: string;
     message: string;
   }>>([]);
+  const [todoRemindersEnabled, setTodoRemindersEnabled] = useState(false);
+  const [todoReminderDate, setTodoReminderDate] = useState("");
+  const [todoReminderTime, setTodoReminderTime] = useState("");
 
 const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
@@ -555,6 +558,9 @@ const saveTodo = async () => {
       setTodoNotificationEnabled(false);
       setTodoNotificationTime("15 min avant");
       setTodoReminders([]);
+      setTodoRemindersEnabled(false);
+      setTodoReminderDate("");
+      setTodoReminderTime("");
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -1274,110 +1280,166 @@ const saveTodo = async () => {
 
           {/* Rappels */}
           <View style={{ marginTop: 15 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <Text style={{ fontSize: 14, fontWeight: "600" }}>📌 Rappels</Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  setTodoReminders([...todoReminders, { date: "", time: "", message: "" }]);
-                }}
-                style={{ 
-                  backgroundColor: "#ffbf00", 
-                  width: 32, 
-                  height: 32, 
-                  borderRadius: 16, 
-                  justifyContent: "center", 
-                  alignItems: "center" 
-                }}
-              >
-                <Text style={{ color: "white", fontSize: 20, fontWeight: "bold" }}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            {todoReminders.map((reminder, index) => (
-              <View key={index} style={{ 
-                marginBottom: 15, 
-                padding: 12, 
-                backgroundColor: "#f9f9f9", 
-                borderRadius: 10,
-                borderLeftWidth: 3,
-                borderLeftColor: "#ffbf00"
+            <TouchableOpacity 
+              onPress={() => setTodoRemindersEnabled(!todoRemindersEnabled)}
+              style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+            >
+              <View style={{
+                width: 24,
+                height: 24,
+                borderRadius: 4,
+                borderWidth: 2,
+                borderColor: "#ffbf00",
+                marginRight: 12,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: todoRemindersEnabled ? "#ffbf00" : "transparent"
               }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
-                  <TouchableOpacity 
-                    onPress={() => {
-                      const newReminders = todoReminders.filter((_, i) => i !== index);
-                      setTodoReminders(newReminders);
-                    }}
-                    style={{ padding: 4 }}
-                  >
-                    <Text style={{ color: "#ff4444", fontSize: 16 }}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+                {todoRemindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: "600" }}>Rappels</Text>
+            </TouchableOpacity>
 
-                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Date et heure :</Text>
-                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
-                  <input
-                    type="date"
-                    value={reminder.date ? (() => {
-                      const parts = reminder.date.split('/');
-                      return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                    })() : ''}
-                    onChange={(e) => {
-                      const dateParts = e.target.value.split('-');
-                      const newReminders = [...todoReminders];
-                      if (dateParts.length === 3) {
-                        newReminders[index].date = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
-                      }
-                      setTodoReminders(newReminders);
-                    }}
-                    style={{
-                      flex: 1,
-                      borderWidth: 1,
-                      borderColor: '#ffbf00',
-                      padding: 10,
-                      borderRadius: 10,
-                      fontSize: 14
-                    }}
-                  />
-                </View>
-                <TextInput
-                  style={[styles.inputWeb, { borderColor: '#ffbf00', marginBottom: 10 }]}
-                  placeholder="HH:MM"
-                  placeholderTextColor="#ccc"
-                  value={reminder.time}
-                  onChangeText={(text) => {
-                    let formatted = text.replace(/[^0-9]/g, '');
-                    if (formatted.length >= 2) {
-                      formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
-                    }
-                    const newReminders = [...todoReminders];
-                    newReminders[index].time = formatted;
-                    setTodoReminders(newReminders);
-                  }}
-                  maxLength={5}
-                />
+            {todoRemindersEnabled && (
+              <>
+                {/* Liste des rappels existants */}
+                {todoReminders.map((reminder, index) => (
+                  <View key={index} style={{ 
+                    backgroundColor: "#fff",
+                    padding: 15,
+                    borderRadius: 10,
+                    marginBottom: 10,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2
+                  }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
+                      <TouchableOpacity onPress={() => {
+                        setTodoReminders(todoReminders.filter((_, i) => i !== index));
+                      }}>
+                        <Ionicons name="close" size={24} color="#f44336" />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                    <View style={{ flexDirection: "row" }}>
+                      <View style={{ 
+                        flex: 1,
+                        borderWidth: 1.5, 
+                        borderColor: "#ffbf00", 
+                        padding: 10, 
+                        borderRadius: 8,
+                        backgroundColor: "#fff",
+                        marginRight: 8
+                      }}>
+                        <Text style={{ fontSize: 14, color: "#333" }}>{reminder.date}</Text>
+                      </View>
+                      <View style={{ 
+                        flex: 1,
+                        borderWidth: 1.5, 
+                        borderColor: "#ffbf00", 
+                        padding: 10, 
+                        borderRadius: 8,
+                        backgroundColor: "#fff"
+                      }}>
+                        <Text style={{ fontSize: 14, color: "#333" }}>{reminder.time}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
 
-                {reminder.date && reminder.time && (
-                  <View>
-                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Message (optionnel) :</Text>
-                    <TextInput
-                      style={[styles.inputWeb, { borderColor: '#ffbf00' }]}
-                      placeholder="Message personnalisé..."
-                      placeholderTextColor="#ccc"
-                      value={reminder.message}
-                      onChangeText={(text) => {
-                        const newReminders = [...todoReminders];
-                        newReminders[index].message = text;
-                        setTodoReminders(newReminders);
+                {/* Formulaire d'ajout de rappel */}
+                <View style={{ 
+                  backgroundColor: "#fff", 
+                  padding: 15, 
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2
+                }}>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#333", marginBottom: 10 }}>Rappel {todoReminders.length + 1}</Text>
+                  <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  
+                  <View style={{ flexDirection: "row", marginBottom: 12 }}>
+                    <input
+                      type="date"
+                      value={todoReminderDate ? (() => {
+                        const parts = todoReminderDate.split('/');
+                        return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                      })() : ''}
+                      onChange={(e) => {
+                        const dateParts = e.target.value.split('-');
+                        if (dateParts.length === 3) {
+                          setTodoReminderDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
+                        }
                       }}
-                      multiline
-                      numberOfLines={2}
+                      placeholder="jj / mm / aaaa"
+                      style={{
+                        flex: 1,
+                        borderWidth: 1.5,
+                        borderColor: '#ffbf00',
+                        padding: 10,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff',
+                        marginRight: 8
+                      }}
+                    />
+                    <TextInput
+                      style={{ 
+                        flex: 1,
+                        borderWidth: 1.5, 
+                        borderColor: '#ffbf00', 
+                        padding: 10, 
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff'
+                      }}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#999"
+                      value={todoReminderTime}
+                      onChangeText={(text) => {
+                        let formatted = text.replace(/[^0-9]/g, '');
+                        if (formatted.length >= 2) {
+                          formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                        }
+                        setTodoReminderTime(formatted);
+                      }}
+                      maxLength={5}
                     />
                   </View>
-                )}
-              </View>
-            ))}
+                  
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (todoReminderDate && todoReminderTime) {
+                        setTodoReminders([...todoReminders, {
+                          date: todoReminderDate,
+                          time: todoReminderTime,
+                          message: ""
+                        }]);
+                        setTodoReminderDate("");
+                        setTodoReminderTime("");
+                      } else {
+                        alert("Veuillez remplir la date et l'heure du rappel");
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#ffbf00",
+                      padding: 12,
+                      borderRadius: 8,
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 14 }}>Ajouter</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={saveTodo}>
