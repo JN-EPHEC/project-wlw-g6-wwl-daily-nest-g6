@@ -1,15 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from '@react-native-picker/picker';
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   addDoc,
-<<<<<<< HEAD
-=======
   arrayUnion,
->>>>>>> 0c1320a (Invitation entre les familles)
   collection,
   deleteDoc,
   doc,
@@ -20,7 +15,6 @@ import {
   setDoc,
   updateDoc,
   where
-<<<<<<< HEAD
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
@@ -33,51 +27,6 @@ import {
   TextInput,
   TouchableOpacity,
   View
-=======
-=======
-import { DrawerActions } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
->>>>>>> 160d9f6 (Display famille)
-import {
-    addDoc,
-    arrayUnion,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    onSnapshot,
-    query,
-    setDoc,
-    updateDoc,
-    where
-} from "firebase/firestore";
-import React, { useEffect, useState } from "react";
-import {
-    Alert,
-    FlatList,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
->>>>>>> 4304248 (les rôles)
-=======
-} from "firebase/firestore";
-import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
->>>>>>> 0c1320a (Invitation entre les familles)
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -89,34 +38,12 @@ function FamilyScreen() {
   const [joinModalVisible, setJoinModalVisible] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-
+const [selectedFamily, setSelectedFamily] = useState<any>(null);
 const [familyModalVisible, setFamilyModalVisible] = useState(false);
 const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
 const [roleManagementVisible, setRoleManagementVisible] = useState(false);
 const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
 const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
-<<<<<<< HEAD
-const [invitations, setInvitations] = useState<any[]>([]);
-
-const [eventModalVisible, setEventModalVisible] = useState(false);
-const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
-const [allFamilies, setAllFamilies] = useState<any[]>([]);
-
-const [message, setMessage] = useState("");
-
-
-const [date, setDate] = useState<Date | null>(null);
-
-const [selectedTime, setSelectedTime] = useState<string | null>(null);
-const [showDatePicker, setShowDatePicker] = useState(false);
-
-
-const [time, setTime] = useState<string | null>(null);
-const [showTimePicker, setShowTimePicker] = useState(false);
-const [newItemDate, setNewItemDate] = useState<string>("");
-const [newItemTime, setNewItemTime] = useState<string>("");
-=======
->>>>>>> 4304248 (les rôles)
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -133,27 +60,21 @@ useEffect(() => {
 
     const unsub = onSnapshot(q, (snap) => {
       const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      console.log("Toutes les familles:", allFamilies.length);
-      console.log("Email utilisateur:", user.email);
       
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
-        console.log(`Famille ${family.name}, membres:`, members);
         
         for (const memberItem of members) {
           if (typeof memberItem === 'string' && memberItem === user.email) {
-            console.log(`✓ Trouvé dans ${family.name} (format ancien)`);
             return true; // Format ancien
           } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
-            console.log(`✓ Trouvé dans ${family.name} (format nouveau)`);
             return true; // Format nouveau
           }
         }
         return false;
       });
       
-      console.log("Familles de l'utilisateur:", userFamilies.length);
       setFamilies(userFamilies);
     });
 
@@ -170,12 +91,30 @@ useEffect(() => {
   }
 
   if (!currentUser || !currentUser.email) {
-    console.log("USER IS NULL:", currentUser);
     Alert.alert("Erreur", "Utilisateur non connecté");
     return;
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Générer un code unique entre 0 et 999999
+  let code = "";
+  let isUnique = false;
+  
+  while (!isUnique) {
+    // Générer un code entre 0 et 999999 (padding avec des zéros si nécessaire)
+    code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    
+    // Vérifier si ce code existe déjà
+    const existingCodeQuery = query(
+      collection(db, "families"),
+      where("joinCode", "==", code)
+    );
+    const existingCodeSnap = await getDocs(existingCodeQuery);
+    
+    // Si aucune famille n'utilise ce code, c'est bon
+    if (existingCodeSnap.empty) {
+      isUnique = true;
+    }
+  }
 
    const familyRef = await addDoc(collection(db, "families"), {
     name: familyName,
@@ -186,86 +125,35 @@ useEffect(() => {
 
     setFamilyName("");
     setCreateModalVisible(false);
-    Alert.alert("Succès", "Famille créée avec succès !");
+    Alert.alert(
+      "Succès", 
+      `Famille créée avec succès !\n\nVotre code famille : ${code}\n\nPartagez ce code pour inviter d'autres membres.`,
+      [{ text: "OK" }]
+    );
   };
-<<<<<<< HEAD
-useEffect(() => {
-  const loadAllFamilies = async () => {
-    const snap = await getDocs(collection(db, "families"));
-    const familiesData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    setAllFamilies(familiesData);
-  };
-  loadAllFamilies();
-}, []);
-=======
 
->>>>>>> 4304248 (les rôles)
 
   // Join family by code
   const handleJoinFamily = async () => {
-  if (joinCode.length !== 6) {
-    return Alert.alert("Erreur", "Code invalide");
-  }
+    if (joinCode.length !== 6) return Alert.alert("Erreur", "Code invalide");
 
-  const q = query(
-    collection(db, "families"),
-    where("joinCode", "==", joinCode)
-  );
+    const q = query(
+      collection(db, "families"),
+      where("joinCode", "==", joinCode)
+    );
 
-  const snap = await getDocs(q);
+    const snap = await getDocs(q);
 
-  if (snap.empty) {
-    return Alert.alert("Erreur", "Famille introuvable");
-  }
+    if (snap.empty) {
+      return Alert.alert("Erreur", "Famille introuvable");
+    }
 
-  const famDoc = snap.docs[0];
-  const famData = famDoc.data();
+    const fam = snap.docs[0];
 
-  // Déjà membre ?
-  const alreadyMember = (famData.members || []).some(
-    (m: any) => (typeof m === "string" ? m === user.email : m.email === user.email)
-  );
-
-  if (alreadyMember) {
+    if ((fam.data().members || []).includes(user.email)) {
     return Alert.alert("Info", "Vous êtes déjà membre de cette famille");
   }
 
-<<<<<<< HEAD
-  // Créer une invitation
-  await addDoc(collection(db, "familyInvitations"), {
-    familyId: famDoc.id,
-    familyName: famData.name,
-    fromEmail: user.email,
-    toOwnerUid: famData.ownerUid,
-    status: "pending",
-    createdAt: new Date(),
-  });
-
-  setJoinCode("");
-  setJoinModalVisible(false);
-
-  Alert.alert(
-    "Demande envoyée",
-    "Une demande a été envoyée à l'administrateur de la famille."
-  );
-};
-const acceptInvitation = async (inv: any) => {
-  const familyRef = doc(db, "families", inv.familyId);
-
-
-
-  await updateDoc(doc(db, "familyInvitations", inv.id), {
-    status: "accepted",
-  });
-};
-const rejectInvitation = async (inv: any) => {
-  await updateDoc(doc(db, "familyInvitations", inv.id), {
-    status: "rejected",
-  });
-};
-
-
-=======
 
     await updateDoc(doc(db, "families", fam.id), {
       members: arrayUnion(user?.email),
@@ -275,7 +163,6 @@ const rejectInvitation = async (inv: any) => {
     setJoinModalVisible(false);
     Alert.alert("Succès", "Vous avez rejoint la famille avec succès !");
   };
->>>>>>> 4304248 (les rôles)
 
   const handleDeletePress = (family: any) => {
   Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
@@ -287,28 +174,12 @@ const rejectInvitation = async (inv: any) => {
           await deleteDoc(doc(db, "families", family.id));
           setFamilies(prev => prev.filter(f => f.id !== family.id));
         } catch (err) {
-          console.log("Erreur suppression famille:", err);
+          Alert.alert("Erreur", "Impossible de supprimer la famille");
         }
       },
     },
   ]);
 };
-useEffect(() => {
-  if (!user?.uid) return;
-
-  const q = query(
-    collection(db, "familyInvitations"),
-    where("toOwnerUid", "==", user.uid),
-    where("status", "==", "pending")
-  );
-
-  const unsub = onSnapshot(q, (snap) => {
-    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    setInvitations(data);
-  });
-
-  return () => unsub();
-}, [user?.uid]);
 
 const updateFamilyName = async () => {
   if (!selectedFamily || !familyName.trim()) return;
@@ -323,7 +194,7 @@ const updateFamilyName = async () => {
     setEditFamilyModalVisible(false);
     setFamilyName("");
   } catch (err) {
-    console.log("Erreur update famille:", err);
+    Alert.alert("Erreur", "Impossible de modifier la famille");
   }
 };
 
@@ -352,56 +223,6 @@ const openRoleManagementForFamily = async (family: any) => {
   setRoleAssignments(currentRoles);
   setRoleManagementVisible(true);
 };
-<<<<<<< HEAD
-const handleSendEvent = async () => {
-  console.log("🚀 Envoi événement…");
-  console.log("selectedFamily:", selectedFamily);
-  console.log("date:", date);
-  console.log("time:", time);
-  console.log("message:", message);
-  console.log("user email:", user?.email);
-
-  // Vérifications avant envoi
-  if (!selectedFamily) {
-    return Alert.alert("Erreur", "Veuillez sélectionner une famille");
-  }
-  if (!date) {
-    return Alert.alert("Erreur", "Veuillez sélectionner une date");
-  }
-  if (!time) {
-    return Alert.alert("Erreur", "Veuillez sélectionner une heure");
-  }
-  if (!user?.email) {
-    return Alert.alert("Erreur", "Utilisateur non connecté");
-  }
-
-  try {
-    await addDoc(collection(db, "familyEvents"), {
-      familyId: typeof selectedFamily === "string" ? selectedFamily : selectedFamily?.id,
-      date: date.toISOString(),
-      time,
-      message: message || "",
-      createdBy: user.email,
-      createdAt: new Date(),
-    });
-
-    console.log("✅ Événement envoyé !");
-    
-    // Réinitialiser les champs
-    setEventModalVisible(false);
-    setSelectedFamily(null);
-    setDate(null);
-    setTime(null);
-    setMessage("");
-
-    Alert.alert("Succès", "Invitation envoyée !");
-  } catch (err) {
-    console.error("❌ Erreur en envoyant l'événement :", err);
-    Alert.alert("Erreur", "Impossible d'envoyer l'invitation. Vérifiez vos champs et vos droits Firestore.");
-  }
-};
-=======
->>>>>>> 4304248 (les rôles)
 
 // Sauvegarder les rôles dans Firestore
 const saveRoles = async () => {
@@ -472,38 +293,6 @@ const saveRoles = async () => {
   )}
 />
 
-{invitations.length > 0 && families.some(f => f.ownerUid === user?.uid) && (
-  <>
-    <Text style={{ fontSize: 18, fontWeight: "700", marginTop: 20 }}>
-      Demandes en attente
-    </Text>
-
-    {invitations.map(inv => (
-      <View key={inv.id} style={styles.inviteRow}>
-        <Text style={{ flex: 1 }}>
-          {inv.fromEmail} → {inv.familyName}
-        </Text>
-
-        {/* ACCEPTER */}
-        <TouchableOpacity onPress={() => acceptInvitation(inv)}>
-          <Ionicons name="checkmark-circle" size={26} color="green" />
-        </TouchableOpacity>
-
-        {/* REFUSER */}
-        <TouchableOpacity onPress={() => rejectInvitation(inv)}>
-          <Ionicons name="close-circle" size={26} color="red" />
-        </TouchableOpacity>
-      </View>
-    ))}
-  </>
-)}
-{invitations.length === 0 && (
-  <Text style={{ marginTop: 20, color: "#888" }}>
-    Aucune demande en attente
-  </Text>
-)}
-
-
       {/* CREATE BUTTON */}
       <TouchableOpacity
         style={styles.btn}
@@ -519,7 +308,7 @@ const saveRoles = async () => {
       >
         <Text style={styles.btnText}>Rejoindre une famille</Text>
       </TouchableOpacity>
- 
+
       {/* CREATE MODAL */}
       <Modal visible={createModalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
@@ -576,13 +365,12 @@ const saveRoles = async () => {
     <View style={styles.modal}>
       <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
 
-      {/* Code seulement si owner */}
-      {selectedFamily && selectedFamily.ownerUid === user?.uid && (
-  <Text style={{ fontSize: 16, marginBottom: 10 }}>
-    Code : {selectedFamily.code}
-  </Text>
-)}
-
+      {/* Code de la famille */}
+      {selectedFamily && selectedFamily.joinCode && (
+        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+          Code famille : {selectedFamily.joinCode}
+        </Text>
+      )}
 
       {/* Membres */}
       {selectedFamily?.members?.map((m: any, index: number) => {
@@ -706,11 +494,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#eee",
     borderRadius: 10,
   },
-
+  btn: {
+    backgroundColor: "black",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  btnText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.7)",
+    padding: 20,
+  },
   modal: {
     backgroundColor: "white",
     padding: 20,
     borderRadius: 12,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
   },
   input: {
     borderWidth: 1,
@@ -746,123 +555,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
-  inviteRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  padding: 12,
-  backgroundColor: "#f1f1f1",
-  borderRadius: 10,
-  marginTop: 8,
-},
-container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "white" 
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 20,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    maxHeight: "90%",
-  },
-  modalTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    textAlign: "center", 
-    marginBottom: 20, 
-    color: "#ffbf00" 
-  },
-  addItemRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginBottom: 15 
-  },
-  dateRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginBottom: 15 
-  },
-  dateInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 16,
-    justifyContent: "center",
-  },
-  timeInput: {
-    width: 80,
-    borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 16,
-    textAlign: "center",
-  },
-  pickerContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    width: "100%",
-  },
-  btn: {
-    backgroundColor: "black",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  btnText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  roleRow: {
-    marginBottom: 15,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-  },
-  rolePicker: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  saveRoleButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  saveRoleButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
 });
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 160d9f6 (Display famille)
 const Stack = createNativeStackNavigator();
 export default function () {
   return (
@@ -881,8 +575,4 @@ export default function () {
       />
     </Stack.Navigator>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 160d9f6 (Display famille)

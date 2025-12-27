@@ -64,8 +64,6 @@ function ProfilScreen() {
         setEmail(data.email || '');
         setBirthDate(data.birthDate || '');
         setGender(data.gender || '');
-<<<<<<< HEAD
-=======
         setPhone(data.phone || '');
         setBloodGroup(data.bloodGroup || '');
         setAllergies(data.allergies || '');
@@ -80,7 +78,6 @@ function ProfilScreen() {
       } else {
         // Si le document n'existe pas, créer un document vide
         setEmail(user.email || '');
->>>>>>> 4304248 (les rôles)
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);

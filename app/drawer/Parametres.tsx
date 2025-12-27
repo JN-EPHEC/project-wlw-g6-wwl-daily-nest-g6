@@ -2,15 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
-=======
-import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
->>>>>>> da6e4df (modification mdp paramètre)
-=======
-import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
->>>>>>> 4304248 (les rôles)
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,16 +17,9 @@ import {
   View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
-import { useTheme } from "../Theme";
-
-
 
 export function Parametres() {
-
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === "dark";
   const navigation = useNavigation() as any;
- 
 
   const [families, setFamilies] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -61,7 +46,6 @@ export function Parametres() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const userRef = (id: string) => doc(db, "users", id);
-
 
   // auth + load user
   useEffect(() => {
@@ -243,8 +227,8 @@ export function Parametres() {
   }
 
   return (
-    <ScrollView style={[styles.screen, isDark && styles.darkContainer]}>
-     
+    <ScrollView style={styles.container}>
+      <View style={styles.screen}>
         {/* Profile */}
         <TouchableOpacity style={styles.cardRow} onPress={goToProfile}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -252,7 +236,6 @@ export function Parametres() {
             <Text style={styles.title}>Mon Profil</Text>
           </View>
         </TouchableOpacity>
-        
 
         {/* Familles */}
         <TouchableOpacity style={styles.cardRow} onPress={goToFamily}>
@@ -343,7 +326,6 @@ export function Parametres() {
             <Text style={styles.saveSmallText}>Sauvegarder</Text>
           </TouchableOpacity>
         </View>
-        
 
         {/* Privacy Modal */}
         <Modal visible={privacyVisible} transparent animationType="slide">
@@ -483,10 +465,6 @@ export function Parametres() {
                   secureTextEntry
                 />
               </View>
-<<<<<<< HEAD
-          
-=======
->>>>>>> da6e4df (modification mdp paramètre)
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.iconClose} onPress={() => {
                   setPasswordVisible(false);
@@ -505,16 +483,7 @@ export function Parametres() {
               </View>
             </View>
           </View>
-<<<<<<< HEAD
-          
         </Modal>
-        
-    <View style={{ padding: 16 }}>
-    <Text style={[styles.text, isDark && styles.darkText]}>Mode sombre</Text>
-    <Switch value={isDark} onValueChange={toggleTheme} />
-=======
-        </Modal>
->>>>>>> da6e4df (modification mdp paramètre)
 
       </View>
     </ScrollView>
@@ -545,6 +514,7 @@ export default function () {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#f7f8fa", paddingBottom: 20 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { padding: 16 },
 
   cardRow: {
     backgroundColor: "#fff",
@@ -683,23 +653,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     backgroundColor: "#f9f9f9",
   },
-<<<<<<< HEAD
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
-  },
-  darkContainer: {
-    backgroundColor: "#121212",
-  },
-  text: {
-    fontSize: 18,
-    color: "#000",
-  },
-  darkText: {
-    color: "#fff",
-  },
-
-=======
->>>>>>> da6e4df (modification mdp paramètre)
 });
