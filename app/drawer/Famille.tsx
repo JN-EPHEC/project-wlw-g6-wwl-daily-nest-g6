@@ -3,30 +3,30 @@ import { Picker } from '@react-native-picker/picker';
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
-  addDoc,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  setDoc,
-  updateDoc,
-  where
+    addDoc,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
+    query,
+    setDoc,
+    updateDoc,
+    where
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -102,7 +102,26 @@ useEffect(() => {
     return;
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Générer un code unique entre 0 et 999999
+  let code = "";
+  let isUnique = false;
+  
+  while (!isUnique) {
+    // Générer un code entre 0 et 999999 (padding avec des zéros si nécessaire)
+    code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    
+    // Vérifier si ce code existe déjà
+    const existingCodeQuery = query(
+      collection(db, "families"),
+      where("joinCode", "==", code)
+    );
+    const existingCodeSnap = await getDocs(existingCodeQuery);
+    
+    // Si aucune famille n'utilise ce code, c'est bon
+    if (existingCodeSnap.empty) {
+      isUnique = true;
+    }
+  }
 
    const familyRef = await addDoc(collection(db, "families"), {
     name: familyName,
