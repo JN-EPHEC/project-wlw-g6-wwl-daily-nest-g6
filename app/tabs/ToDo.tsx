@@ -1219,15 +1219,36 @@ export default function TodoList() {
                     />
                   </View>
                   
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffc107', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 12,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="Description (optionnel)"
+                    placeholderTextColor="#999"
+                    value={reminderMessage}
+                    onChangeText={setReminderMessage}
+                    multiline
+                    numberOfLines={2}
+                  />
+                  
                   <TouchableOpacity
                     onPress={() => {
                       if (reminderDate && reminderTime) {
                         setNewItemReminders([...newItemReminders, {
                           date: reminderDate,
-                          time: reminderTime
+                          time: reminderTime,
+                          message: reminderMessage
                         }]);
                         setReminderDate("");
                         setReminderTime("");
+                        setReminderMessage("");
                       } else {
                         alert("Veuillez remplir la date et l'heure du rappel");
                       }
