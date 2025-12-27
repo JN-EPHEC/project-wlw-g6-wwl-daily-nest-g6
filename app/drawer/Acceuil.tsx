@@ -96,6 +96,7 @@ export function Acceuil() {
   const [todoRemindersEnabled, setTodoRemindersEnabled] = useState(false);
   const [todoReminderDate, setTodoReminderDate] = useState("");
   const [todoReminderTime, setTodoReminderTime] = useState("");
+  const [reminderMessage, setReminderMessage] = useState("");
 
 const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
@@ -561,6 +562,7 @@ const saveTodo = async () => {
       setTodoRemindersEnabled(false);
       setTodoReminderDate("");
       setTodoReminderTime("");
+      setReminderMessage("");
       setModalScreen(null);
       setMenuVisible(false);
 
@@ -1347,6 +1349,18 @@ const saveTodo = async () => {
                         <Text style={{ fontSize: 14, color: "#333" }}>{reminder.time}</Text>
                       </View>
                     </View>
+                    {reminder.message && (
+                      <View style={{ 
+                        marginTop: 8,
+                        borderWidth: 1.5, 
+                        borderColor: "#ffbf00", 
+                        padding: 10, 
+                        borderRadius: 8,
+                        backgroundColor: "#fff"
+                      }}>
+                        <Text style={{ fontSize: 14, color: "#333" }}>{reminder.message}</Text>
+                      </View>
+                    )}
                   </View>
                 ))}
 
@@ -1414,16 +1428,36 @@ const saveTodo = async () => {
                     />
                   </View>
                   
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffbf00', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 12,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="Description (optionnel)"
+                    placeholderTextColor="#999"
+                    value={reminderMessage}
+                    onChangeText={setReminderMessage}
+                    multiline
+                    numberOfLines={2}
+                  />
+                  
                   <TouchableOpacity
                     onPress={() => {
                       if (todoReminderDate && todoReminderTime) {
                         setTodoReminders([...todoReminders, {
                           date: todoReminderDate,
                           time: todoReminderTime,
-                          message: ""
+                          message: reminderMessage
                         }]);
                         setTodoReminderDate("");
                         setTodoReminderTime("");
+                        setReminderMessage("");
                       } else {
                         alert("Veuillez remplir la date et l'heure du rappel");
                       }
