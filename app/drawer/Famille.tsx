@@ -60,27 +60,21 @@ useEffect(() => {
 
     const unsub = onSnapshot(q, (snap) => {
       const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      console.log("Toutes les familles:", allFamilies.length);
-      console.log("Email utilisateur:", user.email);
       
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
-        console.log(`Famille ${family.name}, membres:`, members);
         
         for (const memberItem of members) {
           if (typeof memberItem === 'string' && memberItem === user.email) {
-            console.log(`✓ Trouvé dans ${family.name} (format ancien)`);
             return true; // Format ancien
           } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
-            console.log(`✓ Trouvé dans ${family.name} (format nouveau)`);
             return true; // Format nouveau
           }
         }
         return false;
       });
       
-      console.log("Familles de l'utilisateur:", userFamilies.length);
       setFamilies(userFamilies);
     });
 
@@ -97,7 +91,6 @@ useEffect(() => {
   }
 
   if (!currentUser || !currentUser.email) {
-    console.log("USER IS NULL:", currentUser);
     Alert.alert("Erreur", "Utilisateur non connecté");
     return;
   }
@@ -132,7 +125,11 @@ useEffect(() => {
 
     setFamilyName("");
     setCreateModalVisible(false);
-    Alert.alert("Succès", "Famille créée avec succès !");
+    Alert.alert(
+      "Succès", 
+      `Famille créée avec succès !\n\nVotre code famille : ${code}\n\nPartagez ce code pour inviter d'autres membres.`,
+      [{ text: "OK" }]
+    );
   };
 
 
@@ -177,7 +174,7 @@ useEffect(() => {
           await deleteDoc(doc(db, "families", family.id));
           setFamilies(prev => prev.filter(f => f.id !== family.id));
         } catch (err) {
-          console.log("Erreur suppression famille:", err);
+          Alert.alert("Erreur", "Impossible de supprimer la famille");
         }
       },
     },
@@ -197,7 +194,7 @@ const updateFamilyName = async () => {
     setEditFamilyModalVisible(false);
     setFamilyName("");
   } catch (err) {
-    console.log("Erreur update famille:", err);
+    Alert.alert("Erreur", "Impossible de modifier la famille");
   }
 };
 
@@ -368,13 +365,12 @@ const saveRoles = async () => {
     <View style={styles.modal}>
       <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
 
-      {/* Code seulement si owner */}
-      {selectedFamily && selectedFamily.ownerUid === user?.uid && (
-  <Text style={{ fontSize: 16, marginBottom: 10 }}>
-    Code : {selectedFamily.code}
-  </Text>
-)}
-
+      {/* Code de la famille */}
+      {selectedFamily && selectedFamily.joinCode && (
+        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+          Code famille : {selectedFamily.joinCode}
+        </Text>
+      )}
 
       {/* Membres */}
       {selectedFamily?.members?.map((m: any, index: number) => {
