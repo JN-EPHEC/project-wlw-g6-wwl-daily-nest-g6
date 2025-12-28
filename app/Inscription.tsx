@@ -4,24 +4,31 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from "expo-router";
 import * as WebBrowser from 'expo-web-browser';
 import {
-  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  User
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 
+
 export default function AuthComponent() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-   const [passwordControle, setPasswordControle] = useState("");
+  const [passwordControle, setPasswordControle] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [errorMessage, setErrorMessage] = useState ("");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-   const [emailError, setEmailError] = useState(false);
+  const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
+  const [passwordFormatError, setPasswordFormatError] = useState(false);
   const [passwordControleError, setPasswordControleError] = useState(false);
 
 WebBrowser.maybeCompleteAuthSession();
