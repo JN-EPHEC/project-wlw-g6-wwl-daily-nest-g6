@@ -30,7 +30,7 @@ export default function TodoList() {
   const [newItemDate, setNewItemDate] = useState("");
   const [newItemTime, setNewItemTime] = useState("");
   const [newItemPriority, setNewItemPriority] = useState("2"); // 1=vert, 2=bleu, 3=orange, 4=rouge
-  const [newItemAssignedTo, setNewItemAssignedTo] = useState(""); // UID du membre assigné (sera initialisé avec uid une fois connecté)
+  const [newItemAssignedTo, setNewItemAssignedTo] = useState(""); // UID du membre assigné
   const [isRotation, setIsRotation] = useState(false); // Tournante activée
   const [rotationMembers, setRotationMembers] = useState<string[]>([]); // Membres de la tournante
   const [isRecurring, setIsRecurring] = useState(false); // Récurrence activée
@@ -238,8 +238,6 @@ export default function TodoList() {
       if (user) {
         setUid(user.uid);
         setEmail(user.email || null);
-        // Initialiser assignedTo avec l'UID de l'utilisateur quand il se connecte
-        setNewItemAssignedTo(user.uid);
       } else {
         setUid(null);
         setEmail(null);
@@ -457,7 +455,9 @@ export default function TodoList() {
     );
 
     // Si récurrence activée, créer les occurrences dans le calendrier
+    console.log("🔍 Checking recurrence - isRecurring:", isRecurring, "recurrenceType:", recurrenceType);
     if (isRecurring) {
+      console.log("✅ Entering recurrence generation");
       const generateRecurringDates = () => {
         const dates: string[] = [];
         
@@ -564,7 +564,7 @@ export default function TodoList() {
     setNewItemDate("");
     setNewItemTime("");
     setNewItemPriority("2");
-    setNewItemAssignedTo(uid || "");
+    setNewItemAssignedTo("");
     setIsRotation(false);
     setRotationMembers([]);
     setIsRecurring(false);
@@ -620,13 +620,16 @@ export default function TodoList() {
             await updateDoc(memberDocRef, {
               points: increment(pointsToAdd)
             });
+            console.log(`✅ ${pointsToAdd} points ajoutés (famille) à ${targetUserId}`);
           } else {
             // Créer le document s'il n'existe pas avec setDoc
             await setDoc(memberDocRef, {
               points: pointsToAdd
             }, { merge: true });
+            console.log(`✅ Document créé avec ${pointsToAdd} points pour ${targetUserId}`);
           }
         }
+        console.log(`✅ ${pointsToAdd} points ajoutés à l'utilisateur ${targetUserId}`);
       } catch (error) {
         console.error("Erreur lors de l'ajout des points:", error);
       }
@@ -823,7 +826,7 @@ export default function TodoList() {
                     onValueChange={(value) => setNewItemAssignedTo(value)}
                     style={styles.picker}
                   >
-                    <Picker.Item label="Moi-même" value={uid || ""} />
+                    <Picker.Item label="Moi-même" value="" />
                     {familyMembers.map(member => (
                       <Picker.Item 
                         key={member.uid} 
@@ -1578,7 +1581,7 @@ export default function TodoList() {
                     onValueChange={(value) => setEditAssignedTo(value)}
                     style={styles.picker}
                   >
-                    <Picker.Item label="Moi-même" value={uid || ""} />
+                    <Picker.Item label="Moi-même" value="" />
                     {familyMembers.map(member => (
                       <Picker.Item 
                         key={member.uid} 
