@@ -3,27 +3,27 @@ import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 

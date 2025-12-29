@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.DailyNest"
     },
     "web": {
       "output": "static",
@@ -40,8 +41,7 @@
           }
         }
       ],
-      "expo-web-browser",
-      "expo-font"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

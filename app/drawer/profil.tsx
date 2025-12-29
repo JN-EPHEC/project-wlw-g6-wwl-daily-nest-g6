@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -16,6 +17,24 @@ function ProfilScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [birthDate, setBirthDate] = useState('');
+  const [gender, setGender] = useState('');
+  const [phone, setPhone] = useState('');
+  
+  // Informations médicales
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [allergies, setAllergies] = useState('');
+  const [geneticDiseases, setGeneticDiseases] = useState('');
+  const [nationalNumber, setNationalNumber] = useState('');
+  
+  // Médecin traitant
+  const [doctorName, setDoctorName] = useState('');
+  const [doctorPhone, setDoctorPhone] = useState('');
+  const [doctorAddress, setDoctorAddress] = useState('');
+  
+  // École (pour les enfants)
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolPhone, setSchoolPhone] = useState('');
+  const [schoolAddress, setSchoolAddress] = useState('');
   
   // États d'erreur
   const [nameFormatError, setNameFormatError] = useState(false);
@@ -44,6 +63,21 @@ function ProfilScreen() {
         setLastName(data.lastName || '');
         setEmail(data.email || '');
         setBirthDate(data.birthDate || '');
+        setGender(data.gender || '');
+        setPhone(data.phone || '');
+        setBloodGroup(data.bloodGroup || '');
+        setAllergies(data.allergies || '');
+        setGeneticDiseases(data.geneticDiseases || '');
+        setNationalNumber(data.nationalNumber || '');
+        setDoctorName(data.doctorName || '');
+        setDoctorPhone(data.doctorPhone || '');
+        setDoctorAddress(data.doctorAddress || '');
+        setSchoolName(data.schoolName || '');
+        setSchoolPhone(data.schoolPhone || '');
+        setSchoolAddress(data.schoolAddress || '');
+      } else {
+        // Si le document n'existe pas, créer un document vide
+        setEmail(user.email || '');
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -77,6 +111,18 @@ function ProfilScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         birthDate: birthDate.trim(),
+        gender: gender,
+        phone: phone.trim(),
+        bloodGroup: bloodGroup.trim(),
+        allergies: allergies.trim(),
+        geneticDiseases: geneticDiseases.trim(),
+        nationalNumber: nationalNumber.trim(),
+        doctorName: doctorName.trim(),
+        doctorPhone: doctorPhone.trim(),
+        doctorAddress: doctorAddress.trim(),
+        schoolName: schoolName.trim(),
+        schoolPhone: schoolPhone.trim(),
+        schoolAddress: schoolAddress.trim(),
         updatedAt: new Date(),
       }, { merge: true });
 
@@ -95,6 +141,18 @@ function ProfilScreen() {
     setFirstName(userData?.firstName || '');
     setLastName(userData?.lastName || '');
     setBirthDate(userData?.birthDate || '');
+    setGender(userData?.gender || '');
+    setPhone(userData?.phone || '');
+    setBloodGroup(userData?.bloodGroup || '');
+    setAllergies(userData?.allergies || '');
+    setGeneticDiseases(userData?.geneticDiseases || '');
+    setNationalNumber(userData?.nationalNumber || '');
+    setDoctorName(userData?.doctorName || '');
+    setDoctorPhone(userData?.doctorPhone || '');
+    setDoctorAddress(userData?.doctorAddress || '');
+    setSchoolName(userData?.schoolName || '');
+    setSchoolPhone(userData?.schoolPhone || '');
+    setSchoolAddress(userData?.schoolAddress || '');
     setIsEditing(false);
     setNameFormatError(false);
     setLastNameFormatError(false);
@@ -198,6 +256,35 @@ function ProfilScreen() {
           <Text style={[styles.value, { color: '#666' }]}>{email}</Text>
           {isEditing && (
             <Text style={styles.infoText}>L'email ne peut pas être modifié</Text>
+          )}
+        </View>
+
+        <View style={styles.fieldContainer}>
+          <View style={styles.labelContainer}>
+            <Text style={styles.label}>Genre</Text>
+            {!isEditing && (
+              <TouchableOpacity onPress={() => setIsEditing(true)}>
+                <Ionicons name="pencil" size={16} color="#ff9500" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {isEditing ? (
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={gender}
+                onValueChange={(value) => setGender(value)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Non spécifié" value="" />
+                <Picker.Item label="Homme" value="homme" />
+                <Picker.Item label="Femme" value="femme" />
+                <Picker.Item label="Autre" value="autre" />
+              </Picker>
+            </View>
+          ) : (
+            <Text style={styles.value}>
+              {gender === 'homme' ? 'Homme' : gender === 'femme' ? 'Femme' : gender === 'autre' ? 'Autre' : 'Non spécifié'}
+            </Text>
           )}
         </View>
 
@@ -620,6 +707,16 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     backgroundColor: 'white',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+  },
+  picker: {
+    height: 50,
   },
   errorText: {
     color: 'red',
