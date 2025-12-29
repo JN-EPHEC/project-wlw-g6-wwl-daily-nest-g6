@@ -64,20 +64,6 @@ function ProfilScreen() {
         setEmail(data.email || '');
         setBirthDate(data.birthDate || '');
         setGender(data.gender || '');
-        setPhone(data.phone || '');
-        setBloodGroup(data.bloodGroup || '');
-        setAllergies(data.allergies || '');
-        setGeneticDiseases(data.geneticDiseases || '');
-        setNationalNumber(data.nationalNumber || '');
-        setDoctorName(data.doctorName || '');
-        setDoctorPhone(data.doctorPhone || '');
-        setDoctorAddress(data.doctorAddress || '');
-        setSchoolName(data.schoolName || '');
-        setSchoolPhone(data.schoolPhone || '');
-        setSchoolAddress(data.schoolAddress || '');
-      } else {
-        // Si le document n'existe pas, créer un document vide
-        setEmail(user.email || '');
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);

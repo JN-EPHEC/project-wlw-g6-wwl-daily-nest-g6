@@ -7,6 +7,7 @@ import {
   // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -14,7 +15,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 
 export default function AuthComponent() {
@@ -29,6 +30,9 @@ export default function AuthComponent() {
    const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [passwordControleError, setPasswordControleError] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -92,6 +96,32 @@ WebBrowser.maybeCompleteAuthSession();
     setLoading(false);
   }
 };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert("Erreur", "Veuillez entrer votre adresse email");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      Alert.alert(
+        "Email envoyé",
+        "Un email de réinitialisation a été envoyé à votre adresse. Vérifiez votre boîte de réception."
+      );
+      setResetPasswordModalVisible(false);
+      setResetEmail("");
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === "auth/user-not-found") {
+        Alert.alert("Erreur", "Aucun compte n'existe avec cette adresse email");
+      } else if (error.code === "auth/invalid-email") {
+        Alert.alert("Erreur", "Adresse email invalide");
+      } else {
+        Alert.alert("Erreur", "Impossible d'envoyer l'email de réinitialisation");
+      }
+    }
+  };
 
   useEffect(() => {
   if (response?.type === 'success') {
@@ -216,6 +246,22 @@ WebBrowser.maybeCompleteAuthSession();
 
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
+      {/* Checkbox Se souvenir de moi */}
+      <TouchableOpacity 
+        style={styles.checkboxContainer} 
+        onPress={() => setRememberMe(!rememberMe)}
+      >
+        <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+          {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+        </View>
+        <Text style={styles.checkboxLabel}>Se souvenir de moi</Text>
+      </TouchableOpacity>
+
+      {/* Lien Mot de passe oublié */}
+      <TouchableOpacity onPress={() => setResetPasswordModalVisible(true)}>
+        <Text style={styles.forgotPasswordText}>Mot de passe oublié ?</Text>
+      </TouchableOpacity>
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity onPress={handleSignIn} style={styles.signUpButton}>
           <Text style={styles.signUpText}>Se connecter</Text>
@@ -231,6 +277,48 @@ WebBrowser.maybeCompleteAuthSession();
           <Text style={styles.signUpText}>Facebook</Text>
         </TouchableOpacity> */}
       </View>
+
+      {/* Modal de réinitialisation de mot de passe */}
+      <Modal
+        visible={resetPasswordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetPasswordModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Réinitialiser le mot de passe</Text>
+            <Text style={styles.modalDescription}>
+              Entrez votre adresse email pour recevoir un lien de réinitialisation
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setResetPasswordModalVisible(false);
+                  setResetEmail("");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleResetPassword}
+              >
+                <Text style={styles.modalButtonText}>Envoyer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -266,5 +354,87 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: "left",
     fontSize: 13,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: "#00b7ff9a",
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#00b7ff9a",
+  },
+  checkmark: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: "#333",
+  },
+  forgotPasswordText: {
+    color: "#00b7ff9a",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 10,
+    textDecorationLine: "underline",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    borderRadius: 15,
+    padding: 20,
+    width: "85%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: "#ccc",
+  },
+  confirmButton: {
+    backgroundColor: "#00b7ff9a",
+  },
+  modalButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
