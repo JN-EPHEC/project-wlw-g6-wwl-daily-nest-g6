@@ -37,6 +37,11 @@ export default function TodoList() {
   const [recurrenceType, setRecurrenceType] = useState<"daily" | "weekly" | "monthly">("weekly"); // Type de récurrence
   const [selectedDays, setSelectedDays] = useState<number[]>([]); // Jours sélectionnés (0=dimanche, 1=lundi, etc.)
   const [monthlyDay, setMonthlyDay] = useState<number>(1); // Jour du mois pour récurrence mensuelle (1-31)
+  const [newItemReminders, setNewItemReminders] = useState<Array<{date: string; time: string; message?: string}>>([]); // Rappels
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
+  const [reminderMessage, setReminderMessage] = useState("");
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editText, setEditText] = useState("");
@@ -229,12 +234,28 @@ export default function TodoList() {
   useEffect(() => {
     if (!email) return;
 
-    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: any = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setFamiliesJoined(list);
+      const allFamilies: any[] = [];
+      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === email) {
+            return true; // Format ancien (string)
+          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+            return true; // Format nouveau ({email, role})
+          }
+        }
+        return false;
+      });
+      
+      setFamiliesJoined(userFamilies);
     });
 
     return () => unsubscribe();
@@ -405,6 +426,7 @@ export default function TodoList() {
         recurrenceType: isRecurring ? recurrenceType : null,
         selectedDays: isRecurring && recurrenceType === "weekly" ? selectedDays : [],
         monthlyDay: isRecurring && recurrenceType === "monthly" ? monthlyDay : null,
+        reminders: newItemReminders,
       }
     );
 
@@ -525,6 +547,10 @@ export default function TodoList() {
     setRecurrenceType("weekly");
     setSelectedDays([]);
     setMonthlyDay(1);
+    setNewItemReminders([]);
+    setReminderDate("");
+    setReminderTime("");
+    setReminderMessage("");
   };
 
   const toggleItem = async (item: any) => {
@@ -1031,6 +1057,190 @@ export default function TodoList() {
               )}
             </View>
 
+            {/* Rappels */}
+            <View style={{ marginTop: 20 }}>
+              <TouchableOpacity 
+                onPress={() => setRemindersEnabled(!remindersEnabled)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: "#ffc107",
+                  marginRight: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: remindersEnabled ? "#ffc107" : "transparent"
+                }}>
+                  {remindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: "#333" }}>Rappels</Text>
+              </TouchableOpacity>
+
+              {remindersEnabled && (
+                <>
+
+                  {/* Liste des rappels existants */}
+                  {newItemReminders.map((reminder, index) => (
+                <View key={index} style={{ 
+                  backgroundColor: "#fff",
+                  padding: 15,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2
+                }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
+                    <TouchableOpacity onPress={() => {
+                      setNewItemReminders(newItemReminders.filter((_, i) => i !== index));
+                    }}>
+                      <Ionicons name="close" size={24} color="#f44336" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ 
+                      flex: 1,
+                      borderWidth: 1.5, 
+                      borderColor: "#ffc107", 
+                      padding: 10, 
+                      borderRadius: 8,
+                      backgroundColor: "#fff"
+                    }}>
+                      <Text style={{ fontSize: 14, color: "#333" }}>{reminder.date}</Text>
+                    </View>
+                    <View style={{ 
+                      flex: 1,
+                      borderWidth: 1.5, 
+                      borderColor: "#ffc107", 
+                      padding: 10, 
+                      borderRadius: 8,
+                      backgroundColor: "#fff"
+                    }}>
+                      <Text style={{ fontSize: 14, color: "#333" }}>{reminder.time}</Text>
+                    </View>
+                  </View>
+                </View>
+                  ))}
+
+                  {/* Formulaire d'ajout de rappel */}
+                  <View style={{ 
+                    backgroundColor: "#fff", 
+                    padding: 15, 
+                    borderRadius: 10,
+                    marginBottom: 10,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2
+                  }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333", marginBottom: 10 }}>Rappel {newItemReminders.length + 1}</Text>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  
+                  <View style={{ flexDirection: "row", marginBottom: 12 }}>
+                    <input
+                      type="date"
+                      value={reminderDate ? (() => {
+                        const parts = reminderDate.split('/');
+                        return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                      })() : ''}
+                      onChange={(e) => {
+                        const dateParts = e.target.value.split('-');
+                        if (dateParts.length === 3) {
+                          setReminderDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
+                        }
+                      }}
+                      placeholder="jj / mm / aaaa"
+                      style={{
+                        flex: 1,
+                        borderWidth: 1.5,
+                        borderColor: '#ffc107',
+                        padding: 10,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff',
+                        marginRight: 8
+                      }}
+                    />
+                    <TextInput
+                      style={{ 
+                        flex: 1,
+                        borderWidth: 1.5, 
+                        borderColor: '#ffc107', 
+                        padding: 10, 
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff'
+                      }}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#999"
+                      value={reminderTime}
+                      onChangeText={(text) => {
+                        let formatted = text.replace(/[^0-9]/g, '');
+                        if (formatted.length >= 2) {
+                          formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                        }
+                        setReminderTime(formatted);
+                      }}
+                      maxLength={5}
+                    />
+                  </View>
+                  
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffc107', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 12,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="Description (optionnel)"
+                    placeholderTextColor="#999"
+                    value={reminderMessage}
+                    onChangeText={setReminderMessage}
+                    multiline
+                    numberOfLines={2}
+                  />
+                  
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (reminderDate && reminderTime) {
+                        setNewItemReminders([...newItemReminders, {
+                          date: reminderDate,
+                          time: reminderTime,
+                          message: reminderMessage
+                        }]);
+                        setReminderDate("");
+                        setReminderTime("");
+                        setReminderMessage("");
+                      } else {
+                        alert("Veuillez remplir la date et l'heure du rappel");
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#ffc107",
+                      padding: 12,
+                      borderRadius: 8,
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 14 }}>Ajouter</Text>
+                  </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+
             </ScrollView>
 
             {/* Bouton d'ajout */}
@@ -1166,6 +1376,21 @@ export default function TodoList() {
                                ).join(", ")})` : 
                                `Mensuel (le ${item.monthlyDay || 1})`}
                         </Text>
+                      )}
+                      
+                      {/* Affichage des rappels */}
+                      {item.reminders && item.reminders.length > 0 && (
+                        <View style={{ marginTop: 4 }}>
+                          {item.reminders.map((reminder: any, idx: number) => (
+                            <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+                              <Ionicons name="notifications-outline" size={14} color="#2196F3" />
+                              <Text style={{ fontSize: 11, color: "#2196F3", marginLeft: 4 }}>
+                                {reminder.date} à {reminder.time}
+                                {reminder.message && ` - ${reminder.message}`}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       )}
                     </View>
                     {item.points > 0 && (
