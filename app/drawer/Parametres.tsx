@@ -30,8 +30,7 @@ export function Parametres() {
 
   // user data
   const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
-  const [familyRoles, setFamilyRoles] = useState<{ [familyId: string]: "parents" | "children" }>({});
-  const [displayRoles, setDisplayRoles] = useState<Array<{familyName: string; role: string}>>([]); // Nouveaux rôles depuis members
+  const [role, setRole] = useState<"parents" | "children">("parents");
 
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
@@ -101,6 +100,7 @@ const systemTheme = useColorScheme();
         lastName: data.lastName || "",
         email: data.email || auth.currentUser?.email || "",
       });
+      setRole(data.role === "children" ? "children" : "parents");
       setPrivacyShare(!!data?.privacy?.shareData);
       setNotifOptions({
         tasks: !!data?.notif?.tasks,
@@ -117,69 +117,19 @@ const systemTheme = useColorScheme();
   // load families
   useEffect(() => {
     if (!user?.email) return;
-    
-    // Charger TOUTES les familles et filtrer côté client
-    const q = query(collection(db, "families"));
-    const unsub = onSnapshot(q, async (snap) => {
-      const familiesData: any[] = [];
-      const roles: Array<{familyName: string; role: string}> = [];
-      const oldRoles: { [familyId: string]: "parents" | "children" } = {};
-      
-      snap.forEach(doc => {
-        const familyData = doc.data();
-        const members = familyData.members || [];
-        
-        // Vérifier si l'utilisateur fait partie de cette famille
-        let userRole = null;
-        let isMember = false;
-        
-        for (const memberItem of members) {
-          if (typeof memberItem !== 'string' && memberItem.email === user.email) {
-            // Format nouveau : {email, role}
-            isMember = true;
-            userRole = memberItem.role || 'Non défini';
-            break;
-          } else if (typeof memberItem === 'string' && memberItem === user.email) {
-            // Format ancien : simple email
-            isMember = true;
-            userRole = 'Non défini';
-            break;
-          }
-        }
-        
-        if (isMember) {
-          familiesData.push({ id: doc.id, ...familyData });
-          roles.push({
-            familyName: familyData.name || 'Famille sans nom',
-            role: userRole || 'Non défini'
-          });
-          
-          // Charger aussi l'ancien système pour compatibilité
-          const memberRole = familyData?.memberRoles?.[user.email];
-          oldRoles[doc.id] = memberRole === "children" ? "children" : "parents";
-        }
-      });
-      
-      setFamilies(familiesData);
-      setDisplayRoles(roles);
-      setFamilyRoles(oldRoles);
+    const q = query(collection(db, "families"), where("members", "array-contains", user.email));
+    const unsub = onSnapshot(q, (snap) => {
+      setFamilies(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
   }, [user?.email]);
 
   // save settings
   const saveBasicSettings = async () => {
-    if (!uid || !user?.email) return;
+    if (!uid) return;
     try {
-      // Save roles for each family
-      for (const familyId in familyRoles) {
-        const familyRef = doc(db, "families", familyId);
-        await updateDoc(familyRef, {
-          [`memberRoles.${user.email.replace(/\./g, '_')}`]: familyRoles[familyId]
-        });
-      }
-      
       await updateDoc(userRef(uid), {
+        role,
         privacy: { shareData: privacyShare },
         notif: notifOptions,
       });
@@ -273,45 +223,16 @@ const systemTheme = useColorScheme();
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
-        {/* Mes rôles dans les familles */}
+        {/* Role Picker */}
         <View style={styles.card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionTitle}>Mes rôles dans les familles</Text>
+          <Text style={styles.sectionTitle}>Rôle dans la famille</Text>
+          <Text style={styles.smallText}>Choisis un rôle pour ton profil</Text>
+          <View style={styles.pickerWrap}>
+            <Picker selectedValue={role} onValueChange={(v) => setRole(v as any)}>
+              <Picker.Item label="Parents" value="parents" />
+              <Picker.Item label="Enfants" value="children" />
+            </Picker>
           </View>
-          
-          {displayRoles.length === 0 ? (
-            <Text style={styles.noFamilyText}>Tu n'appartiens à aucune famille pour le moment</Text>
-          ) : (
-            displayRoles.map((familyRole, index) => {
-              return (
-                <View key={index} style={styles.roleDisplayCard}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.familyName}>{familyRole.familyName}</Text>
-                      <View style={[
-                        styles.roleBadge,
-                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
-                      ]}>
-                        <Text style={[
-                          styles.roleText,
-                          { color: familyRole.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
-                        ]}>
-                          {familyRole.role}
-                        </Text>
-                      </View>
-                    </View>
-                    <Ionicons 
-                      name={familyRole.role.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
-                      size={28} 
-                      color={familyRole.role.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
-                    />
-                  </View>
-                </View>
-              );
-            })
-          )}
-          
-
         </View>
 
         {/* Notifications */}
@@ -427,7 +348,7 @@ const systemTheme = useColorScheme();
                   onPress={async () => {
                     if (!uid) return;
                     try {
-                      await updateDoc(userRef(uid), { notif: notifOptions }); 
+                      await updateDoc(userRef(uid), { notif: notifOptions });
                       setNotifVisible(false);
                       Alert.alert("Succès", "Notifications sauvegardées");
                     } catch (err) {
@@ -590,51 +511,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  familyRoleCard: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-  },
-  roleDisplayCard: {
-    marginTop: 12,
-    padding: 14,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  familyName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  noFamilyText: {
-    color: "#999",
-    fontStyle: "italic",
-    marginTop: 8,
-    fontSize: 13,
-  },
-  roleBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 5,
-    alignSelf: 'flex-start',
-  },
-  roleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
   saveSmallBtn: {
     backgroundColor: "#2d9cdb",
     paddingVertical: 10,
@@ -681,19 +557,4 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalSaveText: { color: "#222", fontWeight: "700" },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-    marginTop: 10,
-  },
-  passwordInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    backgroundColor: "#f9f9f9",
-  },
 });

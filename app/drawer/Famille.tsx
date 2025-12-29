@@ -1,36 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Picker } from '@react-native-picker/picker';
-import { DrawerActions } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import {
-  addDoc,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  setDoc,
-  updateDoc,
-  where
-} from "firebase/firestore";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { addDoc, arrayUnion, collection, deleteDoc, doc, getDocs, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
-function FamilyScreen() {
+
+export function FamilyScreen() {
   const [families, setFamilies] = useState<any[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -44,6 +21,8 @@ const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
 const [roleManagementVisible, setRoleManagementVisible] = useState(false);
 const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
 const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
+
+const navigation = useNavigation();
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -135,6 +114,7 @@ useEffect(() => {
 
   // Join family by code
   const handleJoinFamily = async () => {
+    debugger;
     if (joinCode.length !== 6) return Alert.alert("Erreur", "Code invalide");
 
     const q = query(
@@ -158,6 +138,11 @@ useEffect(() => {
     await updateDoc(doc(db, "families", fam.id), {
       members: arrayUnion(user?.email),
     });
+
+    await addDoc(collection(db, "users" + user.uid + "familiesJoined" + fam.id), {
+    familyId: fam.id,
+    familyName: fam.data().name || ""
+  });
 
     setJoinCode("");
     setJoinModalVisible(false);
@@ -250,8 +235,6 @@ const saveRoles = async () => {
 
   return (
     <View style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 10 }}>Mes familles</Text>
-
 <FlatList
   data={families}
   keyExtractor={(item) => item.id}
@@ -263,154 +246,165 @@ const saveRoles = async () => {
       }}
     >
       <View style={styles.familyRow}>
-        <Text style={{ flex: 1, fontSize: 18 }}>{item.name}</Text>
+        {/* Photo de profil du groupe */}
+        <Ionicons name="people-circle" size={60} color="#00b7ff9a" style={{ marginRight: 15 }} />
 
-        <TouchableOpacity
-          onPress={() => openRoleManagementForFamily(item)}
-          style={{ marginRight: 10 }}
-        >
-          <Ionicons name="people-circle" size={24} color="#007AFF" />
-        </TouchableOpacity>
+        {/* Nom de la famille */}
+        <Text style={styles.familyName}>{item.name}</Text>
 
-        <TouchableOpacity
-          onPress={() => {
-            setFamilyName(item.name);
-            setSelectedFamily(item);
-            setEditFamilyModalVisible(true);
-          }}
-        >
-          <Ionicons name="pencil" size={22} color="orange" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {/* Modifier */}
+          <TouchableOpacity
+            onPress={() => {
+              setFamilyName(item.name);
+              setSelectedFamily(item);
+              setEditFamilyModalVisible(true);
+            }}
+            style={styles.trashBtnP}
+          >
+            <Ionicons name="pencil" size={24} color="orange" />
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => handleDeletePress(item)}
-          style={{ marginLeft: 10 }}
-        >
-          <Ionicons name="trash" size={22} color="red" />
-        </TouchableOpacity>
+          {/* Supprimer */}
+          {item.ownerUid === user?.uid && (
+            <TouchableOpacity
+              onPress={() => handleDeletePress(item)}
+             style={styles.trashBtn}
+            >
+              <Ionicons name="trash" size={24} color="red" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   )}
 />
 
-      {/* CREATE BUTTON */}
-      <TouchableOpacity
-        style={styles.btn}
-        onPress={() => setCreateModalVisible(true)}
-      >
-        <Text style={styles.btnText}>Créer une famille</Text>
-      </TouchableOpacity>
+     {/* CREATE BUTTON */}
+<TouchableOpacity
+  style={styles.btnPrimary}
+  onPress={() => setCreateModalVisible(true)}
+>
+  <Text style={styles.btnTextStyled}>Créer une famille</Text>
+</TouchableOpacity>
 
-      {/* JOIN BUTTON */}
-      <TouchableOpacity
-        style={[styles.btn, { backgroundColor: "#555" }]}
-        onPress={() => setJoinModalVisible(true)}
-      >
-        <Text style={styles.btnText}>Rejoindre une famille</Text>
-      </TouchableOpacity>
+{/* JOIN BUTTON */}
+<TouchableOpacity
+  style={styles.btnSecondary}
+  onPress={() => setJoinModalVisible(true)}
+>
+  <Text style={styles.btnTextStyled}>Rejoindre une famille</Text>
+</TouchableOpacity>
 
-      {/* CREATE MODAL */}
       <Modal visible={createModalVisible} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Créer une famille</Text>
-            <TextInput
-              value={familyName}
-              onChangeText={setFamilyName}
-              placeholder="Nom de famille"
-              style={styles.input}
-            />
-            <TouchableOpacity style={styles.btn} onPress={createFamily}>
-              <Text style={styles.btnText}>Créer</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-        onPress={() => setCreateModalVisible(false)}
-        style={{ position: "absolute", top: 10, right: 10 }}>
-        <Ionicons name="close" size={22} color="black"/>
-      </TouchableOpacity>
-            
-          </View>
-        </View>
-      </Modal>
-
-      {/* JOIN MODAL */}
-      <Modal visible={joinModalVisible} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>Entrer le code</Text>
-            <TextInput
-              value={joinCode}
-              onChangeText={setJoinCode}
-              placeholder="Entrez le code à 6 chiffres"
-              keyboardType="numeric"
-              maxLength={6}
-              style={styles.input}
-            />
-            <TouchableOpacity style={styles.btn} onPress={handleJoinFamily}>
-              <Text style={styles.btnText}>Rejoindre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-        onPress={() => setJoinModalVisible(false)}
-        style={{ position: "absolute", top: 10, right: 10 }}>
-        <Ionicons name="close" size={22} color="black"/>
-      </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-
-<Modal visible={selectedFamily !== null} transparent animationType="fade">
-    {selectedFamily && (
   <View style={styles.modalContainer}>
-    <View style={styles.modal}>
-      <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
+    <View style={styles.modalStyled}>
+      <Text style={styles.modalTitleStyled}>Créer une famille</Text>
 
-      {/* Code de la famille */}
-      {selectedFamily && selectedFamily.joinCode && (
-        <Text style={{ fontSize: 16, marginBottom: 10 }}>
-          Code famille : {selectedFamily.joinCode}
-        </Text>
-      )}
+      <TextInput
+        value={familyName}
+        onChangeText={setFamilyName}
+        placeholder="Nom de famille"
+        style={styles.inputStyled}
+      />
 
-      {/* Membres */}
-      {selectedFamily?.members?.map((m: any, index: number) => {
-        const email = typeof m === 'string' ? m : m.email;
-        const role = typeof m === 'string' ? 'Non défini' : (m.role || 'Non défini');
-        return (
-          <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10, marginBottom: 5 }}>
-            <Text style={{ flex: 1 }}>- {email}</Text>
-            <View style={[
-              { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-              { backgroundColor: role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
-            ]}>
-              <Text style={[
-                { fontSize: 11, fontWeight: '600' },
-                { color: role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
-              ]}>
-                {role}
-              </Text>
-            </View>
-          </View>
-        );
-      })}
+      <TouchableOpacity style={styles.btnStyled} onPress={createFamily}>
+        <Text style={styles.btnTextStyled}>Créer</Text>
+      </TouchableOpacity>
 
-
-      <TouchableOpacity
-        style={{ position: "absolute", top: 10, right: 10 }}
-        onPress={() => setSelectedFamily(null)}
+      <TouchableOpacity 
+        onPress={() => setCreateModalVisible(false)}
+        style={styles.closeModalBtn}
       >
         <Ionicons name="close" size={22} color="black"/>
       </TouchableOpacity>
     </View>
   </View>
-  )}
+</Modal>
 
+      
+      {/* JOIN MODAL */}
+      <Modal visible={joinModalVisible} transparent animationType="fade">
+  <View style={styles.modalContainer}>
+    <View style={styles.modalStyled}>
+      <Text style={styles.modalTitleStyled}>Rejoindre une famille</Text>
+
+      <TextInput
+        value={joinCode}
+        onChangeText={setJoinCode}
+        placeholder="Entrez le code à 6 chiffres"
+        keyboardType="numeric"
+        maxLength={6}
+        style={styles.inputStyled}
+      />
+
+      <TouchableOpacity style={styles.btnStyled} onPress={handleJoinFamily}>
+        <Text style={styles.btnTextStyled}>Rejoindre</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        onPress={() => setJoinModalVisible(false)}
+        style={styles.closeModalBtn}
+      >
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+
+<Modal visible={selectedFamily !== null} transparent animationType="fade">
+  {selectedFamily && (
+    <View style={styles.modalContainer}>
+      <View style={styles.modalCenter}>
+        {/* Photo et nom de la famille */}
+        <View style={styles.modalHeader}>
+          <Ionicons name="people-circle" size={60} color="#00b7ff9a" style={{ marginBottom: 10 }} />
+          <Text style={styles.modalTitle}>{selectedFamily.name}</Text>
+          {selectedFamily.ownerUid === user?.uid && (
+            <Text style={styles.familyCode}>Code : {selectedFamily.joinCode}</Text>
+          )}
+        </View>
+
+        {/* Membres */}
+        <View style={{ marginTop: 15 }}>
+          {selectedFamily.members?.map((m: string, index: number) => (
+            <View key={index} style={styles.memberCard}>
+              <Ionicons name="person-circle" size={40} color="#00b7ff9a" />
+              <Text style={styles.memberName}>{m.split("@")[0]}</Text>
+
+              {/* Supprimer membre si admin et pas lui-même */}
+              {selectedFamily.ownerUid === user?.uid && m !== user.email && (
+                <TouchableOpacity
+                  style={styles.trashBtn}
+                  onPress={() => Alert.alert("Supprimer membre", m)}
+                >
+                  <Ionicons name="trash" size={20} color="red" />
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Fermer modal */}
+        <TouchableOpacity
+          style={styles.closeModalBtn}
+          onPress={() => setSelectedFamily(null)}
+        >
+          <Ionicons name="close" size={22} color="black" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  )}
 </Modal>
 
 
       <Modal visible={editFamilyModalVisible} transparent animationType="fade">
   <View style={styles.modalContainer}>
     <View style={styles.modal}>
+        <View>
+                <Ionicons name="person-circle" size={80} color="#00b7ff9a" />
+              </View>
       <Text style={styles.modalTitle}>Modifier la famille</Text>
       <TextInput
         value={familyName}
@@ -478,16 +472,27 @@ const saveRoles = async () => {
   );
 }
 
+const Stack = createNativeStackNavigator();
+export default function () {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ProfilMain"
+        component={FamilyScreen}
+        options={({ navigation }) => ({
+          headerTitle: "Mes Familles",
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
+              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
+    </Stack.Navigator>
+  );
+}
+
 const styles = StyleSheet.create({
-    familyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-    marginVertical: 5,
-    backgroundColor: "#eee",
-    borderRadius: 10,
-  },
-  
   familyItem: {
     padding: 15,
     marginVertical: 5,
@@ -505,22 +510,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    padding: 20,
-  },
-  modal: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 12,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 10,
-  },
+
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -528,33 +518,241 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
-  roleRow: {
-    marginBottom: 15,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-  },
-  rolePicker: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  saveRoleButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 15,
+  header: {
     alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: 'white',
+    marginBottom: 20,
   },
-  saveRoleButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 10,
+    color: '#333',
   },
+  familyRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 15,
+  marginVertical: 5,
+  backgroundColor: "#f5f5f5",
+  borderRadius: 12,
+},
+familyName: {
+  flex: 1,
+  fontSize: 18,
+  fontWeight: "600",
+  color: "#333",
+},
+iconBtn: {
+  marginLeft: 10,
+},
+
+memberBox: {
+  width: 70,
+  alignItems: "center",
+  margin: 5,
+  position: "relative",
+},
+addMemberBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 10,
+},
+
+modal: {
+  width: "100%",
+  backgroundColor: "white",
+  borderRadius: 12,
+  padding: 20,
+  maxHeight: "80%",
+},
+
+
+membersContainer: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  gap: 10, // pour espacer les membres
+},
+addMemberCard: {
+  width: 70,
+  height: 90,
+  borderRadius: 10,
+  backgroundColor: "#eee",
+  justifyContent: "center",
+  alignItems: "center",
+  margin: 5,
+},
+
+modalLeft: {
+  width: "80%",
+  backgroundColor: "white",
+  borderRadius: 12,
+  padding: 15,
+},
+modalHeaderLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 15,
+  gap: 10,
+},
+
+memberRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginVertical: 5,
+},
+memberNameRow: {
+  flex: 1,
+  marginLeft: 10,
+  fontSize: 14,
+  color: "#333",
+},
+trashBtnRow: {
+  padding: 5,
+},
+addMemberRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingVertical: 10,
+},
+
+
+
+modalStyled: {
+  width: "85%",
+  backgroundColor: "#fff",
+  borderRadius: 15,
+  padding: 25,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 5,
+  elevation: 5,
+},
+modalTitleStyled: {
+  fontSize: 20,
+  fontWeight: "700",
+  marginBottom: 20,
+  color: "#333",
+},
+inputStyled: {
+  width: "100%",
+  borderWidth: 1,
+  borderColor: "#ddd",
+  borderRadius: 10,
+  padding: 12,
+  fontSize: 16,
+  marginBottom: 20,
+},
+btnStyled: {
+  backgroundColor: "#00b7ff",
+  paddingVertical: 12,
+  paddingHorizontal: 30,
+  borderRadius: 10,
+  alignItems: "center",
+  width: "100%",
+},
+btnTextStyled: {
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: 16,
+},
+btnPrimary: {
+  backgroundColor: "#00b7ff",
+  paddingVertical: 14,
+  paddingHorizontal: 20,
+  borderRadius: 12,
+  alignItems: "center",
+  marginVertical: 5,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 3,
+},
+btnSecondary: {
+  backgroundColor: "#555",
+  paddingVertical: 14,
+  paddingHorizontal: 20,
+  borderRadius: 12,
+  alignItems: "center",
+  marginVertical: 5,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 3,
+},
+
+modalContainer: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.35)",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 16,
+},
+modalCenter: {
+  width: "90%",
+  backgroundColor: "#fff",
+  borderRadius: 16,
+  padding: 20,
+  maxHeight: "80%",
+},
+modalHeader: {
+  alignItems: "center",
+  marginBottom: 10,
+},
+modalTitle: {
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#222",
+},
+familyCode: {
+  fontSize: 14,
+  color: "#555",
+  marginTop: 4,
+},
+memberCard: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  backgroundColor: "#f7f8fa",
+  padding: 12,
+  borderRadius: 12,
+  marginBottom: 10,
+  elevation: 1,
+},
+memberName: {
+  flex: 1,
+  marginLeft: 12,
+  fontSize: 16,
+  color: "#111",
+},
+trashBtn: {
+  padding: 6,
+  borderRadius: 8,
+  backgroundColor: "#ffe5e5",
+},
+closeModalBtn: {
+  position: "absolute",
+  top: 12,
+  right: 12,
+  padding: 8,
+  borderRadius: 12,
+  backgroundColor: "#f2f2f2",
+},
+trashBtnP: {
+  padding: 6,
+  borderRadius: 8,
+  backgroundColor: "#fff5e5ff",
+  marginRight: 8,
+},
+
+
+
 });
 
 const Stack = createNativeStackNavigator();
