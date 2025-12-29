@@ -4,7 +4,7 @@ import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -94,6 +94,8 @@ const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
 const [newListName, setNewListName] = useState("");
 const [shoppingItem, setShoppingItem] = useState("");
+const [selectedShoppingType, setSelectedShoppingType] = useState<"personal" | "family">("personal");
+const [selectedShoppingFamily, setSelectedShoppingFamily] = useState<{ id: string; name: string } | null>(null);
 
 
 
@@ -108,15 +110,28 @@ const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string;
  useEffect(() => {
   if (!user?.email) return;
 
-  const q = query(
-    collection(db, "families"),
-    where("members", "array-contains", user.email)
-  );
+  // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+  const q = query(collection(db, "families"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const list: any[] = [];
-    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-    setFamiliesJoined(list);
+    const allFamilies: any[] = [];
+    snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+    
+    // Filtrer pour ne garder que les familles où l'utilisateur est membre
+    const userFamilies = allFamilies.filter((family: any) => {
+      const members = family.members || [];
+      
+      for (const memberItem of members) {
+        if (typeof memberItem === 'string' && memberItem === user.email) {
+          return true; // Format ancien (string)
+        } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+          return true; // Format nouveau ({email, role})
+        }
+      }
+      return false;
+    });
+    
+    setFamiliesJoined(userFamilies);
   });
 
   return () => unsubscribe();
@@ -126,17 +141,109 @@ const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string;
 useEffect(() => {
   if (!user) return;
 
-  const unsubscribe = onSnapshot(
-    collection(db, "users", user.uid, "shopping"),
-    (snapshot) => {
-      const lists: any[] = [];
-      snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
-     setShoppingLists(lists);
-    }
-  );
+  let path: any;
+  if (selectedShoppingType === "personal") {
+    path = collection(db, "users", user.uid, "shopping");
+  } else if (selectedShoppingFamily) {
+    path = collection(db, "families", selectedShoppingFamily.id, "shopping");
+  } else {
+    setShoppingLists([]);
+    return;
+  }
+
+  const unsubscribe = onSnapshot(path, (snapshot: any) => {
+    const lists: any[] = [];
+    snapshot.forEach((doc: any) => lists.push({ id: doc.id, ...doc.data() }));
+    setShoppingLists(lists);
+  });
 
   return unsubscribe;
-}, []);
+}, [user, selectedShoppingType, selectedShoppingFamily]);
+
+useEffect(() => {
+  if (!user?.uid) return;
+
+  let unsubscribe: any;
+
+  if (selectedTodoType === "personal") {
+    unsubscribe = onSnapshot(
+      collection(db, "users", user.uid, "todos"),
+      (snapshot) => {
+        const lists: any[] = [];
+        snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+        setTodoLists(lists);
+      }
+    );
+  } else if (selectedTodoType === "family" && selectedTodoFamily) {
+    unsubscribe = onSnapshot(
+      collection(db, "families", selectedTodoFamily.id, "todos"),
+      (snapshot) => {
+        const lists: any[] = [];
+        snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
+        setTodoLists(lists);
+      }
+    );
+  }
+
+  return () => unsubscribe && unsubscribe();
+}, [selectedTodoType, selectedTodoFamily, user?.uid]);
+
+useEffect(() => {
+  if (!selectedTodoFamily || selectedTodoType !== "family") {
+    setFamilyMembers([]);
+    return;
+  }
+
+  const loadFamilyMembers = async () => {
+    const familyMembers = selectedTodoFamily.members || [];
+    const usersSnapshot = await collection(db, "users");
+    onSnapshot(usersSnapshot, (snapshot) => {
+      const members: { uid: string; firstName: string; lastName: string }[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        console.log("👤 User data for member:", data.email, data);
+        if (data.email && familyMembers.includes(data.email)) {
+          members.push({
+            uid: doc.id,
+            firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
+            lastName: data.nom || data.lastName || data.lastname || "",
+          });
+        }
+      });
+      setFamilyMembers(members);
+    });
+  };
+
+  loadFamilyMembers();
+}, [selectedTodoFamily, selectedTodoType, user?.email]);
+
+// Charger les membres de la famille pour le calendrier aussi
+useEffect(() => {
+  if (!selectedFamily || selectedCalendarType !== "family") {
+    return;
+  }
+
+  const loadCalendarFamilyMembers = async () => {
+    const familyMembersEmails = selectedFamily.members || [];
+    const usersSnapshot = await collection(db, "users");
+    onSnapshot(usersSnapshot, (snapshot) => {
+      const members: { uid: string; firstName: string; lastName: string }[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.email && familyMembersEmails.includes(data.email)) {
+          members.push({
+            uid: doc.id,
+            firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
+            lastName: data.nom || data.lastName || data.lastname || "",
+          });
+        }
+      });
+      setFamilyMembers(members);
+    });
+  };
+
+  loadCalendarFamilyMembers();
+}, [selectedFamily, selectedCalendarType, user?.email]);
 
 useEffect(() => {
   if (!user?.uid) return;
@@ -576,19 +683,34 @@ const saveTodo = async () => {
     return;
   }
 
+  if (selectedShoppingType === "family" && !selectedShoppingFamily) {
+    alert("Veuillez sélectionner une famille.");
+    return;
+  }
+
   try {
     let listId = selectedListId;
 
+    // Déterminer le chemin de base
+    const basePath = selectedShoppingType === "personal"
+      ? "users"
+      : "families";
+    const baseId = selectedShoppingType === "personal"
+      ? user?.uid!
+      : selectedShoppingFamily!.id;
+
     if (!selectedListId) {
+      // Créer une nouvelle liste
       const newListRef = await addDoc(
-        collection(db, "users", user?.uid!, "shopping"),
-        { title: shoppingItem }
+        collection(db, basePath, baseId, "shopping"),
+        { title: newListName || shoppingItem }
       );
       listId = newListRef.id;
     }
 
+    // Ajouter le produit à la liste
     await addDoc(
-      collection(db, "users", user?.uid!, "shopping", listId, "items"),
+      collection(db, basePath, baseId, "shopping", listId, "items"),
       { name: shoppingItem, checked: false }
     );
 
@@ -1425,6 +1547,7 @@ const saveTodo = async () => {
         </ScrollView>
         </View>
       );
+
     case "shopping":
   return (
     <View style={styles.modalInnerContainer}>
@@ -1435,6 +1558,31 @@ const saveTodo = async () => {
       </View>
 
       <Text style={styles.modalTitle}>Nouvelle Liste de Course</Text>
+
+      <Text style={{ fontSize: 16, marginBottom: 5 }}>Type de liste</Text>
+      <Picker
+        selectedValue={selectedShoppingType === "personal" ? "personal" : selectedShoppingFamily?.id}
+        onValueChange={(value) => {
+          if (value === "personal") {
+            setSelectedShoppingType("personal");
+            setSelectedShoppingFamily(null);
+          } else {
+            const fam = familiesJoined.find(f => f.id === value);
+            if (fam) {
+              setSelectedShoppingFamily(fam);
+              setSelectedShoppingType("family");
+            }
+          }
+          setSelectedListId(""); // Reset la liste sélectionnée
+        }}
+        style={{ backgroundColor: "#f1f1f1", marginBottom: 10, borderRadius: 10 }}
+      >
+        <Picker.Item label="Mes listes personnelles" value="personal" />
+        <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+        {familiesJoined.map(f => (
+          <Picker.Item key={f.id} label={f.name} value={f.id} />
+        ))}
+      </Picker>
 
       <Text style={{ fontSize: 16, marginBottom: 5 }}>Choisir une liste existante</Text>
       <Picker

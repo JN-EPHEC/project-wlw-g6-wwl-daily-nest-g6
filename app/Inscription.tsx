@@ -197,6 +197,57 @@ WebBrowser.maybeCompleteAuthSession();
         <TouchableOpacity onPress={handleSignIn} style={styles.signUpButton}>
           <Text style={styles.signUpText}>Se connecter</Text>
         </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.termsText, termsError && { color: "red" }]}>
+            J'accepte la{" "}
+            <Text 
+              style={styles.link}
+              onPress={() => router.push("/PolitiqueConfidentialite")}
+            >
+              Politique de confidentialité
+            </Text>
+            {" "}et les{" "}
+            <Text 
+              style={styles.link}
+              onPress={() => router.push("/ConditionsUtilisation")}
+            >
+              Conditions générales d'utilisation
+            </Text>
+          </Text>
+        </View>
+      </View>
+      {termsError && (
+        <Text style={styles.fieldError}>Vous devez accepter les conditions pour continuer</Text>
+      )}
+
+      <View style={{ alignItems: "center", marginTop: 20 }}>
+      {(() => {
+        const hasNumber = /\d/.test(password);
+        const hasUpperCase = /[A-Z]/.test(password);
+        const isPasswordValid = password.length >= 6 && hasNumber && hasUpperCase;
+        
+        const isFormValid = 
+          firstName.trim() !== "" && 
+          lastName.trim() !== "" && 
+          email.trim() !== "" && 
+          email.includes('@') &&
+          isPasswordValid && 
+          termsAccepted &&
+          !nameFormatError &&
+          !lastNameFormatError &&
+          !emailFormatError &&
+          !birthDateFormatError;
+        
+        return (
+          <TouchableOpacity
+            onPress={handleSignUp}
+            style={[styles.signUpButton, !isFormValid && styles.signUpButtonDisabled]}
+            disabled={loading || !isFormValid}
+          >
+            <Text style={styles.signUpText}>S'inscrire</Text>
+          </TouchableOpacity>
+        );
+      })()}
         <TouchableOpacity onPress={() => router.push("/Inscription")} style={styles.signUpButton}>
           <Text style={styles.signUpText}>S'inscrire</Text>
           </TouchableOpacity> 
@@ -244,4 +295,32 @@ const styles = StyleSheet.create({
     textAlign: "left",
     fontSize: 13,
   },
+   error: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 10,
+    
+  },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+    marginBottom: 5,
+    paddingHorizontal: 5,
+  },
+  checkboxContainer: {
+    marginRight: 10,
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#666",
+    lineHeight: 16,
+  },
+  link: {
+    color: "#00b7ff",
+    textDecorationLine: "underline",
+    fontWeight: "600",
+  },
+});
 });

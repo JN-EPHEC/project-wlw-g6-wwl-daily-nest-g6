@@ -68,15 +68,17 @@ useEffect(() => {
   setEvents({});
   setItems({});
   setSelectedDate("");
+  setFilterByPerson(null);
 }, [selectedCalendarType, selectedFamily]);
 
 // pour trouver les infos des familles 
 useEffect(() => {
-  if (!email) return;
+  if (!email) {
+    return;
+  }
 
-  
-
-  const q = query(collection(db, "families"), where("members", "array-contains", email ));  
+  // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+  const q = query(collection(db, "families"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const list: any = [];
@@ -85,7 +87,21 @@ useEffect(() => {
   });
 
   return () => unsubscribe();
-}, [uid]);
+}, []);
+
+// Charger les membres de la famille sélectionnée
+useEffect(() => {
+  if (selectedCalendarType !== "family" || !selectedFamily) {
+    setFamilyMembers([]);
+    return;
+  }
+
+  const loadFamilyMembers = async () => {
+    try {
+      const familyDoc = await getDoc(doc(db, "families", selectedFamily.id));
+      const familyData = familyDoc.data();
+      
+      if (!familyData || !familyData.members) return;
 
 // Charger tous les utilisateurs pour afficher les noms
 useEffect(() => {
@@ -195,10 +211,26 @@ const saveEvent = async () => {
   path = collection(db, "families", selectedFamily.id, "calendar");
 }
 
-    if (editingIndex !== null) {
-      const ev = items[eventDate][editingIndex];
-      const docRef = doc(path, ev.id);
-      await updateDoc(docRef, { title: eventTitle, time: eventTime });
+    if (editingIndex !== null && editingEventId) {
+      const docRef = selectedCalendarType === "personal"
+        ? doc(db, "users", uid!, "calendar", editingEventId)
+        : doc(db, "families", selectedFamily!.id, "calendar", editingEventId);
+      
+      await updateDoc(docRef, { 
+        title: eventTitle, 
+        time: eventTime,
+        description: eventDescription,
+        points: parseInt(eventPoints) || 0,
+        priority: eventPriority,
+        assignedTo: eventAssignedTo || null,
+        isRotation: eventIsRotation,
+        rotationMembers: eventIsRotation ? eventRotationMembers : [],
+        isRecurring: eventIsRecurring,
+        recurrenceType: eventIsRecurring ? eventRecurrenceType : null,
+        selectedDays: eventIsRecurring && eventRecurrenceType === "weekly" ? eventSelectedDays : [],
+        monthlyDay: eventIsRecurring && eventRecurrenceType === "monthly" ? eventMonthlyDay : null,
+        reminders: eventReminders
+      });
     } else {
       await addDoc(path, { title: eventTitle, date: formattedDate, time: eventTime, checked: false });
     }
@@ -208,7 +240,19 @@ const saveEvent = async () => {
     setEventTitle("");
     setEventDate("");
     setEventTime("");
+    setEventDescription("");
+    setEventPoints("");
+    setEventPriority("2");
+    setEventAssignedTo("");
+    setEventIsRotation(false);
+    setEventRotationMembers([]);
+    setEventIsRecurring(false);
+    setEventRecurrenceType("weekly");
+    setEventSelectedDays([]);
+    setEventMonthlyDay(1);
+    setEventReminders([]);
     setEditingIndex(null);
+    setEditingEventId(null);
     setIsEditing(false);
 
   } catch (err) {
@@ -477,11 +521,31 @@ const saveEvent = async () => {
                 )}
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
+                {item.assignedTo && usersMap[item.assignedTo] && (
+                  <TouchableOpacity onPress={() => {
+                    const assignedUser = usersMap[item.assignedTo!];
+                    alert(`Rappel envoyé à ${assignedUser.firstName} ${assignedUser.lastName} pour la tâche "${item.title}"`);
+                  }}>
+                    <Ionicons name="notifications" size={20} color="#2196F3" />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => {
                   setEventTitle(item.title);
                   setEventDate(selectedDate);
                   setEventTime(item.time);
+                  setEventDescription(item.description || "");
+                  setEventPoints(item.points?.toString() || "");
+                  setEventPriority(item.priority || "2");
+                  setEventAssignedTo(item.assignedTo || "");
+                  setEventIsRotation(item.isRotation || false);
+                  setEventRotationMembers(item.rotationMembers || []);
+                  setEventIsRecurring(item.isRecurring || false);
+                  setEventRecurrenceType(item.recurrenceType || "weekly");
+                  setEventSelectedDays(item.selectedDays || []);
+                  setEventMonthlyDay(item.monthlyDay || 1);
+                  setEventReminders(item.reminders || []);
                   setEditingIndex(index);
+                  setEditingEventId(item.id);
                   setIsEditing(true);
                   setModalVisible(true);
                 }}>
@@ -542,8 +606,9 @@ const saveEvent = async () => {
 
       <Modal transparent visible={modalVisible} animationType="slide">
         <View style={styles.modalBackground}> 
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
           <View style={styles.modalContent}>
-           <Text style={{ fontSize: 18, marginBottom: 10 }}>
+           <Text style={{ fontSize: 18, marginBottom: 10, fontWeight: "bold" }}>
             {isEditing ? "Modifier l'événement" : "Ajouter un événement"}
              </Text>
 
@@ -553,6 +618,16 @@ const saveEvent = async () => {
               onChangeText={setEventTitle} 
               style={styles.inputWeb}
             />
+            
+            <TextInput 
+              placeholder="Description (optionnel)"
+              value={eventDescription}
+              onChangeText={setEventDescription} 
+              style={styles.inputWeb}
+              multiline
+              numberOfLines={3}
+            />
+            
             <input 
               type="date"
               value={eventDate}
@@ -565,8 +640,378 @@ const saveEvent = async () => {
               onChange={(e) => setEventTime(e.target.value)} 
               style={styles.inputWeb}
             />
-  <View style={styles.buttonRow}>
-              <TouchableOpacity onPress={() => setModalVisible(false)}> 
+            
+            <TextInput 
+              placeholder="Points accordés (optionnel)"
+              value={eventPoints}
+              onChangeText={setEventPoints}
+              keyboardType="numeric" 
+              style={styles.inputWeb}
+            />
+
+            <Text style={{ fontSize: 14, marginTop: 10, marginBottom: 5, fontWeight: "600" }}>Priorité</Text>
+            <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, overflow: "hidden" }}>
+              <Picker
+                selectedValue={eventPriority}
+                onValueChange={(value) => setEventPriority(value)}
+                style={{ height: 45 }}
+              >
+                <Picker.Item label="🟢 Basse" value="1" />
+                <Picker.Item label="🔵 Normale" value="2" />
+                <Picker.Item label="🟠 Élevée" value="3" />
+                <Picker.Item label="🔴 Urgente" value="4" />
+              </Picker>
+            </View>
+
+            {(selectedCalendarType === "family" && familyMembers.length > 0) && (
+              <>
+                <Text style={{ fontSize: 14, marginTop: 10, marginBottom: 5, fontWeight: "600" }}>Assigner à</Text>
+                <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, overflow: "hidden" }}>
+                  <Picker
+                    selectedValue={eventAssignedTo}
+                    onValueChange={(value) => setEventAssignedTo(value)}
+                    style={{ height: 45 }}
+                  >
+                    <Picker.Item label="Personne (tâche commune)" value="" />
+                    {familyMembers.map(member => (
+                      <Picker.Item 
+                        key={member.uid} 
+                        label={`${member.firstName} ${member.lastName}`} 
+                        value={member.uid} 
+                      />
+                    ))}
+                  </Picker>
+                </View>
+
+                {eventAssignedTo && (
+                  <View style={{ marginTop: 10 }}>
+                    <TouchableOpacity 
+                      onPress={() => setEventIsRotation(!eventIsRotation)}
+                      style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}
+                    >
+                      <Ionicons 
+                        name={eventIsRotation ? "checkbox" : "square-outline"} 
+                        size={24} 
+                        color="#ffbf00" 
+                      />
+                      <Text style={{ marginLeft: 8, fontSize: 14 }}>Activer la rotation (tournante)</Text>
+                    </TouchableOpacity>
+                    
+                    {eventIsRotation && (
+                      <View style={{ marginTop: 10, padding: 10, backgroundColor: "#fff3cd", borderRadius: 8 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
+                          Membres de la tournante:
+                        </Text>
+                        {familyMembers.map(member => (
+                          <TouchableOpacity
+                            key={member.uid}
+                            onPress={() => {
+                              if (eventRotationMembers.includes(member.uid)) {
+                                setEventRotationMembers(eventRotationMembers.filter(uid => uid !== member.uid));
+                              } else {
+                                setEventRotationMembers([...eventRotationMembers, member.uid]);
+                              }
+                            }}
+                            style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4 }}
+                          >
+                            <Ionicons 
+                              name={eventRotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
+                              size={20} 
+                              color="#ff9800" 
+                            />
+                            <Text style={{ marginLeft: 8, fontSize: 13 }}>
+                              {member.firstName} {member.lastName}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+
+            <View style={{ marginTop: 15 }}>
+              <TouchableOpacity 
+                onPress={() => setEventIsRecurring(!eventIsRecurring)}
+                style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}
+              >
+                <Ionicons 
+                  name={eventIsRecurring ? "checkbox" : "square-outline"} 
+                  size={24} 
+                  color="#2196F3" 
+                />
+                <Text style={{ marginLeft: 8, fontSize: 14 }}>Activer la récurrence</Text>
+              </TouchableOpacity>
+
+              {eventIsRecurring && (
+                <View style={{ marginTop: 10, padding: 10, backgroundColor: "#e3f2fd", borderRadius: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Type de récurrence:</Text>
+                  <View style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+                    <Picker
+                      selectedValue={eventRecurrenceType}
+                      onValueChange={(value) => setEventRecurrenceType(value as "daily" | "weekly" | "monthly")}
+                      style={{ height: 40 }}
+                    >
+                      <Picker.Item label="Quotidien" value="daily" />
+                      <Picker.Item label="Hebdomadaire" value="weekly" />
+                      <Picker.Item label="Mensuel" value="monthly" />
+                    </Picker>
+                  </View>
+
+                  {eventRecurrenceType === "weekly" && (
+                    <View>
+                      <Text style={{ fontSize: 12, marginBottom: 8 }}>Jours de la semaine:</Text>
+                      {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((day, index) => (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => {
+                            if (eventSelectedDays.includes(index)) {
+                              setEventSelectedDays(eventSelectedDays.filter(d => d !== index));
+                            } else {
+                              setEventSelectedDays([...eventSelectedDays, index]);
+                            }
+                          }}
+                          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 3 }}
+                        >
+                          <Ionicons 
+                            name={eventSelectedDays.includes(index) ? "checkbox" : "square-outline"} 
+                            size={18} 
+                            color="#2196F3" 
+                          />
+                          <Text style={{ marginLeft: 6, fontSize: 12 }}>{day}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+
+                  {eventRecurrenceType === "monthly" && (
+                    <View>
+                      <Text style={{ fontSize: 12, marginBottom: 5 }}>Jour du mois:</Text>
+                      <TextInput
+                        value={eventMonthlyDay.toString()}
+                        onChangeText={(text) => {
+                          const num = parseInt(text) || 1;
+                          setEventMonthlyDay(Math.min(31, Math.max(1, num)));
+                        }}
+                        keyboardType="numeric"
+                        style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 5, padding: 8, fontSize: 12 }}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Rappels */}
+            <View style={{ marginTop: 20 }}>
+              <TouchableOpacity 
+                onPress={() => setRemindersEnabled(!remindersEnabled)}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+              >
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: "#ffc107",
+                  marginRight: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: remindersEnabled ? "#ffc107" : "transparent"
+                }}>
+                  {remindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: "600", color: "#333" }}>Rappels</Text>
+              </TouchableOpacity>
+
+              {remindersEnabled && (
+                <>
+
+                  {/* Liste des rappels existants */}
+                  {eventReminders.map((reminder, index) => (
+                <View key={index} style={{ 
+                  backgroundColor: "#fff",
+                  padding: 15,
+                  borderRadius: 10,
+                  marginBottom: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2
+                }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Rappel {index + 1}</Text>
+                    <TouchableOpacity onPress={() => {
+                      setEventReminders(eventReminders.filter((_, i) => i !== index));
+                    }}>
+                      <Ionicons name="close" size={24} color="#f44336" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ 
+                      flex: 1,
+                      borderWidth: 1.5, 
+                      borderColor: "#ffc107", 
+                      padding: 10, 
+                      borderRadius: 8,
+                      backgroundColor: "#fff"
+                    }}>
+                      <Text style={{ fontSize: 14, color: "#333" }}>{reminder.date}</Text>
+                    </View>
+                    <View style={{ 
+                      flex: 1,
+                      borderWidth: 1.5, 
+                      borderColor: "#ffc107", 
+                      padding: 10, 
+                      borderRadius: 8,
+                      backgroundColor: "#fff"
+                    }}>
+                      <Text style={{ fontSize: 14, color: "#333" }}>{reminder.time}</Text>
+                    </View>
+                  </View>
+                </View>
+                  ))}
+
+                  {/* Formulaire d'ajout de rappel */}
+                  <View style={{ 
+                    backgroundColor: "#fff", 
+                    padding: 15, 
+                    borderRadius: 10,
+                    marginBottom: 10,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2
+                  }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#333", marginBottom: 10 }}>Rappel {eventReminders.length + 1}</Text>
+                    <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
+                  
+                  <View style={{ flexDirection: "row", marginBottom: 12 }}>
+                    <input
+                      type="date"
+                      value={reminderDate ? (() => {
+                        const parts = reminderDate.split('/');
+                        return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
+                      })() : ''}
+                      onChange={(e) => {
+                        const dateParts = e.target.value.split('-');
+                        if (dateParts.length === 3) {
+                          setReminderDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
+                        }
+                      }}
+                      placeholder="jj / mm / aaaa"
+                      style={{
+                        flex: 1,
+                        borderWidth: 1.5,
+                        borderColor: '#ffc107',
+                        padding: 10,
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff',
+                        marginRight: 8
+                      }}
+                    />
+                    <TextInput
+                      style={{ 
+                        flex: 1,
+                        borderWidth: 1.5, 
+                        borderColor: '#ffc107', 
+                        padding: 10, 
+                        borderRadius: 8,
+                        fontSize: 14,
+                        backgroundColor: '#fff'
+                      }}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#999"
+                      value={reminderTime}
+                      onChangeText={(text) => {
+                        let formatted = text.replace(/[^0-9]/g, '');
+                        if (formatted.length >= 2) {
+                          formatted = formatted.slice(0, 2) + ':' + formatted.slice(2, 4);
+                        }
+                        setReminderTime(formatted);
+                      }}
+                      maxLength={5}
+                    />
+                  </View>
+                  
+                  <TextInput
+                    style={{ 
+                      width: '100%',
+                      borderWidth: 1.5, 
+                      borderColor: '#ffc107', 
+                      padding: 10, 
+                      borderRadius: 8,
+                      fontSize: 14,
+                      marginBottom: 12,
+                      backgroundColor: '#fff'
+                    }}
+                    placeholder="Description (optionnel)"
+                    placeholderTextColor="#999"
+                    value={reminderMessage}
+                    onChangeText={setReminderMessage}
+                    multiline
+                    numberOfLines={2}
+                  />
+                  
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (reminderDate && reminderTime) {
+                        setEventReminders([...eventReminders, {
+                          date: reminderDate,
+                          time: reminderTime,
+                          message: reminderMessage
+                        }]);
+                        setReminderDate("");
+                        setReminderTime("");
+                        setReminderMessage("");
+                      } else {
+                        alert("Veuillez remplir la date et l'heure du rappel");
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#ffc107",
+                      padding: 12,
+                      borderRadius: 8,
+                      alignItems: "center"
+                    }}
+                  >
+                    <Text style={{ color: "white", fontWeight: "600", fontSize: 14 }}>Ajouter</Text>
+                  </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity onPress={() => {
+                setModalVisible(false);
+                // Réinitialiser tous les champs
+                setEventTitle("");
+                setEventDate("");
+                setEventTime("");
+                setEventDescription("");
+                setEventPoints("");
+                setEventPriority("2");
+                setEventAssignedTo("");
+                setEventIsRotation(false);
+                setEventRotationMembers([]);
+                setEventIsRecurring(false);
+                setEventRecurrenceType("weekly");
+                setEventSelectedDays([]);
+                setEventMonthlyDay(1);
+                setEventReminders([]);
+                setReminderDate("");
+                setReminderTime("");
+                setReminderMessage("");
+                setRemindersEnabled(false);
+                setEditingIndex(null);
+                setEditingEventId(null);
+              }}> 
                 <Ionicons name="close" size={35} color="red" />
               </TouchableOpacity>
               <TouchableOpacity onPress={saveEvent}>
@@ -574,6 +1019,7 @@ const saveEvent = async () => {
               </TouchableOpacity>
             </View>
           </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -605,8 +1051,20 @@ const saveEvent = async () => {
         onPress={() => {
           setEventTitle(ev.title);    
           setEventTime(ev.time);     
-          setEventDate(selectedDate);  
-          setEditingIndex(index);       
+          setEventDate(selectedDate);
+          setEventDescription(ev.description || "");
+          setEventPoints(ev.points?.toString() || "");
+          setEventPriority(ev.priority || "2");
+          setEventAssignedTo(ev.assignedTo || "");
+          setEventIsRotation(ev.isRotation || false);
+          setEventRotationMembers(ev.rotationMembers || []);
+          setEventIsRecurring(ev.isRecurring || false);
+          setEventRecurrenceType(ev.recurrenceType || "weekly");
+          setEventSelectedDays(ev.selectedDays || []);
+          setEventMonthlyDay(ev.monthlyDay || 1);
+          setEventReminders(ev.reminders || []);
+          setEditingIndex(index);
+          setEditingEventId(ev.id);       
           setModalViewVisible(false); 
           setModalVisible(true);     
           setIsEditing(true);  
@@ -627,7 +1085,22 @@ const saveEvent = async () => {
       setEventTitle("");
       setEventDate(selectedDate);
       setEventTime("");
+      setEventDescription("");
+      setEventPoints("");
+      setEventPriority("2");
+      setEventAssignedTo("");
+      setEventIsRotation(false);
+      setEventRotationMembers([]);
+      setEventIsRecurring(false);
+      setEventRecurrenceType("weekly");
+      setEventSelectedDays([]);
+      setEventMonthlyDay(1);
+      setEventReminders([]);
+      setReminderDate("");
+      setReminderTime("");
+      setReminderMessage("");
       setEditingIndex(null);
+      setEditingEventId(null);
       setModalVisible(true);
     }}
     style={{
@@ -758,6 +1231,27 @@ closeButton: {
     top: 10,
     right: 10,
   },
+  personFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "#f0f0f0",
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  personFilterChipActive: {
+    backgroundColor: "#ffbf00",
+    borderColor: "#ffbf00",
+  },
+  personFilterText: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  personFilterTextActive: {
+    color: "white",
+    fontWeight: "bold",
+  }
 
 
 });

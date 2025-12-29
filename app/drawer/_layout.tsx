@@ -5,7 +5,6 @@ import "react-native-reanimated";
 
 
 export default function DrawerLayout() {
-
   return (
 
 

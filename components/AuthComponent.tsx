@@ -33,15 +33,24 @@ export default function AuthComponent() {
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [passwordControleError, setPasswordControleError] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   WebBrowser.maybeCompleteAuthSession();
 
+  const redirectUri = makeRedirectUri({
+    scheme: 'dailynest'
+  });
+  
+  console.log('🔗 Redirect URI:', redirectUri);
+
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
+    androidClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
+    iosClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
     scopes: ['profile', 'email'],
-    redirectUri: makeRedirectUri({
-      scheme: "dailynest",
-    }),
+    redirectUri: redirectUri,
   });
 
   useEffect(() => {
@@ -286,6 +295,48 @@ export default function AuthComponent() {
           </View>
         </View>
       </View>
+
+      {/* Modal de réinitialisation de mot de passe */}
+      <Modal
+        visible={resetPasswordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetPasswordModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Réinitialiser le mot de passe</Text>
+            <Text style={styles.modalDescription}>
+              Entrez votre adresse email pour recevoir un lien de réinitialisation
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setResetPasswordModalVisible(false);
+                  setResetEmail("");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleResetPassword}
+              >
+                <Text style={styles.modalButtonText}>Envoyer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
