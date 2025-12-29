@@ -107,9 +107,7 @@ useEffect(() => {
 
 // pour trouver les infos des familles 
 useEffect(() => {
-  if (!email) {
-    return;
-  }
+  if (!email) return;
 
   // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
   const q = query(collection(db, "families"));
