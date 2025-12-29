@@ -14,12 +14,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 export function Parametres() {
   const navigation = useNavigation() as any;
+  const colorScheme = useColorScheme();
 
   const [families, setFamilies] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -46,6 +48,26 @@ export function Parametres() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const userRef = (id: string) => doc(db, "users", id);
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const lightTheme = {
+  background: "#ffffff",
+  text: "#000000",
+  card: "#f1f1f1",
+};
+
+const darkTheme = {
+  background: "#121212",
+  text: "#ffffff",
+  card: "#1e1e1e",
+};
+const theme = isDarkMode ? darkTheme : lightTheme;
+
+
+const [isAutoTheme, setIsAutoTheme] = useState(true);
+const systemTheme = useColorScheme();
+
 
   // auth + load user
   useEffect(() => {
@@ -228,7 +250,7 @@ export function Parametres() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.screen}>
+      <View style={[styles.screen, { backgroundColor: theme.background }]}>
         {/* Profile */}
         <TouchableOpacity style={styles.cardRow} onPress={goToProfile}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -420,6 +442,27 @@ export function Parametres() {
             </View>
           </View>
         </Modal>
+
+        <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    
+  }}
+>
+  <Text style={{ fontSize: 16, color: theme.text }}>
+    Mode sombre
+  </Text>
+
+  <Switch
+    value={isDarkMode}
+    onValueChange={setIsDarkMode}
+  />
+</View>
+
+
 
         {/* Password Modal */}
         <Modal visible={passwordVisible} transparent animationType="slide">

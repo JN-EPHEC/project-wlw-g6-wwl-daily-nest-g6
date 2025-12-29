@@ -1519,7 +1519,7 @@ const saveTodo = async () => {
       );
 
     case "shopping":
-  return (
+    return (
     <View style={styles.modalInnerContainer}>
       <View style={styles.modalHeader}>
         <TouchableOpacity onPress={goBack}>
