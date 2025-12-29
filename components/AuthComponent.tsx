@@ -8,6 +8,7 @@ import {
   // FacebookAuthProvider, // Décommenté quand Facebook Login sera prêt
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -33,6 +34,9 @@ export default function AuthComponent() {
   const [emailError, setEmailError] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [passwordControleError, setPasswordControleError] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   WebBrowser.maybeCompleteAuthSession();
 
@@ -88,6 +92,32 @@ export default function AuthComponent() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert("Erreur", "Veuillez entrer votre adresse email");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      Alert.alert(
+        "Email envoyé",
+        "Un email de réinitialisation a été envoyé à votre adresse. Vérifiez votre boîte de réception."
+      );
+      setResetPasswordModalVisible(false);
+      setResetEmail("");
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === "auth/user-not-found") {
+        Alert.alert("Erreur", "Aucun compte n'existe avec cette adresse email");
+      } else if (error.code === "auth/invalid-email") {
+        Alert.alert("Erreur", "Adresse email invalide");
+      } else {
+        Alert.alert("Erreur", "Impossible d'envoyer l'email de réinitialisation");
+      }
     }
   };
 
@@ -286,6 +316,48 @@ export default function AuthComponent() {
           </View>
         </View>
       </View>
+
+      {/* Modal de réinitialisation de mot de passe */}
+      <Modal
+        visible={resetPasswordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetPasswordModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Réinitialiser le mot de passe</Text>
+            <Text style={styles.modalDescription}>
+              Entrez votre adresse email pour recevoir un lien de réinitialisation
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setResetPasswordModalVisible(false);
+                  setResetEmail("");
+                }}
+              >
+                <Text style={styles.modalButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={handleResetPassword}
+              >
+                <Text style={styles.modalButtonText}>Envoyer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

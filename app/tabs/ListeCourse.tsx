@@ -159,6 +159,40 @@ export default function ShoppingList() {
       </Picker>
       </View>
 
+      <View style={{ width: "100%", marginBottom: 15 }}>
+        <View style={{
+          borderWidth: 1,
+          borderRadius: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          backgroundColor: "white",
+          borderColor: "#00d0ff"
+        }}>
+          <Picker
+            selectedValue={selectedFamily?.id || "personal"}
+            onValueChange={(value) => {
+              if (value === "personal") {
+                setSelectedListType("personal");
+                setSelectedFamily(null);
+              } else {
+                const fam = familiesJoined.find(f => f.id === value);
+                if (fam) {
+                  setSelectedFamily(fam);
+                  setSelectedListType("family");
+                }
+              }
+            }}
+            style={{ width: '100%', backgroundColor: 'white' }}
+          >
+            <Picker.Item label="Mes listes personnelles" value="personal" />
+            <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+            {familiesJoined.map(f => (
+              <Picker.Item key={f.id} label={f.name} value={f.id} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
       <View style={styles.addContainer}>
         <TextInput
           style={styles.input}

@@ -4,7 +4,7 @@ import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore";
+import { addDoc, collection, onSnapshot, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
@@ -94,6 +94,8 @@ const [shoppingLists, setShoppingLists] = useState<any[]>([]);
 const [selectedListId, setSelectedListId] = useState<string>("");
 const [newListName, setNewListName] = useState("");
 const [shoppingItem, setShoppingItem] = useState("");
+const [selectedShoppingType, setSelectedShoppingType] = useState<"personal" | "family">("personal");
+const [selectedShoppingFamily, setSelectedShoppingFamily] = useState<{ id: string; name: string } | null>(null);
 
 
 
@@ -108,15 +110,28 @@ const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string;
  useEffect(() => {
   if (!user?.email) return;
 
-  const q = query(
-    collection(db, "families"),
-    where("members", "array-contains", user.email)
-  );
+  // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+  const q = query(collection(db, "families"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const list: any[] = [];
-    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-    setFamiliesJoined(list);
+    const allFamilies: any[] = [];
+    snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+    
+    // Filtrer pour ne garder que les familles où l'utilisateur est membre
+    const userFamilies = allFamilies.filter((family: any) => {
+      const members = family.members || [];
+      
+      for (const memberItem of members) {
+        if (typeof memberItem === 'string' && memberItem === user.email) {
+          return true; // Format ancien (string)
+        } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+          return true; // Format nouveau ({email, role})
+        }
+      }
+      return false;
+    });
+    
+    setFamiliesJoined(userFamilies);
   });
 
   return () => unsubscribe();
@@ -126,17 +141,24 @@ const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string;
 useEffect(() => {
   if (!user) return;
 
-  const unsubscribe = onSnapshot(
-    collection(db, "users", user.uid, "shopping"),
-    (snapshot) => {
-      const lists: any[] = [];
-      snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
-     setShoppingLists(lists);
-    }
-  );
+  let path: any;
+  if (selectedShoppingType === "personal") {
+    path = collection(db, "users", user.uid, "shopping");
+  } else if (selectedShoppingFamily) {
+    path = collection(db, "families", selectedShoppingFamily.id, "shopping");
+  } else {
+    setShoppingLists([]);
+    return;
+  }
+
+  const unsubscribe = onSnapshot(path, (snapshot: any) => {
+    const lists: any[] = [];
+    snapshot.forEach((doc: any) => lists.push({ id: doc.id, ...doc.data() }));
+    setShoppingLists(lists);
+  });
 
   return unsubscribe;
-}, []);
+}, [user, selectedShoppingType, selectedShoppingFamily]);
 
 useEffect(() => {
   if (!user?.uid) return;
@@ -188,7 +210,6 @@ useEffect(() => {
           });
         }
       });
-      console.log("👥 Loaded family members:", members);
       setFamilyMembers(members);
     });
   };
@@ -209,7 +230,6 @@ useEffect(() => {
       const members: { uid: string; firstName: string; lastName: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        console.log("👤 Calendar user data:", data.email, data);
         if (data.email && familyMembersEmails.includes(data.email)) {
           members.push({
             uid: doc.id,
@@ -218,7 +238,6 @@ useEffect(() => {
           });
         }
       });
-      console.log("👥 Loaded calendar family members:", members);
       setFamilyMembers(members);
     });
   };
@@ -434,6 +453,7 @@ const saveTodo = async () => {
         recurrenceType: todoIsRecurring ? todoRecurrenceType : null,
         selectedDays: todoIsRecurring && todoRecurrenceType === "weekly" ? todoSelectedDays : [],
         monthlyDay: todoIsRecurring && todoRecurrenceType === "monthly" ? todoMonthlyDay : null,
+        reminders: todoReminders,
       });
 
       // Si récurrence activée, générer les occurrences dans le calendrier
@@ -526,6 +546,7 @@ const saveTodo = async () => {
             rotationMembers: todoIsRotation ? todoRotationMembers : [],
             currentRotationIndex: currentRotationIndex,
             assignedTo: assignedTo,
+            reminders: todoReminders,
           });
         }
       } else if (todoDate.trim()) {
@@ -537,6 +558,10 @@ const saveTodo = async () => {
           points: points,
           priority: todoPriority,
           type: "todo",
+          assignedTo: todoAssignedTo || "",
+          isRotation: todoIsRotation,
+          rotationMembers: todoIsRotation ? todoRotationMembers : [],
+          reminders: todoReminders,
         });
       }
 
@@ -576,19 +601,34 @@ const saveTodo = async () => {
     return;
   }
 
+  if (selectedShoppingType === "family" && !selectedShoppingFamily) {
+    alert("Veuillez sélectionner une famille.");
+    return;
+  }
+
   try {
     let listId = selectedListId;
 
+    // Déterminer le chemin de base
+    const basePath = selectedShoppingType === "personal"
+      ? "users"
+      : "families";
+    const baseId = selectedShoppingType === "personal"
+      ? user?.uid!
+      : selectedShoppingFamily!.id;
+
     if (!selectedListId) {
+      // Créer une nouvelle liste
       const newListRef = await addDoc(
-        collection(db, "users", user?.uid!, "shopping"),
-        { title: shoppingItem }
+        collection(db, basePath, baseId, "shopping"),
+        { title: newListName || shoppingItem }
       );
       listId = newListRef.id;
     }
 
+    // Ajouter le produit à la liste
     await addDoc(
-      collection(db, "users", user?.uid!, "shopping", listId, "items"),
+      collection(db, basePath, baseId, "shopping", listId, "items"),
       { name: shoppingItem, checked: false }
     );
 
@@ -616,7 +656,7 @@ const saveTodo = async () => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 30 }}>
+          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 100 }}>
             <Text style={[styles.modalTitle, { fontSize: 18, marginBottom: 10, fontWeight: "bold" }]}>Nouvel Événement</Text>
 
             {/* Sélection Personnel / Famille */}
@@ -873,12 +913,14 @@ const saveTodo = async () => {
           </ScrollView>
 
           {/* Bouton sauvegarder fixe en bas */}
-          <TouchableOpacity 
-            style={[styles.saveButton, { position: "absolute", bottom: 20, left: 20, right: 20 }]} 
-            onPress={saveEvent}
-          >
-            <Text style={styles.saveButtonText}>Sauvegarder</Text>
-          </TouchableOpacity>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 15, backgroundColor: "white" }}>
+            <TouchableOpacity 
+              style={styles.saveButton} 
+              onPress={saveEvent}
+            >
+              <Text style={styles.saveButtonText}>Sauvegarder</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
 
@@ -1319,48 +1361,53 @@ const saveTodo = async () => {
             {todoIsRecurring && (
               <View style={{ marginLeft: 30, marginTop: 10 }}>
                 <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
-                <View style={{ flexDirection: "row", gap: 10, marginBottom: 15 }}>
-                  <TouchableOpacity 
+                <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("daily")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "daily" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "daily" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#333" }}>Quotidien</Text>
+                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("weekly")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "weekly" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "weekly" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#333" }}>Hebdo</Text>
+                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Hebdomadaire</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("monthly")}
-                    style={{ 
-                      paddingHorizontal: 15, 
-                      paddingVertical: 8, 
-                      backgroundColor: todoRecurrenceType === "monthly" ? "#ffbf00" : "#f0f0f0",
-                      borderRadius: 5 
-                    }}
+                    style={[
+                      styles.priorityButton,
+                      { 
+                        borderColor: "#00d0ff", 
+                        backgroundColor: todoRecurrenceType === "monthly" ? "#00d0ff" : "white",
+                        flex: 1
+                      }
+                    ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#333" }}>Mensuel</Text>
+                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Jours pour hebdomadaire */}
                 {todoRecurrenceType === "weekly" && (
                   <View style={{ marginTop: 10 }}>
                     <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
-                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                      {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                      {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day, index) => (
                         <TouchableOpacity
                           key={index}
                           onPress={() => {
@@ -1371,15 +1418,15 @@ const saveTodo = async () => {
                             }
                           }}
                           style={{
-                            width: 45,
-                            height: 45,
-                            borderRadius: 22.5,
-                            backgroundColor: todoSelectedDays.includes(index) ? "#ffbf00" : "#f0f0f0",
-                            justifyContent: "center",
-                            alignItems: "center"
+                            backgroundColor: todoSelectedDays.includes(index) ? "#00d0ff" : "white",
+                            borderWidth: 2,
+                            borderColor: "#00d0ff",
+                            paddingVertical: 8,
+                            paddingHorizontal: 12,
+                            borderRadius: 8,
                           }}
                         >
-                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#333", fontSize: 12 }}>
+                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#00d0ff", fontSize: 12, fontWeight: "600" }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1388,7 +1435,6 @@ const saveTodo = async () => {
                   </View>
                 )}
 
-                {/* Jour pour mensuel */}
                 {todoRecurrenceType === "monthly" && (
                   <View style={{ marginTop: 10 }}>
                     <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
@@ -1398,15 +1444,17 @@ const saveTodo = async () => {
                           key={day}
                           onPress={() => setTodoMonthlyDay(day)}
                           style={{
+                            backgroundColor: todoMonthlyDay === day ? "#00d0ff" : "white",
+                            borderWidth: 2,
+                            borderColor: "#00d0ff",
                             width: 40,
                             height: 40,
                             borderRadius: 20,
-                            backgroundColor: todoMonthlyDay === day ? "#ffbf00" : "#f0f0f0",
                             justifyContent: "center",
-                            alignItems: "center"
+                            alignItems: "center",
                           }}
                         >
-                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#333", fontSize: 12 }}>
+                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#00d0ff", fontSize: 12 }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1425,8 +1473,9 @@ const saveTodo = async () => {
         </ScrollView>
         </View>
       );
+
     case "shopping":
-  return (
+    return (
     <View style={styles.modalInnerContainer}>
       <View style={styles.modalHeader}>
         <TouchableOpacity onPress={goBack}>
@@ -1435,6 +1484,31 @@ const saveTodo = async () => {
       </View>
 
       <Text style={styles.modalTitle}>Nouvelle Liste de Course</Text>
+
+      <Text style={{ fontSize: 16, marginBottom: 5 }}>Type de liste</Text>
+      <Picker
+        selectedValue={selectedShoppingType === "personal" ? "personal" : selectedShoppingFamily?.id}
+        onValueChange={(value) => {
+          if (value === "personal") {
+            setSelectedShoppingType("personal");
+            setSelectedShoppingFamily(null);
+          } else {
+            const fam = familiesJoined.find(f => f.id === value);
+            if (fam) {
+              setSelectedShoppingFamily(fam);
+              setSelectedShoppingType("family");
+            }
+          }
+          setSelectedListId(""); // Reset la liste sélectionnée
+        }}
+        style={{ backgroundColor: "#f1f1f1", marginBottom: 10, borderRadius: 10 }}
+      >
+        <Picker.Item label="Mes listes personnelles" value="personal" />
+        <Picker.Item label="── Listes famille ──" value="" enabled={false} />
+        {familiesJoined.map(f => (
+          <Picker.Item key={f.id} label={f.name} value={f.id} />
+        ))}
+      </Picker>
 
       <Text style={{ fontSize: 16, marginBottom: 5 }}>Choisir une liste existante</Text>
       <Picker

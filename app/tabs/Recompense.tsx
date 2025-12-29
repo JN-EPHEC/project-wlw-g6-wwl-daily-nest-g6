@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, increment, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -20,6 +20,10 @@ export default function Recompense() {
   const [rewardPoints, setRewardPoints] = useState("");
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [filterBy, setFilterBy] = useState<"none" | "date" | "priority" | "points">("none");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Charger l'utilisateur connecté
   useEffect(() => {
@@ -40,12 +44,28 @@ export default function Recompense() {
   useEffect(() => {
     if (!email) return;
 
-    const q = query(collection(db, "families"), where("members", "array-contains", email));
+    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
+    const q = query(collection(db, "families"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: any[] = [];
-      snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-      setFamiliesJoined(list);
+      const allFamilies: any[] = [];
+      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter((family: any) => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === email) {
+            return true; // Format ancien
+          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+            return true; // Format nouveau
+          }
+        }
+        return false;
+      });
+      
+      setFamiliesJoined(userFamilies);
     });
 
     return () => unsubscribe();
@@ -60,16 +80,32 @@ export default function Recompense() {
     if (selectedType === "personal") {
       // Points personnels depuis le document utilisateur
       const userDocRef = doc(db, "users", uid);
-      unsubscribe = onSnapshot(userDocRef, (snapshot) => {
-        const data = snapshot.data();
-        setPoints(data?.points || 0);
+      unsubscribe = onSnapshot(userDocRef, async (snapshot) => {
+        if (!snapshot.exists()) {
+          // Créer le document avec points à 0 s'il n'existe pas
+          await setDoc(userDocRef, { points: 0 }, { merge: true });
+          setPoints(0);
+        } else {
+          const data = snapshot.data();
+          setPoints(data?.points || 0);
+        }
       });
     } else if (selectedType === "family" && selectedFamily) {
       // Points dans la famille - stockés dans families/{familyId}/members/{uid}
       const memberDocRef = doc(db, "families", selectedFamily.id, "members", uid);
-      unsubscribe = onSnapshot(memberDocRef, (snapshot) => {
-        const data = snapshot.data();
-        setPoints(data?.points || 0);
+      unsubscribe = onSnapshot(memberDocRef, async (snapshot) => {
+        if (!snapshot.exists()) {
+          // Créer le document avec points à 0 s'il n'existe pas
+          await setDoc(memberDocRef, { 
+            points: 0,
+            email: email,
+            joinedAt: new Date().toISOString()
+          });
+          setPoints(0);
+        } else {
+          const data = snapshot.data();
+          setPoints(data?.points || 0);
+        }
       });
     }
 
@@ -121,7 +157,10 @@ export default function Recompense() {
 
       const loadedMembers: any[] = [];
 
-      for (const memberEmail of familyData.members) {
+      for (const memberItem of familyData.members) {
+        // Support des deux formats: string (ancien) ou {email, role} (nouveau)
+        const memberEmail = typeof memberItem === 'string' ? memberItem : memberItem.email;
+        
         // Récupérer les infos de l'utilisateur
         const usersQuery = query(collection(db, "users"), where("email", "==", memberEmail));
         const usersSnapshot = await onSnapshot(usersQuery, (userSnap) => {
@@ -187,6 +226,154 @@ export default function Recompense() {
 
     return () => unsubscribe();
   }, [selectedType, selectedFamily, selectedMember]);
+
+  // Charger les tâches du membre sélectionné
+  useEffect(() => {
+    if (selectedType !== "family" || !selectedFamily || !selectedMember) {
+      setTasks([]);
+      return;
+    }
+
+    const loadTasks = async () => {
+      try {
+        const allTasks: any[] = [];
+        
+        // 1. Charger les tâches depuis les listes de tâches (todos)
+        const todosQuery = query(collection(db, "families", selectedFamily.id, "todos"));
+        const todosSnapshot = await getDocs(todosQuery);
+        
+        // Pour chaque liste de tâches
+        for (const todoDoc of todosSnapshot.docs) {
+          const todoId = todoDoc.id;
+          const todoData = todoDoc.data();
+          
+          // Charger les items de cette liste
+          const itemsQuery = query(collection(db, "families", selectedFamily.id, "todos", todoId, "items"));
+          const itemsSnapshot = await getDocs(itemsQuery);
+          
+          itemsSnapshot.forEach((itemDoc) => {
+            const itemData = itemDoc.data();
+            
+            // Ne garder que les tâches assignées à ce membre
+            if (itemData.assignedTo === selectedMember.uid) {
+              allTasks.push({
+                id: itemDoc.id,
+                todoListId: todoId,
+                todoListName: todoData.title,
+                source: "todos",
+                ...itemData
+              });
+            }
+          });
+        }
+        
+        // 2. Charger les tâches depuis le calendrier
+        const calendarQuery = query(collection(db, "families", selectedFamily.id, "calendar"));
+        const calendarSnapshot = await getDocs(calendarQuery);
+        
+        calendarSnapshot.forEach((calendarDoc) => {
+          const calendarData = calendarDoc.data();
+          
+          // Ne garder que les tâches assignées à ce membre
+          if (calendarData.assignedTo === selectedMember.uid) {
+            allTasks.push({
+              id: calendarDoc.id,
+              text: calendarData.title,
+              description: calendarData.description,
+              points: calendarData.points,
+              date: calendarData.date,
+              time: calendarData.time,
+              priority: calendarData.priority,
+              checked: calendarData.checked,
+              todoListName: "Calendrier",
+              source: "calendar",
+              ...calendarData
+            });
+          }
+        });
+        
+        setTasks(allTasks);
+      } catch (error) {
+        console.error("Erreur lors du chargement des tâches:", error);
+      }
+    };
+
+    loadTasks();
+    
+    // Recharger les tâches toutes les 5 secondes pour avoir les mises à jour
+    const interval = setInterval(loadTasks, 5000);
+    
+    return () => clearInterval(interval);
+  }, [selectedType, selectedFamily, selectedMember]);
+
+  // Filtrer et trier les tâches
+  const getFilteredTasks = () => {
+    let filtered = [...tasks];
+    
+    switch(filterBy) {
+      case "date":
+        // Trier par date
+        filtered.sort((a, b) => {
+          if (!a.date && !b.date) return 0;
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          
+          // Convertir le format DD/MM/YYYY en objet Date valide
+          const parseDate = (dateStr: string, timeStr?: string) => {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              // Format DD/MM/YYYY -> créer Date(YYYY, MM-1, DD)
+              const day = parseInt(parts[0]);
+              const month = parseInt(parts[1]) - 1;
+              const year = parseInt(parts[2]);
+              const [hours = 0, minutes = 0] = (timeStr || '00:00').split(':').map(Number);
+              return new Date(year, month, day, hours, minutes);
+            }
+            return new Date(dateStr);
+          };
+          
+          const dateA = parseDate(a.date, a.time);
+          const dateB = parseDate(b.date, b.time);
+          const diff = dateA.getTime() - dateB.getTime();
+          return sortOrder === "asc" ? diff : -diff;
+        });
+        break;
+      case "priority":
+        // Trier par priorité
+        filtered.sort((a, b) => {
+          const priorityA = parseInt(a.priority || "2");
+          const priorityB = parseInt(b.priority || "2");
+          const diff = priorityB - priorityA;
+          return sortOrder === "asc" ? -diff : diff;
+        });
+        break;
+      case "points":
+        // Trier par points
+        filtered.sort((a, b) => {
+          const pointsA = parseInt(a.points || "0");
+          const pointsB = parseInt(b.points || "0");
+          const diff = pointsB - pointsA;
+          return sortOrder === "asc" ? -diff : diff;
+        });
+        break;
+      default:
+        // Pas de tri
+        break;
+    }
+    
+    return filtered;
+  };
+
+  // Fonction pour obtenir la couleur de priorité
+  const getPriorityColor = (priority: string): string => {
+    switch(priority) {
+      case "1": return "#4CAF50"; // Vert
+      case "2": return "#2196F3"; // Bleu
+      case "3": return "#FF9800"; // Orange
+      case "4": return "#F44336"; // Rouge
+      default: return "#2196F3";
+    }
+  };
 
   // Ajouter une récompense
   const addReward = async () => {
@@ -452,6 +639,113 @@ export default function Recompense() {
           ))
         )}
       </View>
+
+      {/* Section des tâches (uniquement en mode famille avec membre sélectionné) */}
+      {selectedType === "family" && selectedMember && (
+        <View style={styles.tasksSection}>
+          <View style={styles.taskHeader}>
+            <Text style={styles.tasksTitle}>Tâches à réaliser</Text>
+            <TouchableOpacity 
+              onPress={() => setShowFilters(!showFilters)}
+              style={styles.filterButton}
+            >
+              <Ionicons name="filter" size={24} color="#ffbf00" />
+            </TouchableOpacity>
+          </View>
+
+          {showFilters && (
+            <View style={styles.filtersContainer}>
+              <Text style={styles.filterLabel}>Trier par:</Text>
+              <View style={styles.filterOptions}>
+                <TouchableOpacity
+                  style={[styles.filterOption, filterBy === "none" && styles.filterOptionActive]}
+                  onPress={() => setFilterBy("none")}
+                >
+                  <Text style={[styles.filterOptionText, filterBy === "none" && styles.filterOptionTextActive]}>Aucun</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, filterBy === "date" && styles.filterOptionActive]}
+                  onPress={() => setFilterBy("date")}
+                >
+                  <Text style={[styles.filterOptionText, filterBy === "date" && styles.filterOptionTextActive]}>Date</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterOption, filterBy === "points" && styles.filterOptionActive]}
+                  onPress={() => setFilterBy("points")}
+                >
+                  <Text style={[styles.filterOptionText, filterBy === "points" && styles.filterOptionTextActive]}>Points</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {filterBy !== "none" && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={styles.filterLabel}>Ordre:</Text>
+                  <View style={styles.filterOptions}>
+                    <TouchableOpacity
+                      style={[styles.filterOption, sortOrder === "asc" && styles.filterOptionActive]}
+                      onPress={() => setSortOrder("asc")}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Ionicons name="arrow-up" size={14} color={sortOrder === "asc" ? "white" : "#666"} />
+                        <Text style={[styles.filterOptionText, sortOrder === "asc" && styles.filterOptionTextActive]}>Croissant</Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.filterOption, sortOrder === "desc" && styles.filterOptionActive]}
+                      onPress={() => setSortOrder("desc")}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                        <Ionicons name="arrow-down" size={14} color={sortOrder === "desc" ? "white" : "#666"} />
+                        <Text style={[styles.filterOptionText, sortOrder === "desc" && styles.filterOptionTextActive]}>Décroissant</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {tasks.length === 0 ? (
+            <Text style={styles.emptyText}>Aucune tâche assignée pour le moment</Text>
+          ) : (
+            getFilteredTasks().map((task) => (
+              <View key={task.id} style={[
+                styles.taskItem,
+                { borderLeftColor: getPriorityColor(task.priority || "2") }
+              ]}>
+                <View style={styles.taskContent}>
+                  <View style={styles.taskHeader}>
+                    <Text style={styles.taskTitle}>{task.text}</Text>
+                    {task.points && (
+                      <View style={styles.taskPointsBadge}>
+                        <Ionicons name="heart" size={14} color="#ff4d6d" />
+                        <Text style={styles.taskPointsText}>{task.points}</Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  {task.description && (
+                    <Text style={styles.taskDescription}>{task.description}</Text>
+                  )}
+                  
+                  <View style={styles.taskMeta}>
+                    {task.date && (
+                      <View style={styles.taskMetaItem}>
+                        <Ionicons name="calendar" size={14} color="#666" />
+                        <Text style={styles.taskMetaText}>
+                          {task.date} {task.time && `à ${task.time}`}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  <Text style={styles.taskListName}>Liste: {task.todoListName}</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      )}
       </>
       )}
       </ScrollView>
@@ -468,6 +762,7 @@ export default function Recompense() {
               placeholder="Ex: Sortie au cinéma"
               value={rewardName}
               onChangeText={setRewardName}
+              maxLength={50}
             />
 
             <Text style={styles.label}>Nombre de points requis</Text>
@@ -699,5 +994,124 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold"
+  },
+  tasksSection: {
+    width: "100%",
+    marginTop: 30,
+    marginBottom: 20
+  },
+  taskHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15
+  },
+  tasksTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333"
+  },
+  filterButton: {
+    padding: 5
+  },
+  filtersContainer: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 10
+  },
+  filterOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  filterOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#e0e0e0",
+    borderWidth: 1,
+    borderColor: "#ccc"
+  },
+  filterOptionActive: {
+    backgroundColor: "#ffbf00",
+    borderColor: "#ffbf00"
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "500"
+  },
+  filterOptionTextActive: {
+    color: "white",
+    fontWeight: "bold"
+  },
+  taskItem: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 4
+  },
+  taskContent: {
+    flex: 1
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1
+  },
+  taskDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 8,
+    lineHeight: 20
+  },
+  taskPointsBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff3cd",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4
+  },
+  taskPointsText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#856404"
+  },
+  taskMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 10
+  },
+  taskMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4
+  },
+  taskMetaText: {
+    fontSize: 13,
+    color: "#666"
+  },
+  priorityDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
+  },
+  taskListName: {
+    fontSize: 12,
+    color: "#999",
+    fontStyle: "italic",
+    marginTop: 8
   }
 });
