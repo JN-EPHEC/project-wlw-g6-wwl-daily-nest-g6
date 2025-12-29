@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
 import { DrawerActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,24 +16,6 @@ function ProfilScreen() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [gender, setGender] = useState('');
-  const [phone, setPhone] = useState('');
-  
-  // Informations médicales
-  const [bloodGroup, setBloodGroup] = useState('');
-  const [allergies, setAllergies] = useState('');
-  const [geneticDiseases, setGeneticDiseases] = useState('');
-  const [nationalNumber, setNationalNumber] = useState('');
-  
-  // Médecin traitant
-  const [doctorName, setDoctorName] = useState('');
-  const [doctorPhone, setDoctorPhone] = useState('');
-  const [doctorAddress, setDoctorAddress] = useState('');
-  
-  // École (pour les enfants)
-  const [schoolName, setSchoolName] = useState('');
-  const [schoolPhone, setSchoolPhone] = useState('');
-  const [schoolAddress, setSchoolAddress] = useState('');
   
   // États d'erreur
   const [nameFormatError, setNameFormatError] = useState(false);
@@ -49,10 +30,7 @@ function ProfilScreen() {
   }, []);
 
   const loadUserData = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
     
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -63,21 +41,6 @@ function ProfilScreen() {
         setLastName(data.lastName || '');
         setEmail(data.email || '');
         setBirthDate(data.birthDate || '');
-        setGender(data.gender || '');
-        setPhone(data.phone || '');
-        setBloodGroup(data.bloodGroup || '');
-        setAllergies(data.allergies || '');
-        setGeneticDiseases(data.geneticDiseases || '');
-        setNationalNumber(data.nationalNumber || '');
-        setDoctorName(data.doctorName || '');
-        setDoctorPhone(data.doctorPhone || '');
-        setDoctorAddress(data.doctorAddress || '');
-        setSchoolName(data.schoolName || '');
-        setSchoolPhone(data.schoolPhone || '');
-        setSchoolAddress(data.schoolAddress || '');
-      } else {
-        // Si le document n'existe pas, créer un document vide
-        setEmail(user.email || '');
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -111,18 +74,6 @@ function ProfilScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         birthDate: birthDate.trim(),
-        gender: gender,
-        phone: phone.trim(),
-        bloodGroup: bloodGroup.trim(),
-        allergies: allergies.trim(),
-        geneticDiseases: geneticDiseases.trim(),
-        nationalNumber: nationalNumber.trim(),
-        doctorName: doctorName.trim(),
-        doctorPhone: doctorPhone.trim(),
-        doctorAddress: doctorAddress.trim(),
-        schoolName: schoolName.trim(),
-        schoolPhone: schoolPhone.trim(),
-        schoolAddress: schoolAddress.trim(),
         updatedAt: new Date(),
       }, { merge: true });
 
@@ -141,18 +92,6 @@ function ProfilScreen() {
     setFirstName(userData?.firstName || '');
     setLastName(userData?.lastName || '');
     setBirthDate(userData?.birthDate || '');
-    setGender(userData?.gender || '');
-    setPhone(userData?.phone || '');
-    setBloodGroup(userData?.bloodGroup || '');
-    setAllergies(userData?.allergies || '');
-    setGeneticDiseases(userData?.geneticDiseases || '');
-    setNationalNumber(userData?.nationalNumber || '');
-    setDoctorName(userData?.doctorName || '');
-    setDoctorPhone(userData?.doctorPhone || '');
-    setDoctorAddress(userData?.doctorAddress || '');
-    setSchoolName(userData?.schoolName || '');
-    setSchoolPhone(userData?.schoolPhone || '');
-    setSchoolAddress(userData?.schoolAddress || '');
     setIsEditing(false);
     setNameFormatError(false);
     setLastNameFormatError(false);
@@ -261,35 +200,6 @@ function ProfilScreen() {
 
         <View style={styles.fieldContainer}>
           <View style={styles.labelContainer}>
-            <Text style={styles.label}>Genre</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={gender}
-                onValueChange={(value) => setGender(value)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Non spécifié" value="" />
-                <Picker.Item label="Homme" value="homme" />
-                <Picker.Item label="Femme" value="femme" />
-                <Picker.Item label="Autre" value="autre" />
-              </Picker>
-            </View>
-          ) : (
-            <Text style={styles.value}>
-              {gender === 'homme' ? 'Homme' : gender === 'femme' ? 'Femme' : gender === 'autre' ? 'Autre' : 'Non spécifié'}
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
             <Text style={styles.label}>Date de naissance</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
@@ -337,276 +247,6 @@ function ProfilScreen() {
             <Text style={styles.value}>{birthDate || 'Non renseignée'}</Text>
           )}
         </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Téléphone</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={phone}
-              placeholder="+32 XXX XX XX XX"
-              keyboardType="phone-pad"
-              onChangeText={setPhone}
-            />
-          ) : (
-            <Text style={styles.value}>{phone || 'Non renseigné'}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Section Informations médicales */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📋 Informations médicales</Text>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Groupe sanguin</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={bloodGroup}
-                onValueChange={setBloodGroup}
-                style={styles.picker}
-              >
-                <Picker.Item label="Non renseigné" value="" />
-                <Picker.Item label="A+" value="A+" />
-                <Picker.Item label="A-" value="A-" />
-                <Picker.Item label="B+" value="B+" />
-                <Picker.Item label="B-" value="B-" />
-                <Picker.Item label="AB+" value="AB+" />
-                <Picker.Item label="AB-" value="AB-" />
-                <Picker.Item label="O+" value="O+" />
-                <Picker.Item label="O-" value="O-" />
-              </Picker>
-            </View>
-          ) : (
-            <Text style={styles.value}>{bloodGroup || 'Non renseigné'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Allergies</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={[styles.input, { height: 60 }]}
-              value={allergies}
-              placeholder="Séparer par des virgules"
-              multiline
-              onChangeText={setAllergies}
-            />
-          ) : (
-            <Text style={styles.value}>{allergies || 'Aucune'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Maladies génétiques</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={[styles.input, { height: 60 }]}
-              value={geneticDiseases}
-              placeholder="Séparer par des virgules"
-              multiline
-              onChangeText={setGeneticDiseases}
-            />
-          ) : (
-            <Text style={styles.value}>{geneticDiseases || 'Aucune'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Numéro national</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={nationalNumber}
-              placeholder="XX.XX.XX-XXX.XX"
-              keyboardType="numeric"
-              onChangeText={setNationalNumber}
-            />
-          ) : (
-            <Text style={styles.value}>{nationalNumber || 'Non renseigné'}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Section Médecin traitant */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>⚕️ Médecin traitant</Text>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Nom du médecin</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={doctorName}
-              placeholder="Dr. Dupont"
-              onChangeText={setDoctorName}
-            />
-          ) : (
-            <Text style={styles.value}>{doctorName || 'Non renseigné'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Téléphone du médecin</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={doctorPhone}
-              placeholder="+32 XXX XX XX XX"
-              keyboardType="phone-pad"
-              onChangeText={setDoctorPhone}
-            />
-          ) : (
-            <Text style={styles.value}>{doctorPhone || 'Non renseigné'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Adresse du cabinet</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={[styles.input, { height: 60 }]}
-              value={doctorAddress}
-              placeholder="Rue, Ville, Code postal"
-              multiline
-              onChangeText={setDoctorAddress}
-            />
-          ) : (
-            <Text style={styles.value}>{doctorAddress || 'Non renseignée'}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Section École */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏫 École</Text>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Nom de l'école</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={schoolName}
-              placeholder="École primaire..."
-              onChangeText={setSchoolName}
-            />
-          ) : (
-            <Text style={styles.value}>{schoolName || 'Non renseignée'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Téléphone de l'école</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={schoolPhone}
-              placeholder="+32 XXX XX XX XX"
-              keyboardType="phone-pad"
-              onChangeText={setSchoolPhone}
-            />
-          ) : (
-            <Text style={styles.value}>{schoolPhone || 'Non renseigné'}</Text>
-          )}
-        </View>
-
-        <View style={styles.fieldContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Adresse de l'école</Text>
-            {!isEditing && (
-              <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
-              </TouchableOpacity>
-            )}
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={[styles.input, { height: 60 }]}
-              value={schoolAddress}
-              placeholder="Rue, Ville, Code postal"
-              multiline
-              onChangeText={setSchoolAddress}
-            />
-          ) : (
-            <Text style={styles.value}>{schoolAddress || 'Non renseignée'}</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Section Compte */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>👤 Compte</Text>
 
         <View style={styles.fieldContainer}>
           <Text style={styles.label}>Compte créé le</Text>
@@ -674,12 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 15,
-  },
   fieldContainer: {
     marginBottom: 20,
   },
@@ -707,16 +341,6 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     backgroundColor: 'white',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: 'white',
-  },
-  picker: {
-    height: 50,
   },
   errorText: {
     color: 'red',

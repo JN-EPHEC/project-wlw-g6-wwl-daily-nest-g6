@@ -1338,13 +1338,6 @@ export default function TodoList() {
                 setEditDate("");
                 setEditTime("");
                 setEditPriority("2");
-                setEditAssignedTo("");
-                setEditIsRotation(false);
-                setEditRotationMembers([]);
-                setEditIsRecurring(false);
-                setEditRecurrenceType("daily");
-                setEditSelectedDays([]);
-                setEditMonthlyDay(1);
               }}>
                 <Text style={{ fontSize: 15, color: "red", fontWeight: "600" }}>Annuler</Text>
               </TouchableOpacity>
