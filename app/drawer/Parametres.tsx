@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -28,22 +27,15 @@ export function Parametres() {
 
   // user data
   const [profile, setProfile] = useState({ firstName: "", lastName: "", email: "" });
-  const [familyRoles, setFamilyRoles] = useState<{ [familyId: string]: "parents" | "children" }>({});
-  const [displayRoles, setDisplayRoles] = useState<Array<{familyName: string; role: string}>>([]); // Nouveaux rôles depuis members
+  const [role, setRole] = useState<"parents" | "children">("parents");
 
   // modals
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
 
   // privacy & notif
   const [privacyShare, setPrivacyShare] = useState(false);
   const [notifOptions, setNotifOptions] = useState({ tasks: false, chat: false, reminders: false });
-
-  // password change
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const userRef = (id: string) => doc(db, "users", id);
 
@@ -79,6 +71,7 @@ export function Parametres() {
         lastName: data.lastName || "",
         email: data.email || auth.currentUser?.email || "",
       });
+      setRole(data.role === "children" ? "children" : "parents");
       setPrivacyShare(!!data?.privacy?.shareData);
       setNotifOptions({
         tasks: !!data?.notif?.tasks,
@@ -95,69 +88,19 @@ export function Parametres() {
   // load families
   useEffect(() => {
     if (!user?.email) return;
-    
-    // Charger TOUTES les familles et filtrer côté client
-    const q = query(collection(db, "families"));
-    const unsub = onSnapshot(q, async (snap) => {
-      const familiesData: any[] = [];
-      const roles: Array<{familyName: string; role: string}> = [];
-      const oldRoles: { [familyId: string]: "parents" | "children" } = {};
-      
-      snap.forEach(doc => {
-        const familyData = doc.data();
-        const members = familyData.members || [];
-        
-        // Vérifier si l'utilisateur fait partie de cette famille
-        let userRole = null;
-        let isMember = false;
-        
-        for (const memberItem of members) {
-          if (typeof memberItem !== 'string' && memberItem.email === user.email) {
-            // Format nouveau : {email, role}
-            isMember = true;
-            userRole = memberItem.role || 'Non défini';
-            break;
-          } else if (typeof memberItem === 'string' && memberItem === user.email) {
-            // Format ancien : simple email
-            isMember = true;
-            userRole = 'Non défini';
-            break;
-          }
-        }
-        
-        if (isMember) {
-          familiesData.push({ id: doc.id, ...familyData });
-          roles.push({
-            familyName: familyData.name || 'Famille sans nom',
-            role: userRole || 'Non défini'
-          });
-          
-          // Charger aussi l'ancien système pour compatibilité
-          const memberRole = familyData?.memberRoles?.[user.email];
-          oldRoles[doc.id] = memberRole === "children" ? "children" : "parents";
-        }
-      });
-      
-      setFamilies(familiesData);
-      setDisplayRoles(roles);
-      setFamilyRoles(oldRoles);
+    const q = query(collection(db, "families"), where("members", "array-contains", user.email));
+    const unsub = onSnapshot(q, (snap) => {
+      setFamilies(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
   }, [user?.email]);
 
   // save settings
   const saveBasicSettings = async () => {
-    if (!uid || !user?.email) return;
+    if (!uid) return;
     try {
-      // Save roles for each family
-      for (const familyId in familyRoles) {
-        const familyRef = doc(db, "families", familyId);
-        await updateDoc(familyRef, {
-          [`memberRoles.${user.email.replace(/\./g, '_')}`]: familyRoles[familyId]
-        });
-      }
-      
       await updateDoc(userRef(uid), {
+        role,
         privacy: { shareData: privacyShare },
         notif: notifOptions,
       });
@@ -165,52 +108,6 @@ export function Parametres() {
     } catch (err) {
       console.error(err);
       Alert.alert("Erreur", "Impossible de sauvegarder");
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!uid || !user) return;
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      Alert.alert("Erreur", "Le nouveau mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
-      return;
-    }
-
-    try {
-      // Réauthentifier l'utilisateur
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword
-      );
-      await reauthenticateWithCredential(user, credential);
-
-      // Mettre à jour le mot de passe
-      await updatePassword(user, newPassword);
-
-      Alert.alert("Succès", "Mot de passe modifié avec succès");
-      setPasswordVisible(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (err: any) {
-      console.error(err);
-      if (err.code === "auth/wrong-password") {
-        Alert.alert("Erreur", "Mot de passe actuel incorrect");
-      } else if (err.code === "auth/requires-recent-login") {
-        Alert.alert("Erreur", "Pour des raisons de sécurité, veuillez vous reconnecter avant de changer votre mot de passe");
-      } else {
-        Alert.alert("Erreur", "Impossible de modifier le mot de passe");
-      }
     }
   };
 
@@ -251,45 +148,16 @@ export function Parametres() {
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
 
-        {/* Mes rôles dans les familles */}
+        {/* Role Picker */}
         <View style={styles.card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.sectionTitle}>Mes rôles dans les familles</Text>
+          <Text style={styles.sectionTitle}>Rôle dans la famille</Text>
+          <Text style={styles.smallText}>Choisis un rôle pour ton profil</Text>
+          <View style={styles.pickerWrap}>
+            <Picker selectedValue={role} onValueChange={(v) => setRole(v as any)}>
+              <Picker.Item label="Parents" value="parents" />
+              <Picker.Item label="Enfants" value="children" />
+            </Picker>
           </View>
-          
-          {displayRoles.length === 0 ? (
-            <Text style={styles.noFamilyText}>Tu n'appartiens à aucune famille pour le moment</Text>
-          ) : (
-            displayRoles.map((familyRole, index) => {
-              return (
-                <View key={index} style={styles.roleDisplayCard}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.familyName}>{familyRole.familyName}</Text>
-                      <View style={[
-                        styles.roleBadge,
-                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
-                      ]}>
-                        <Text style={[
-                          styles.roleText,
-                          { color: familyRole.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
-                        ]}>
-                          {familyRole.role}
-                        </Text>
-                      </View>
-                    </View>
-                    <Ionicons 
-                      name={familyRole.role.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
-                      size={28} 
-                      color={familyRole.role.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
-                    />
-                  </View>
-                </View>
-              );
-            })
-          )}
-          
-
         </View>
 
         {/* Notifications */}
@@ -306,15 +174,6 @@ export function Parametres() {
           <View>
             <Text style={styles.rowTitle}>Confidentialité</Text>
             <Text style={styles.rowSub}>Gérer la visibilité et le partage des données</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
-        </TouchableOpacity>
-
-        {/* Mot de passe */}
-        <TouchableOpacity style={styles.cardRow} onPress={() => setPasswordVisible(true)}>
-          <View>
-            <Text style={styles.rowTitle}>Mot de passe</Text>
-            <Text style={styles.rowSub}>Modifier votre mot de passe</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#888" />
         </TouchableOpacity>
@@ -405,7 +264,7 @@ export function Parametres() {
                   onPress={async () => {
                     if (!uid) return;
                     try {
-                      await updateDoc(userRef(uid), { notif: notifOptions }); 
+                      await updateDoc(userRef(uid), { notif: notifOptions });
                       setNotifVisible(false);
                       Alert.alert("Succès", "Notifications sauvegardées");
                     } catch (err) {
@@ -415,70 +274,6 @@ export function Parametres() {
                   }}
                 >
                   <Text style={styles.modalSaveText}>Enregistrer</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Password Modal */}
-        <Modal visible={passwordVisible} transparent animationType="slide">
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Modifier le mot de passe</Text>
-                <TouchableOpacity onPress={() => {
-                  setPasswordVisible(false);
-                  setCurrentPassword("");
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}>
-                  <Ionicons name="close" size={22} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.modalText}>
-                Pour des raisons de sécurité, vous devez entrer votre mot de passe actuel.
-              </Text>
-              <View style={{ marginTop: 15 }}>
-                <Text style={styles.inputLabel}>Mot de passe actuel</Text>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Mot de passe actuel"
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  secureTextEntry
-                />
-                <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Nouveau mot de passe (min. 6 caractères)"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  secureTextEntry
-                />
-                <Text style={styles.inputLabel}>Confirmer le mot de passe</Text>
-                <TextInput
-                  style={styles.passwordInput}
-                  placeholder="Confirmer le nouveau mot de passe"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                />
-              </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.iconClose} onPress={() => {
-                  setPasswordVisible(false);
-                  setCurrentPassword("");
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}>
-                  <Ionicons name="close" size={18} color="#444" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalSaveBtn}
-                  onPress={handleChangePassword}
-                >
-                  <Text style={styles.modalSaveText}>Modifier</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -547,51 +342,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  familyRoleCard: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-  },
-  roleDisplayCard: {
-    marginTop: 12,
-    padding: 14,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  familyName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  noFamilyText: {
-    color: "#999",
-    fontStyle: "italic",
-    marginTop: 8,
-    fontSize: 13,
-  },
-  roleBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 5,
-    alignSelf: 'flex-start',
-  },
-  roleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
   saveSmallBtn: {
     backgroundColor: "#2d9cdb",
     paddingVertical: 10,
@@ -638,19 +388,4 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   modalSaveText: { color: "#222", fontWeight: "700" },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-    marginTop: 10,
-  },
-  passwordInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    backgroundColor: "#f9f9f9",
-  },
 });

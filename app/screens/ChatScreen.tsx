@@ -52,20 +52,14 @@ export default function ChatScreen() {
 
   // 🔹 Charger familles
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "families"), snap => {
-      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const userFamilies = allFamilies.filter((fam: any) => {
-        if (Array.isArray(fam.members)) {
-          return fam.members.some((m: any) => 
-            typeof m === "string" ? m === user.email : m.email === user.email
-          );
-        }
-        return false;
-      });
-      setFamilies(userFamilies);
-    });
+    const q = query(
+      collection(db, "families"),
+      where("members", "array-contains", user.email)
+    );
 
-    return unsubscribe;
+    return onSnapshot(q, snap => {
+      setFamilies(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
   }, []);
 
   // 🔹 Charger conversations
@@ -588,3 +582,4 @@ groupInput: {
 function docRef(arg0: CollectionReference<DocumentData, DocumentData>, arg1: { familyId: any; type: "private" | "group"; title: string; members: (string | null)[]; createdAt: FieldValue; }) {
   throw new Error("Function not implemented.");
 }
+

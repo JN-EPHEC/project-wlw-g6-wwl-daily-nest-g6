@@ -28,43 +28,11 @@ export default function Home() {
   const [modalViewVisible, setModalViewVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [items, setItems] = useState<{ [key: string]: { 
-    id: string; 
-    title: string; 
-    time: string; 
-    description?: string;
-    points?: number;
-    priority?: string; 
-    checked?: boolean; 
-    assignedTo?: string; 
-    isRotation?: boolean;
-    rotationMembers?: string[];
-    isRecurring?: boolean;
-    recurrenceType?: "daily" | "weekly" | "monthly";
-    selectedDays?: number[];
-    monthlyDay?: number;
-    reminders?: Array<{ date: string; time: string; message: string }> 
-  }[] }>({});
+  const [items, setItems] = useState<{ [key: string]: { id: string; title: string; time: string; priority?: string; checked?: boolean; assignedTo?: string; isRotation?: boolean }[] }>({});
   const router = useRouter();
   const [eventDate, setEventDate] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [eventDescription, setEventDescription] = useState("");
-  const [eventPoints, setEventPoints] = useState("");
-  const [eventPriority, setEventPriority] = useState("2");
-  const [eventAssignedTo, setEventAssignedTo] = useState("");
-  const [eventIsRotation, setEventIsRotation] = useState(false);
-  const [eventRotationMembers, setEventRotationMembers] = useState<string[]>([]);
-  const [eventIsRecurring, setEventIsRecurring] = useState(false);
-  const [eventRecurrenceType, setEventRecurrenceType] = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [eventSelectedDays, setEventSelectedDays] = useState<number[]>([]);
-  const [eventMonthlyDay, setEventMonthlyDay] = useState<number>(1);
-  const [eventReminders, setEventReminders] = useState<Array<{ date: string; time: string; message?: string }>>([]);
-  const [reminderDate, setReminderDate] = useState("");
-  const [reminderTime, setReminderTime] = useState("");
-  const [reminderMessage, setReminderMessage] = useState("");
-  const [remindersEnabled, setRemindersEnabled] = useState(false);
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [calendarTheme, setCalendarTheme] = useState("#ffbf00"); // Couleur du thème du calendrier 
 
 const [selectedCalendarType, setSelectedCalendarType] = useState("personal");
@@ -72,14 +40,12 @@ const [families, setFamilies] = useState<any[]>([]);
 const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
 const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; ownerId: string; members: string[] }[]>([]);
 const [sortBy, setSortBy] = useState<"none" | "priority-desc" | "priority-asc" | "time">("none");
-const [filterByPerson, setFilterByPerson] = useState<string | null>(null);
 
 
 
 const [uid, setUid] = useState<string | null>(null);
 const [email, setEmail] = useState<string | null>(null);
 const [usersMap, setUsersMap] = useState<{ [uid: string]: { firstName: string; lastName: string } }>({});
-const [familyMembers, setFamilyMembers] = useState<{ uid: string; firstName: string; lastName: string }[]>([]);
 
 
 useEffect(() => {
@@ -115,41 +81,9 @@ useEffect(() => {
   const q = query(collection(db, "families"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const allFamilies: any[] = [];
-    snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
-    
-    // Filtrer pour ne garder que les familles où l'utilisateur est membre
-    const userFamilies = allFamilies.filter((family: any) => {
-      const members = family.members || [];
-      
-      for (const memberItem of members) {
-        if (typeof memberItem === 'string' && memberItem === email) {
-          return true; // Format ancien (string)
-        } else if (typeof memberItem === 'object' && memberItem.email === email) {
-          return true; // Format nouveau ({email, role})
-        }
-      }
-      return false;
-    });
-    
-    setFamiliesJoined(userFamilies);
-  });
-
-  return () => unsubscribe();
-}, [email]);
-
-// Charger tous les utilisateurs pour afficher les noms
-useEffect(() => {
-  const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
-    const users: { [uid: string]: { firstName: string; lastName: string } } = {};
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      users[doc.id] = {
-        firstName: data.prenom || data.firstName || data.firstname || data.name || "Utilisateur",
-        lastName: data.nom || data.lastName || data.lastname || "",
-      };
-    });
-    setUsersMap(users);
+    const list: any = [];
+    snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+    setFamiliesJoined(list);
   });
 
   return () => unsubscribe();
@@ -169,32 +103,22 @@ useEffect(() => {
       
       if (!familyData || !familyData.members) return;
 
-      const members: { uid: string; firstName: string; lastName: string }[] = [];
+// Charger tous les utilisateurs pour afficher les noms
+useEffect(() => {
+  const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+    const users: { [uid: string]: { firstName: string; lastName: string } } = {};
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      users[doc.id] = {
+        firstName: data.prenom || data.firstName || data.firstname || data.name || "Utilisateur",
+        lastName: data.nom || data.lastName || data.lastname || "",
+      };
+    });
+    setUsersMap(users);
+  });
 
-      for (const memberItem of familyData.members) {
-        const memberEmail = typeof memberItem === 'string' ? memberItem : memberItem.email;
-        
-        const usersQuery = query(collection(db, "users"), where("email", "==", memberEmail));
-        const usersSnapshot = await getDocs(usersQuery);
-        
-        usersSnapshot.forEach((userDoc) => {
-          const userData = userDoc.data();
-          members.push({
-            uid: userDoc.id,
-            firstName: userData.prenom || userData.firstName || userData.firstname || userData.name || "Utilisateur",
-            lastName: userData.nom || userData.lastName || userData.lastname || ""
-          });
-        });
-      }
-      
-      setFamilyMembers(members);
-    } catch (error) {
-      console.error("Erreur lors du chargement des membres:", error);
-    }
-  };
-
-  loadFamilyMembers();
-}, [selectedCalendarType, selectedFamily]);
+  return () => unsubscribe();
+}, []);
 
 useEffect(() => {
   if (!uid) return;
@@ -222,23 +146,7 @@ useEffect(() => {
           
           newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
-          newItems[calendarDate].push({ 
-            id: doc.id, 
-            title: data.title, 
-            time: data.time, 
-            description: data.description,
-            points: data.points,
-            priority: data.priority, 
-            checked: data.checked || false, 
-            assignedTo: data.assignedTo, 
-            isRotation: data.isRotation,
-            rotationMembers: data.rotationMembers || [],
-            isRecurring: data.isRecurring,
-            recurrenceType: data.recurrenceType,
-            selectedDays: data.selectedDays || [],
-            monthlyDay: data.monthlyDay,
-            reminders: data.reminders || [] 
-          });
+          newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
         });
 
         setEvents(newEvents);
@@ -267,23 +175,7 @@ useEffect(() => {
         
         newEvents[calendarDate] = { marked: true, dotColor: "#ff0000" };
         if (!newItems[calendarDate]) newItems[calendarDate] = [];
-        newItems[calendarDate].push({ 
-          id: doc.id, 
-          title: data.title, 
-          time: data.time, 
-          description: data.description,
-          points: data.points,
-          priority: data.priority, 
-          checked: data.checked || false, 
-          assignedTo: data.assignedTo, 
-          isRotation: data.isRotation,
-          rotationMembers: data.rotationMembers || [],
-          isRecurring: data.isRecurring,
-          recurrenceType: data.recurrenceType,
-          selectedDays: data.selectedDays || [],
-          monthlyDay: data.monthlyDay,
-          reminders: data.reminders || [] 
-        });
+        newItems[calendarDate].push({ id: doc.id, title: data.title, time: data.time, priority: data.priority, checked: data.checked || false, assignedTo: data.assignedTo, isRotation: data.isRotation });
       });
       setEvents(newEvents);
       setItems(newItems);
@@ -340,23 +232,7 @@ const saveEvent = async () => {
         reminders: eventReminders
       });
     } else {
-      await addDoc(path, { 
-        title: eventTitle, 
-        date: formattedDate, 
-        time: eventTime, 
-        checked: false,
-        description: eventDescription,
-        points: parseInt(eventPoints) || 0,
-        priority: eventPriority,
-        assignedTo: eventAssignedTo || null,
-        isRotation: eventIsRotation,
-        rotationMembers: eventIsRotation ? eventRotationMembers : [],
-        isRecurring: eventIsRecurring,
-        recurrenceType: eventIsRecurring ? eventRecurrenceType : null,
-        selectedDays: eventIsRecurring && eventRecurrenceType === "weekly" ? eventSelectedDays : [],
-        monthlyDay: eventIsRecurring && eventRecurrenceType === "monthly" ? eventMonthlyDay : null,
-        reminders: eventReminders
-      });
+      await addDoc(path, { title: eventTitle, date: formattedDate, time: eventTime, checked: false });
     }
 
     alert("Événement sauvegardé !");
@@ -593,80 +469,8 @@ const saveEvent = async () => {
             </View>
           </View>
 
-          {/* Filtre par personne */}
-          {selectedCalendarType === "family" && familyMembers.length > 0 && (
-            <View style={{ marginBottom: 15 }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: "#999", marginBottom: 8 }}>Filtrer par personne :</Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                <TouchableOpacity
-                  onPress={() => setFilterByPerson(null)}
-                  style={[
-                    styles.personFilterChip,
-                    !filterByPerson && styles.personFilterChipActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.personFilterText,
-                    !filterByPerson && styles.personFilterTextActive
-                  ]}>Tous</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  onPress={() => setFilterByPerson(uid)}
-                  style={[
-                    styles.personFilterChip,
-                    filterByPerson === uid && styles.personFilterChipActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.personFilterText,
-                    filterByPerson === uid && styles.personFilterTextActive
-                  ]}>Moi</Text>
-                </TouchableOpacity>
-                
-                {familyMembers.filter(m => m.uid !== uid).map(member => (
-                  <TouchableOpacity
-                    key={member.uid}
-                    onPress={() => setFilterByPerson(member.uid)}
-                    style={[
-                      styles.personFilterChip,
-                      filterByPerson === member.uid && styles.personFilterChipActive
-                    ]}
-                  >
-                    <Text style={[
-                      styles.personFilterText,
-                      filterByPerson === member.uid && styles.personFilterTextActive
-                    ]}>{member.firstName}</Text>
-                  </TouchableOpacity>
-                ))}
-                
-                <TouchableOpacity
-                  onPress={() => setFilterByPerson("unassigned")}
-                  style={[
-                    styles.personFilterChip,
-                    filterByPerson === "unassigned" && styles.personFilterChipActive
-                  ]}
-                >
-                  <Text style={[
-                    styles.personFilterText,
-                    filterByPerson === "unassigned" && styles.personFilterTextActive
-                  ]}>Non assignées</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
           {(() => {
             let sortedItems = [...items[selectedDate]];
-            
-            // Filtrer par personne si un filtre est actif
-            if (filterByPerson !== null) {
-              if (filterByPerson === "unassigned") {
-                sortedItems = sortedItems.filter(item => !item.assignedTo);
-              } else {
-                sortedItems = sortedItems.filter(item => item.assignedTo === filterByPerson);
-              }
-            }
             
             // D'abord séparer les tâches cochées et non cochées
             const uncheckedItems = sortedItems.filter(item => !item.checked);
@@ -709,39 +513,11 @@ const saveEvent = async () => {
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.taskTitle, item.checked && { textDecorationLine: "line-through", color: "#999" }]}>{item.title}</Text>
-                
-                {/* Affichage de l'heure */}
-                {item.time && (
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                    <Ionicons name="time-outline" size={14} color="#666" />
-                    <Text style={[styles.taskTime, item.checked && { color: "#999" }, { marginLeft: 4 }]}>{item.time}</Text>
-                  </View>
-                )}
-                
-                {/* Affichage de la personne assignée */}
+                <Text style={[styles.taskTime, item.checked && { color: "#999" }]}>⏰ {item.time}</Text>
                 {item.assignedTo && usersMap[item.assignedTo] && (
-                  <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
-                    {item.isRotation && <Ionicons name="repeat-outline" size={14} color="#ff9800" style={{ marginRight: 4 }} />}
-                    <Ionicons name="person-outline" size={14} color="#ffbf00" />
-                    <Text style={[styles.taskTime, item.checked && { color: "#999" }, { color: "#ffbf00", fontWeight: "600", marginLeft: 4 }]}>
-                      {usersMap[item.assignedTo].firstName} {usersMap[item.assignedTo].lastName}
-                    </Text>
-                  </View>
-                )}
-                
-                {/* Affichage des rappels */}
-                {item.reminders && item.reminders.length > 0 && (
-                  <View style={{ marginTop: 4 }}>
-                    {item.reminders.map((reminder: any, idx: number) => (
-                      <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-                        <Ionicons name="notifications-outline" size={14} color="#2196F3" />
-                        <Text style={{ fontSize: 11, color: "#2196F3", marginLeft: 4 }}>
-                          {reminder.date} à {reminder.time}
-                          {reminder.message && ` - ${reminder.message}`}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
+                  <Text style={[styles.taskTime, item.checked && { color: "#999" }, { color: "#ffbf00", fontWeight: "600" }]}>
+                    {item.isRotation && "🔄 "}👤 {usersMap[item.assignedTo].firstName} {usersMap[item.assignedTo].lastName}
+                  </Text>
                 )}
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
