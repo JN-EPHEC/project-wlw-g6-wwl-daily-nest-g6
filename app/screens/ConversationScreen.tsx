@@ -3,12 +3,12 @@ import { useRoute } from "@react-navigation/native";
 import { addDoc, collection, onSnapshot, query, serverTimestamp } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  FlatList,
-  KeyboardAvoidingView, Platform,
-  StyleSheet,
-  Text,
-  TextInput, TouchableOpacity,
-  View
+    FlatList,
+    KeyboardAvoidingView, Platform,
+    StyleSheet,
+    Text,
+    TextInput, TouchableOpacity,
+    View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 

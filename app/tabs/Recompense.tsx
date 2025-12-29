@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { onAuthStateChanged } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -234,51 +234,70 @@ export default function Recompense() {
       return;
     }
 
-    const loadTasks = async () => {
-      try {
-        const allTasks: any[] = [];
-        
-        // 1. Charger les tâches depuis les listes de tâches (todos)
-        const todosQuery = query(collection(db, "families", selectedFamily.id, "todos"));
-        const todosSnapshot = await getDocs(todosQuery);
-        
+    const unsubscribes: any[] = [];
+    const allTasks: any[] = [];
+
+    // 1. Écouter les listes de tâches en temps réel
+    const todosUnsubscribe = onSnapshot(
+      collection(db, "families", selectedFamily.id, "todos"),
+      async (todosSnapshot) => {
+        const newTasks: any[] = [];
+
         // Pour chaque liste de tâches
         for (const todoDoc of todosSnapshot.docs) {
           const todoId = todoDoc.id;
           const todoData = todoDoc.data();
           
-          // Charger les items de cette liste
-          const itemsQuery = query(collection(db, "families", selectedFamily.id, "todos", todoId, "items"));
-          const itemsSnapshot = await getDocs(itemsQuery);
-          
-          itemsSnapshot.forEach((itemDoc) => {
-            const itemData = itemDoc.data();
-            
-            // Ne garder que les tâches assignées à ce membre
-            if (itemData.assignedTo === selectedMember.uid) {
-              allTasks.push({
-                id: itemDoc.id,
-                todoListId: todoId,
-                todoListName: todoData.title,
-                source: "todos",
-                ...itemData
+          // Écouter les items de cette liste en temps réel
+          const itemsUnsubscribe = onSnapshot(
+            collection(db, "families", selectedFamily.id, "todos", todoId, "items"),
+            (itemsSnapshot) => {
+              itemsSnapshot.forEach((itemDoc) => {
+                const itemData = itemDoc.data();
+                
+                // Ne garder que les tâches assignées à ce membre
+                // Si assignedTo est vide ET qu'on est en famille, considérer comme assigné à l'utilisateur actuel
+                if (itemData.assignedTo === selectedMember.uid || 
+                    (itemData.assignedTo === "" && selectedMember.uid === uid)) {
+                  const taskExists = newTasks.findIndex(t => t.id === itemDoc.id) !== -1;
+                  if (!taskExists) {
+                    newTasks.push({
+                      id: itemDoc.id,
+                      todoListId: todoId,
+                      todoListName: todoData.title,
+                      source: "todos",
+                      text: itemData.name || itemData.text, // Support des deux formats
+                      ...itemData
+                    });
+                  }
+                }
               });
+              
+              setTasks([...newTasks]);
             }
-          });
+          );
+          
+          unsubscribes.push(itemsUnsubscribe);
         }
-        
-        // 2. Charger les tâches depuis le calendrier
-        const calendarQuery = query(collection(db, "families", selectedFamily.id, "calendar"));
-        const calendarSnapshot = await getDocs(calendarQuery);
+      }
+    );
+
+    unsubscribes.push(todosUnsubscribe);
+
+    // 2. Écouter le calendrier en temps réel
+    const calendarUnsubscribe = onSnapshot(
+      collection(db, "families", selectedFamily.id, "calendar"),
+      (calendarSnapshot) => {
+        const calendarTasks: any[] = [];
         
         calendarSnapshot.forEach((calendarDoc) => {
           const calendarData = calendarDoc.data();
           
           // Ne garder que les tâches assignées à ce membre
           if (calendarData.assignedTo === selectedMember.uid) {
-            allTasks.push({
+            calendarTasks.push({
               id: calendarDoc.id,
-              text: calendarData.title,
+              text: calendarData.title || calendarData.name, // Support des deux formats
               description: calendarData.description,
               points: calendarData.points,
               date: calendarData.date,
@@ -292,18 +311,15 @@ export default function Recompense() {
           }
         });
         
-        setTasks(allTasks);
-      } catch (error) {
-        console.error("Erreur lors du chargement des tâches:", error);
+        setTasks(prev => [...prev.filter(t => t.source === "todos"), ...calendarTasks]);
       }
-    };
+    );
 
-    loadTasks();
-    
-    // Recharger les tâches toutes les 5 secondes pour avoir les mises à jour
-    const interval = setInterval(loadTasks, 5000);
-    
-    return () => clearInterval(interval);
+    unsubscribes.push(calendarUnsubscribe);
+
+    return () => {
+      unsubscribes.forEach(unsub => unsub && unsub());
+    };
   }, [selectedType, selectedFamily, selectedMember]);
 
   // Filtrer et trier les tâches
@@ -1115,3 +1131,5 @@ const styles = StyleSheet.create({
     marginTop: 8
   }
 });
+
+
