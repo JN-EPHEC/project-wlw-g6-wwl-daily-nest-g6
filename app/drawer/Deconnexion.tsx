@@ -1,13 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import React, { useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebaseConfig";
 
-export function Deconnexion() {
+export default function Deconnexion() {
   const router = useRouter();
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -38,26 +35,6 @@ export function Deconnexion() {
         </View>
       </Modal>
     </View>
-  );
-}
-
-const Stack = createNativeStackNavigator();
-export default function () {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="ProfilMain"
-        component={Deconnexion}
-        options={({ navigation }) => ({
-          headerTitle: "Deconnexion ",
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-    </Stack.Navigator>
   );
 }
 
