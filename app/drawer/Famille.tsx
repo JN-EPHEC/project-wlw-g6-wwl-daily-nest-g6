@@ -18,9 +18,6 @@ export function FamilyScreen() {
 const [selectedFamily, setSelectedFamily] = useState<any>(null);
 const [familyModalVisible, setFamilyModalVisible] = useState(false);
 const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
-const [roleManagementVisible, setRoleManagementVisible] = useState(false);
-const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
-const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
 
 const navigation = useNavigation();
 
@@ -34,27 +31,14 @@ useEffect(() => {
   useEffect(() => {
     if (!user?.email) return;
 
-    // Charger TOUTES les familles et filtrer côté client (pour supporter les deux formats)
-    const q = query(collection(db, "families"));
+    const q = query(
+      collection(db,"families"),
+      where("members", "array-contains", user.email)
+    );
 
     const unsub = onSnapshot(q, (snap) => {
-      const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      
-      // Filtrer pour ne garder que les familles où l'utilisateur est membre
-      const userFamilies = allFamilies.filter((family: any) => {
-        const members = family.members || [];
-        
-        for (const memberItem of members) {
-          if (typeof memberItem === 'string' && memberItem === user.email) {
-            return true; // Format ancien
-          } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
-            return true; // Format nouveau
-          }
-        }
-        return false;
-      });
-      
-      setFamilies(userFamilies);
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setFamilies(list);
     });
 
     return () => unsub();
@@ -70,30 +54,12 @@ useEffect(() => {
   }
 
   if (!currentUser || !currentUser.email) {
+    console.log("USER IS NULL:", currentUser);
     Alert.alert("Erreur", "Utilisateur non connecté");
     return;
   }
 
-  // Générer un code unique entre 0 et 999999
-  let code = "";
-  let isUnique = false;
-  
-  while (!isUnique) {
-    // Générer un code entre 0 et 999999 (padding avec des zéros si nécessaire)
-    code = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    
-    // Vérifier si ce code existe déjà
-    const existingCodeQuery = query(
-      collection(db, "families"),
-      where("joinCode", "==", code)
-    );
-    const existingCodeSnap = await getDocs(existingCodeQuery);
-    
-    // Si aucune famille n'utilise ce code, c'est bon
-    if (existingCodeSnap.empty) {
-      isUnique = true;
-    }
-  }
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
 
    const familyRef = await addDoc(collection(db, "families"), {
     name: familyName,
@@ -101,15 +67,12 @@ useEffect(() => {
     joinCode: code,
     members: [user.email],
   });
+    await setDoc(doc(db, "users", user.uid, "familiesJoined", familyRef.id), {
+    familyId: familyRef.id
+  });
 
     setFamilyName("");
-    setCreateModalVisible(false);
-    Alert.alert(
-      "Succès", 
-      `Famille créée avec succès !\n\nVotre code famille : ${code}\n\nPartagez ce code pour inviter d'autres membres.`,
-      [{ text: "OK" }]
-    );
-  };
+    setCreateModalVisible(false);};
 
 
   // Join family by code
@@ -146,7 +109,6 @@ useEffect(() => {
 
     setJoinCode("");
     setJoinModalVisible(false);
-    Alert.alert("Succès", "Vous avez rejoint la famille avec succès !");
   };
 
   const handleDeletePress = (family: any) => {
@@ -159,7 +121,7 @@ useEffect(() => {
           await deleteDoc(doc(db, "families", family.id));
           setFamilies(prev => prev.filter(f => f.id !== family.id));
         } catch (err) {
-          Alert.alert("Erreur", "Impossible de supprimer la famille");
+          console.log("Erreur suppression famille:", err);
         }
       },
     },
@@ -179,55 +141,7 @@ const updateFamilyName = async () => {
     setEditFamilyModalVisible(false);
     setFamilyName("");
   } catch (err) {
-    Alert.alert("Erreur", "Impossible de modifier la famille");
-  }
-};
-
-// Ouvrir le modal de gestion des rôles pour une famille
-const openRoleManagementForFamily = async (family: any) => {
-  setSelectedFamilyForRoles(family);
-  
-  // Récupérer les données à jour de la famille
-  const familyDoc = await getDoc(doc(db, 'families', family.id));
-  if (!familyDoc.exists()) return;
-  
-  const familyData = familyDoc.data();
-  
-  // Initialiser les rôles actuels
-  const currentRoles: {[email: string]: string} = {};
-  const familyMembers = familyData.members || [];
-  
-  for (const memberItem of familyMembers) {
-    if (typeof memberItem === 'string') {
-      currentRoles[memberItem] = 'Enfant';
-    } else {
-      currentRoles[memberItem.email] = memberItem.role || 'Enfant';
-    }
-  }
-  
-  setRoleAssignments(currentRoles);
-  setRoleManagementVisible(true);
-};
-
-// Sauvegarder les rôles dans Firestore
-const saveRoles = async () => {
-  if (!selectedFamilyForRoles) return;
-  
-  try {
-    const newMembers = Object.entries(roleAssignments).map(([email, role]) => ({
-      email,
-      role
-    }));
-    
-    await setDoc(doc(db, 'families', selectedFamilyForRoles.id), {
-      members: newMembers
-    }, { merge: true });
-    
-    Alert.alert('Succès', 'Les rôles ont été mis à jour!');
-    setRoleManagementVisible(false);
-  } catch (error) {
-    console.error('Erreur lors de la sauvegarde des rôles:', error);
-    Alert.alert('Erreur', 'Impossible de sauvegarder les rôles');
+    console.log("Erreur update famille:", err);
   }
 };
 
@@ -417,50 +331,6 @@ const saveRoles = async () => {
       </TouchableOpacity>
       <TouchableOpacity 
         onPress={() => setEditFamilyModalVisible(false)}
-        style={{ position: "absolute", top: 10, right: 10 }}>
-        <Ionicons name="close" size={22} color="black"/>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
-
-{/* Modal Gestion des Rôles */}
-<Modal visible={roleManagementVisible} transparent animationType="fade">
-  <View style={styles.modalContainer}>
-    <View style={styles.modal}>
-      <Text style={styles.modalTitle}>Gérer les rôles - {selectedFamilyForRoles?.name}</Text>
-
-      <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
-        <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
-          Définissez le rôle de chaque membre dans cette famille.
-        </Text>
-      </View>
-
-      <ScrollView style={{ maxHeight: 300 }}>
-        {Object.entries(roleAssignments).map(([email, role]) => (
-          <View key={email} style={styles.roleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
-              <Picker
-                selectedValue={role}
-                onValueChange={(value) => setRoleAssignments({ ...roleAssignments, [email]: value })}
-                style={styles.rolePicker}
-              >
-                <Picker.Item label="Parent" value="Parent" />
-                <Picker.Item label="Enfant" value="Enfant" />
-              </Picker>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-
-      <TouchableOpacity style={styles.saveRoleButton} onPress={saveRoles}>
-        <Text style={styles.saveRoleButtonText}>Enregistrer les rôles</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        onPress={() => setRoleManagementVisible(false)}
         style={{ position: "absolute", top: 10, right: 10 }}>
         <Ionicons name="close" size={22} color="black"/>
       </TouchableOpacity>
@@ -754,23 +624,3 @@ trashBtnP: {
 
 
 });
-
-const Stack = createNativeStackNavigator();
-export default function () {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="FamilyMain"
-        component={FamilyScreen}
-        options={({ navigation }) => ({
-          headerTitle: "Mes familles",
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-    </Stack.Navigator>
-  );
-}
