@@ -17,6 +17,8 @@ const getPriorityColor = (priority: string): string => {
   }
 };
 
+
+
 export default function TodoList() {
   const [todoLists, setTodoLists] = useState<any[]>([]);
   const [newListName, setNewListName] = useState("");
@@ -61,6 +63,17 @@ export default function TodoList() {
   const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+
+  const [encourageModalVisible, setEncourageModalVisible] = useState(false);
+const [encourageMessage, setEncourageMessage] = useState("");
+
+const encourageMessages = [
+  "Bravo 🎉 Tâche terminée !",
+  "Excellent travail 💪",
+  "Bien joué 👏",
+  "Une tâche de moins 🚀",
+  "Félicitations ❤️"
+];
 
   const user = auth.currentUser;
   if (!user) return <Text>Chargement...</Text>;
@@ -145,6 +158,7 @@ export default function TodoList() {
 
     let todosPath: any;
     let calendarPath: any;
+
     
     if (selectedTodoType === "personal") {
       todosPath = doc(db, "users", uid, "todos", selectedList.id, "items", editingItem.id);
@@ -566,6 +580,7 @@ export default function TodoList() {
     
     const newCheckedState = !item.checked;
     await updateDoc(path, { checked: newCheckedState });
+
     
     // Ajouter ou retirer des points
     if (item.points && item.points > 0) {
@@ -610,6 +625,13 @@ export default function TodoList() {
         console.error("Erreur lors de l'ajout des points:", error);
       }
     }
+    if (!item.checked && newCheckedState) {
+  const randomMessage =
+    encourageMessages[Math.floor(Math.random() * encourageMessages.length)];
+
+  setEncourageMessage(randomMessage);
+  setEncourageModalVisible(true);
+}
   };
 
   return (
@@ -1574,6 +1596,42 @@ export default function TodoList() {
           </View>
         </View>
       </Modal>
+      <Modal
+  visible={encourageModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setEncourageModalVisible(false)}
+>
+  <View style={{
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)"
+  }}>
+    <View style={{
+      backgroundColor: "white",
+      padding: 20,
+      borderRadius: 15,
+      width: "80%",
+      alignItems: "center"
+    }}>
+      <Text>{encourageMessage}</Text>
+
+    <TouchableOpacity
+  onPress={() => setEncourageModalVisible(false)}
+  style={{
+    position: "absolute",
+    top: 10,
+    right: 10,
+  }}
+>
+  <Ionicons name="close" size={24} color="#999" />
+</TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+
     </View>
   );
 }
