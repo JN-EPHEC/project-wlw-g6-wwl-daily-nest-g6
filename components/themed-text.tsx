@@ -20,9 +20,9 @@ export default function ThemedText({
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
   const fontFamily =
-  type == 'title'
-  ? 'Shrikhand_400Regular'
-  : 'Roboto_400Regular';
+    type === 'title'
+      ? 'Shrikhand_400Regular'
+      : 'Montserrat_400Regular';
   return (
     <Text
       style={[
