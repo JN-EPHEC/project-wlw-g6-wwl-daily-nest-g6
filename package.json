@@ -11,6 +11,9 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@expo-google-fonts/montserrat": "^0.4.2",
+    "@expo-google-fonts/roboto": "^0.4.2",
+    "@expo-google-fonts/shrikhand": "^0.4.1",
     "@expo/vector-icons": "^15.0.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@react-native-async-storage/async-storage": "^2.2.0",
