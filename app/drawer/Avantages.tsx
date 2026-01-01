@@ -1,3 +1,4 @@
+import ThemedText from "@/components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -112,7 +113,7 @@ export function AvantagesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Avantages</Text>
+      <ThemedText type='title'style={styles.title}>Avantages</ThemedText>
 
       <FlatList
         data={avantages}
