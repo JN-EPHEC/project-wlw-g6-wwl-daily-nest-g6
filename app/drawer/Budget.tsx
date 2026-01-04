@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { DrawerActions } from "@react-navigation/native";
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import mascotte_moneyy from "assets/images/mascotte_moneyy.png";
+import { Image } from "expo-image";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 export function Budget() {
@@ -25,15 +27,15 @@ export function Budget() {
   const [selectedBudget, setSelectedBudget] = useState<any>(null);
   const [expensesModalVisible, setExpensesModalVisible] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
-  
+
   // Ajouter une dépense
   const [expenseName, setExpenseName] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDescription, setExpenseDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(() => {
     const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
     const yyyy = today.getFullYear();
     return `${dd}/${mm}/${yyyy}`;
   });
@@ -62,22 +64,22 @@ export function Budget() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allFamilies: any[] = [];
-      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
-      
+      snapshot.forEach((doc) => allFamilies.push({ id: doc.id, ...doc.data() }));
+
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
-        
+
         for (const memberItem of members) {
-          if (typeof memberItem === 'string' && memberItem === email) {
+          if (typeof memberItem === "string" && memberItem === email) {
             return true; // Format ancien
-          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+          } else if (typeof memberItem === "object" && memberItem.email === email) {
             return true; // Format nouveau
           }
         }
         return false;
       });
-      
+
       setFamiliesJoined(userFamilies);
     });
 
@@ -94,14 +96,14 @@ export function Budget() {
       const budgetsCollection = collection(db, "users", uid, "budgets");
       unsubscribe = onSnapshot(budgetsCollection, (snapshot) => {
         const list: any[] = [];
-        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
         setBudgets(list);
       });
     } else if (selectedType === "family" && selectedFamily) {
       const budgetsCollection = collection(db, "families", selectedFamily.id, "budgets");
       unsubscribe = onSnapshot(budgetsCollection, (snapshot) => {
         const list: any[] = [];
-        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
         setBudgets(list);
       });
     }
@@ -119,11 +121,11 @@ export function Budget() {
       const expensesCollection = collection(db, "users", uid, "budgets", selectedBudget.id, "expenses");
       unsubscribe = onSnapshot(expensesCollection, (snapshot) => {
         const list: any[] = [];
-        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
         // Trier par date (plus récent en premier)
         list.sort((a, b) => {
-          const dateA = a.date.split('/').reverse().join('');
-          const dateB = b.date.split('/').reverse().join('');
+          const dateA = a.date.split("/").reverse().join("");
+          const dateB = b.date.split("/").reverse().join("");
           return dateB.localeCompare(dateA);
         });
         setExpenses(list);
@@ -132,10 +134,10 @@ export function Budget() {
       const expensesCollection = collection(db, "families", selectedFamily.id, "budgets", selectedBudget.id, "expenses");
       unsubscribe = onSnapshot(expensesCollection, (snapshot) => {
         const list: any[] = [];
-        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
         list.sort((a, b) => {
-          const dateA = a.date.split('/').reverse().join('');
-          const dateB = b.date.split('/').reverse().join('');
+          const dateA = a.date.split("/").reverse().join("");
+          const dateB = b.date.split("/").reverse().join("");
           return dateB.localeCompare(dateA);
         });
         setExpenses(list);
@@ -207,8 +209,8 @@ export function Budget() {
       setExpenseDescription("");
       // Réinitialiser à la date du jour
       const today = new Date();
-      const dd = String(today.getDate()).padStart(2, '0');
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, "0");
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
       const yyyy = today.getFullYear();
       setExpenseDate(`${dd}/${mm}/${yyyy}`);
     } catch (error) {
@@ -259,311 +261,822 @@ export function Budget() {
     return Math.min((total / budget.limit) * 100, 100);
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>💰 Gestion de Budget</Text>
 
-      {/* Sélecteur Personnel / Famille */}
-      <View style={{ width: "100%", padding: 10, alignItems: "center" }}>
-        <View style={{
-          borderWidth: 1,
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          backgroundColor: "white",
-          width: "70%",
-          boxShadow: "0px 2px 6px rgba(0,0,0,0.15)"
-        }}>
-          <Picker
-            selectedValue={selectedFamily?.id || "personal"}
-            onValueChange={(value) => {
-              if (value === "personal") {
-                setSelectedType("personal");
-                setSelectedFamily(null);
-              } else {
-                const fam = familiesJoined.find(f => f.id === value);
-                if (fam) {
-                  setSelectedFamily(fam);
-                  setSelectedType("family");
-                }
+
+
+
+return (
+  <View className="flex-1 bg-[#FAFBFC]">
+    {/* Header avec sélecteur de type de bidget*/}
+    <View 
+      className="bg-white px-5 pt-4 pb-5"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 3,
+      }}
+    >
+      <Text className="text-[13px] font-semibold mb-3 uppercase tracking-wide">
+        Type de budget
+      </Text>
+      
+      <View 
+        className="rounded-2xl overflow-hidden bg-white border-2 item-center px-3 py-0.5"
+        style={{ borderColor: '#60AFDF' }}
+      >
+        <Picker
+          selectedValue={selectedFamily?.id || "personal"}
+          onValueChange={(value) => {
+            if (value === "personal") {
+              setSelectedType("personal");
+              setSelectedFamily(null);
+            } else {
+              const fam = familiesJoined.find((f) => f.id === value);
+              if (fam) {
+                setSelectedFamily(fam);
+                setSelectedType("family");
               }
-            }}
-            style={{
-              width: '100%',
-              backgroundColor: 'white',
-            }}
-          >
-            <Picker.Item label="Budget personnel" value="personal" />
-            <Picker.Item label="── Budgets famille ──" value="" enabled={false} />
-            {familiesJoined.map(f => (
-              <Picker.Item key={f.id} label={f.name} value={f.id} />
-            ))}
-          </Picker>
-        </View>
+            }
+          }}
+          style={{
+            width: "100%",
+            backgroundColor: "white",
+          }}
+        >
+          <Picker.Item label="👤 Personnel" value="personal" />
+          <Picker.Item label="──────────" value="" enabled={false} />
+          {familiesJoined.map((f) => (
+            <Picker.Item key={f.id} label={`👨‍👩‍👧‍👦 ${f.name}`} value={f.id} />
+          ))}
+        </Picker>
+      
+    </View>
+
+      {/* Bouton créer budget - AFFICHÉ SEULEMENT SI IL Y A DES BUDGETS */}
+{budgets.length > 0 && (
+  <View className="px-5 pt-4 pb-2">
+    <TouchableOpacity
+      className="flex-row items-center justify-center py-3.5 px-6 rounded-2xl"
+      style={{ 
+        backgroundColor: '#FF914D',
+        shadowColor: "#FF914D",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 4,
+      }}
+      onPress={() => setCreateModalVisible(true)}
+      activeOpacity={0.85}
+    >
+      <Ionicons name="add-circle" size={22} color="white" />
+      <Text className="text-white text-[15px] font-bold ml-2 tracking-wide">
+        Nouveau budget
+      </Text>
+    </TouchableOpacity>
+  </View>
+)}
+</View>
+{/* Liste des budgets avec ScrollView  */}
+<ScrollView 
+  className="flex-1 px-5" 
+  contentContainerStyle={{ paddingBottom: 24 }}
+  showsVerticalScrollIndicator={false}
+>
+  {budgets.length === 0 ? (
+    /* État vide  */
+    <View 
+      className="items-center justify-center mt-12 bg-white rounded-3xl p-8"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
+    >
+      {/* Mascotte */}
+          <View className="flex-1 justify-center px-6 mb-6">
+            <Image
+              source={mascotte_moneyy}
+              className="w-36 h-36 self-center"
+              contentFit="contain"
+            />
+          </View>
+
+          <Text className="text-[22px] text-[#111827] font-bold mb-2">
+            Commencez à budgétiser
+          </Text>
+          <Text className="text-[15px] text-[#6B7280] text-center px-4 mb-6 leading-5">
+            Gérez vos dépenses{'\n'}pour atteindre vos objectifs financiers
+          </Text>
+      
+      {/* CTA primaire */}
+      <TouchableOpacity
+        className="px-8 py-3 bg-[#FF914D] rounded-2xl flex-row items-center mb-2"
+        onPress={() => setCreateModalVisible(true)}
+        activeOpacity={0.8}
+        style={{
+          shadowColor: "#FF914D",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 8,
+          elevation: 4,
+        }}
+      >
+        <Ionicons name="add-circle" size={22} color="white" />
+        <Text className="text-white font-bold ml-2 text-[16px]">
+          Créer mon premier budget
+        </Text>
+      </TouchableOpacity>
+      
+    </View>
+  ) : (
+    /* Liste des budgets - plus simple  */
+    <>
+      {/* Header de section simple */}
+      <View className="mb-4 mt-3">
+        <Text className="text-[13px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
+          Mes budgets
+        </Text>
+        <Text className="text-[15px] text-[#6B7280] mt-0.5">
+          {budgets.length} budget{budgets.length > 1 ? 's' : ''} actif{budgets.length > 1 ? 's' : ''}
+        </Text>
       </View>
 
-      {/* Bouton pour créer un nouveau budget */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setCreateModalVisible(true)}
-      >
-        <Ionicons name="add-circle" size={24} color="white" />
-        <Text style={styles.addButtonText}>Créer un budget</Text>
-      </TouchableOpacity>
+      {budgets.map((budget) => {
+        return (
+          <TouchableOpacity
+            key={budget.id}
+            className="bg-white rounded-3xl p-5 mb-4"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.06,
+              shadowRadius: 12,
+              elevation: 3,
+            }}
+            onPress={() => {
+              setSelectedBudget(budget);
+              setExpensesModalVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+  
+           {/* Header de la card */}
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-1 pr-3">
+                    {/* Titre avec icône catégorie */}
+                    <View className="flex-row items-center mb-3">
+                      <View className="w-12 h-12 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-3">
+                        <Ionicons name="wallet" size={24} color="#FF914D" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-[20px] font-bold text-[#111827] mb-1">
+                          {budget.name}
+                        </Text>
+                        <View className="flex-row items-center">
+                          <Ionicons name="card-outline" size={14} color="#9CA3AF" />
+                          <Text className="text-[14px] text-[#6B7280] ml-1.5 font-medium">
+                            Budget : {budget.limit.toFixed(2)}€
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
 
-      {/* Liste des budgets */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 20 }}>
-        {budgets.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="wallet-outline" size={60} color="#ccc" />
-            <Text style={styles.emptyText}>Aucun budget créé</Text>
-            <Text style={styles.emptySubText}>Créez votre premier budget pour commencer</Text>
-          </View>
-        ) : (
-          budgets.map((budget) => {
-            // Calculer le total des dépenses pour ce budget
-            const totalSpent = 0; // On ne peut pas le calculer ici sans charger les dépenses
-            return (
-              <TouchableOpacity
-                key={budget.id}
-                style={styles.budgetCard}
-                onPress={() => {
-                  setSelectedBudget(budget);
-                  setExpensesModalVisible(true);
-                }}
-              >
-                <View style={styles.budgetHeader}>
-                  <Text style={styles.budgetName}>{budget.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (confirm(`Supprimer le budget "${budget.name}" ?`)) {
-                        deleteBudget(budget.id);
-                      }
-                    }}
-                  >
-                    <Ionicons name="trash-outline" size={22} color="#f44336" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.budgetInfo}>
-                  <Text style={styles.budgetLimit}>Budget: {budget.limit.toFixed(2)}€</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                {/* Action rapide : Ajouter une dépense - ouais cbon*/}
+                <TouchableOpacity
+                  className="flex-row items-center justify-center py-3  rounded-xl"
+                  activeOpacity={0.7}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setSelectedBudget(budget);
+                    setExpensesModalVisible(true);
+                  }}
+                >
+                  <Ionicons name="add" size={20} color="#60AFDF" />
+                  <Text className="text-[14px] font-semibold text-[#60AFDF] ml-2">
+                    Ajouter une dépense
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+               {/* Actions à droite */}
+                  <View className="items-center gap-3">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Supprimer le budget "${budget.name}" ?`)) {
+                          deleteBudget(budget.id);
+                        }
+                      }}
+                      className="w-10 h-10 rounded-xl items-center justify-center"
+                      activeOpacity={0.7}
+                    >
+                    <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+
+                    </TouchableOpacity>
+                      <Ionicons name="trash-outline" size={18} color="#F64040" />
+
+                  </View>
                 </View>
               </TouchableOpacity>
             );
-          })
-        )}
-      </ScrollView>
+          })}
 
-      {/* Modal pour créer un budget */}
-      <Modal
-        visible={createModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCreateModalVisible(false)}
+      {/* CTA pour ajouter un autre budget -> parfait -rien à chnager*/}
+      <TouchableOpacity
+        className="bg-[#F8F9FA] rounded-2xl p-4 flex-row items-center justify-center border-2 border-dashed border-[#E5E7EB] mt-2"
+        onPress={() => setCreateModalVisible(true)}
+        activeOpacity={0.7}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setCreateModalVisible(false)}
-            >
-              <Ionicons name="close" size={30} color="black" />
-            </TouchableOpacity>
+        <Ionicons name="add-circle-outline" size={22} color="#9CA3AF" />
+        <Text className="text-[15px] font-semibold text-[#6B7280] ml-2">
+          Ajouter un budget
+        </Text>
+      </TouchableOpacity>
+    </>
+  )}
+</ScrollView>
+    
+       
 
-            <Text style={styles.modalTitle}>Nouveau Budget</Text>
+{/* Modal pr création Budget  */}
+    <Modal
+      visible={createModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={(e) => {e.stopPropagation();return setCreateModalVisible(false);}}
+    >
+      <View className="flex-1 bg-black/60 justify-center items-center px-5">
+        <View 
+          className="bg-white rounded-3xl px-6 py-6 w-full max-w-[520px]"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.2,
+            shadowRadius: 24,
+            elevation: 8,
+          }}
+        >
+          {/* Bouton fermer */}
+          <TouchableOpacity
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
+            onPress={() => setCreateModalVisible(false)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color="#6B7280" />
+          </TouchableOpacity>
 
-            {/* Indication du type de budget */}
-            <View style={{ backgroundColor: selectedType === 'personal' ? '#E3F2FD' : '#FFF3E0', padding: 12, borderRadius: 8, marginBottom: 15 }}>
-              <Text style={{ textAlign: 'center', fontWeight: '600', color: selectedType === 'personal' ? '#1976D2' : '#F57C00' }}>
-                {selectedType === 'personal' ? '👤 Budget Personnel' : `👨‍👩‍👧‍👦 Budget Familial: ${selectedFamily?.name}`}
-              </Text>
+          {/* Header */}
+          <View className="items-center mb-6">
+            <View className="w-14 h-14 rounded-full bg-[#FFF4ED] items-center justify-center mb-3">
+              <Ionicons name="wallet" size={28} color="#FF914D" />
             </View>
-
-            <Text style={styles.label}>Nom du budget</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: Cadeaux, Courses, Loisirs..."
-              value={budgetName}
-              onChangeText={setBudgetName}
-              maxLength={50}
-            />
-
-            <Text style={styles.label}>Montant limite (€)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ex: 300"
-              keyboardType="numeric"
-              value={budgetLimit}
-              onChangeText={setBudgetLimit}
-            />
-
-            <TouchableOpacity
-              style={[styles.submitButton, (!budgetName.trim() || !budgetLimit.trim()) && styles.submitButtonDisabled]}
-              onPress={createBudget}
-              disabled={!budgetName.trim() || !budgetLimit.trim()}
-            >
-              <Text style={styles.submitButtonText}>Créer le budget</Text>
-            </TouchableOpacity>
+            <Text className="text-[24px] font-bold text-[#111827] mb-1">
+              Nouveau budget
+            </Text>
+            <Text className="text-[14px] text-[#6B7280]">
+              Définissez votre budget
+            </Text>
           </View>
-        </View>
-      </Modal>
 
-      {/* Modal pour voir/ajouter des dépenses */}
-      <Modal
-        visible={expensesModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setExpensesModalVisible(false);
-          setSelectedBudget(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                setExpensesModalVisible(false);
-                setSelectedBudget(null);
+          {/* Badge type de budget */}
+          <View
+            className="py-3 px-4 rounded-2xl mb-6"
+            style={{
+              backgroundColor: selectedType === "personal" ? "#EBF5FF" : "#F0F9ED",
+            }}
+          >
+            <Text
+              className="text-center font-semibold text-[15px]"
+              style={{
+                color: selectedType === "personal" ? "#60AFDF" : "#7CB368",
               }}
             >
-              <Ionicons name="close" size={30} color="black" />
-            </TouchableOpacity>
+              {selectedType === "personal" ? "👤 Personnel" : `👨‍👩‍👧‍👦 ${selectedFamily?.name}`}
+            </Text>
+          </View>
 
-            <ScrollView showsVerticalScrollIndicator={true}>
-              {selectedBudget && (
-                <>
-                  <Text style={styles.modalTitle}>{selectedBudget.name}</Text>
-                  
-                  {/* Indicateur de budget */}
-                  <View style={styles.budgetIndicator}>
-                  <View style={styles.budgetBar}>
-                    <View 
-                      style={[
-                        styles.budgetBarFill, 
-                        { 
-                          width: `${Math.min((getTotalExpenses() / selectedBudget.limit) * 100, 100)}%`,
-                          backgroundColor: getTotalExpenses() > selectedBudget.limit ? '#f44336' : '#4CAF50'
-                        }
-                      ]} 
+          {/* Formulaire */}
+          <View className="mb-2">
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 uppercase tracking-wide">
+              Nom du budget
+            </Text>
+            <TextInput
+              className="border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] bg-white text-[#111827]"
+              placeholder="Ex: Cadeaux, Courses, Loisirs..."
+              placeholderTextColor="#9CA3AF"
+              value={budgetName}
+              selectionColor="#f2a167"
+              onChangeText={setBudgetName}
+              maxLength={50}
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}
+            />
+          </View>
+
+          <View className="mb-6">
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 uppercase tracking-wide">
+              Montant limite
+            </Text>
+            <View className="relative">
+              <TextInput
+                className="border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] bg-white text-[#111827] pr-12"
+                placeholder="300"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+                value={budgetLimit}
+                onChangeText={setBudgetLimit}
+                style={{
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                  elevation: 1,
+                }}
+              />
+              <View className="absolute right-4 top-4">
+                <Text className="text-[16px] font-bold text-[#9CA3AF]">€</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* CTA */}
+            <TouchableOpacity
+            className="w-full py-4 rounded-3xl items-center justify-center flex-row mt-2"
+            onPress={createBudget}
+            disabled={!budgetName.trim() || !budgetLimit.trim()}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: (!budgetName.trim() || !budgetLimit.trim()) 
+                ? "#E5E7EB"  // Gris quand désactivé
+                : "#FF914D",  // ✅ Orange Daily Nest quand actif
+              shadowColor: (!budgetName.trim() || !budgetLimit.trim()) 
+                ? "transparent" 
+                : "#FF914D",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: (!budgetName.trim() || !budgetLimit.trim()) ? 0 : 0.35,
+              shadowRadius: 7,
+              elevation: (!budgetName.trim() || !budgetLimit.trim()) ? 0 : 5,
+              
+            }}
+          >
+            <Ionicons 
+              name="checkmark-circle" 
+              size={22} 
+              color={(!budgetName.trim() || !budgetLimit.trim()) ? "#9CA3AF" : "white"}
+              style={{ marginRight: 8 }}
+            />
+            <Text
+              className="text-[16px] font-bold"
+              style={{
+                color: (!budgetName.trim() || !budgetLimit.trim()) ? "#9CA3AF" : "#FFFFFF",
+              }}
+            >
+              Créer le budget
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+ 
+
+
+
+
+
+
+      {/* Modal pour voir/ajouter des dépenses - et parfaite omg */}
+<Modal
+  visible={expensesModalVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={(e) => {
+    e.stopPropagation();
+    setExpensesModalVisible(false);
+    setSelectedBudget(null);
+  }}
+>
+  <View className="flex-1 bg-black/60">
+    {/* Container principal avec padding pour safe area */}
+    <View className="flex-1 justify-end">
+      <View 
+        className="bg-white w-full max-h-[92%]"
+        style={{
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          elevation: 5,
+        }}
+      >
+        {/* Header */}
+        <View 
+          className="px-6 pt-6 pb-4 border-b border-[#F1F3F5]"
+          style={{
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            backgroundColor: 'white',
+          }}
+        >
+          {/* Drag indicator */}
+          <View className="w-12 h-1.5 bg-[#E5E7EB] rounded-full self-center mb-4" />
+          
+          <TouchableOpacity
+            className="absolute top-6 right-6 z-10 w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
+            onPress={() => {
+              setExpensesModalVisible(false);
+              setSelectedBudget(null);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={24} color="#6B7280" />
+          </TouchableOpacity>
+
+          {selectedBudget && (
+            <>
+              <Text className="text-[28px] font-bold text-[#111827] mb-1 pr-12">
+                {selectedBudget.name}
+              </Text>
+              <Text className="text-[15px] text-[#6B7280]">
+                Budget • {selectedBudget.limit.toFixed(2)}€
+              </Text>
+            </>
+          )}
+        </View>
+
+        <ScrollView 
+          className="flex-1"
+          contentContainerStyle={{ paddingBottom: 32 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {selectedBudget && (
+            <View className="px-6">
+              {/* Card indicateur de budget  */}
+              <View 
+                className="mt-6 mb-6 p-6 rounded-3xl"
+                style={{
+                  backgroundColor: getTotalExpenses() > selectedBudget.limit ? '#FEF2F2' : '#F0F9ED',
+                }}
+              >
+                {/* Stats principales */}
+                <View className="flex-row justify-between items-start mb-5">
+                  <View className="flex-1">
+                    <Text className="text-[13px] font-medium text-[#6B7280] mb-1">
+                      Dépensé
+                    </Text>
+                    <Text 
+                      className="text-[32px] font-bold"
+                      style={{
+                        color: getTotalExpenses() > selectedBudget.limit ? '#F64040' : '#111827'
+                      }}
+                    >
+                      {getTotalExpenses().toFixed(2)}€
+                    </Text>
+                  </View>
+
+                  <View 
+                    className="px-4 py-2.5 rounded-2xl"
+                    style={{
+                      backgroundColor: getTotalExpenses() > selectedBudget.limit ? '#FEE2E2' : '#DCFCE7'
+                    }}
+                  >
+                    <Text 
+                      className="text-[13px] font-semibold"
+                      style={{
+                        color: getTotalExpenses() > selectedBudget.limit ? '#F64040' : '#7CB368'
+                      }}
+                    >
+                      {((getTotalExpenses() / selectedBudget.limit) * 100).toFixed(0)}%
+                    </Text>
+                  </View>
+                </View>
+
+                {/* barre de progression */}
+                <View className="mb-4">
+                  <View 
+                    className="h-2 rounded-full overflow-hidden"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}
+                  >
+                    <View
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min((getTotalExpenses() / selectedBudget.limit) * 100, 100)}%`,
+                        backgroundColor: getTotalExpenses() > selectedBudget.limit ? '#F64040' : 
+                                        getTotalExpenses() / selectedBudget.limit >= 0.8 ? '#FF914D' : 
+                                        '#ABF085',
+                      }}
                     />
                   </View>
-                  <View style={styles.budgetStats}>
-                    <Text style={styles.budgetStatText}>
-                      Dépensé: <Text style={{ fontWeight: 'bold', color: getTotalExpenses() > selectedBudget.limit ? '#f44336' : '#333' }}>
-                        {getTotalExpenses().toFixed(2)}€
-                      </Text>
-                    </Text>
-                    <Text style={styles.budgetStatText}>
-                      Limite: <Text style={{ fontWeight: 'bold' }}>{selectedBudget.limit.toFixed(2)}€</Text>
+                </View>
+
+                {/* Info restant/dépassement */}
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <Ionicons 
+                      name={selectedBudget.limit - getTotalExpenses() >= 0 ? "checkmark-circle" : "alert-circle"}
+                      size={20} 
+                      color={selectedBudget.limit - getTotalExpenses() >= 0 ? "#7CB368" : "#F64040"}
+                    />
+                    <Text 
+                      className="text-[15px] font-semibold ml-2"
+                      style={{
+                        color: selectedBudget.limit - getTotalExpenses() >= 0 ? '#7CB368' : '#F64040'
+                      }}
+                    >
+                      {selectedBudget.limit - getTotalExpenses() >= 0 ? 'Restant' : 'Dépassement'}
                     </Text>
                   </View>
-                  <Text style={[
-                    styles.budgetRemaining,
-                    { color: (selectedBudget.limit - getTotalExpenses()) < 0 ? '#f44336' : '#4CAF50' }
-                  ]}>
-                    {(selectedBudget.limit - getTotalExpenses()) >= 0 ? 'Restant' : 'Dépassement'}: {Math.abs(selectedBudget.limit - getTotalExpenses()).toFixed(2)}€
+                  <Text 
+                    className="text-[18px] font-bold"
+                    style={{
+                      color: selectedBudget.limit - getTotalExpenses() >= 0 ? '#7CB368' : '#F64040'
+                    }}
+                  >
+                    {Math.abs(selectedBudget.limit - getTotalExpenses()).toFixed(2)}€
+                  </Text>
+                </View>
+              </View>
+
+              {/* Section "Ajouter une dépense" - Design card floating */}
+              <View 
+                className="mb-6 p-5 rounded-3xl border border-[#FFE8D6]"
+                style={{
+                  backgroundColor: '#FFFBF7',
+                }}
+              >
+                <View className="flex-row items-center mb-4">
+                  <View className="w-10 h-10 rounded-full bg-[#FF914D]/10 items-center justify-center mr-3">
+                    <Ionicons name="add-circle" size={22} color="#FF914D" />
+                  </View>
+                  <Text className="text-[20px] font-bold text-[#111827]">
+                    Nouvelle dépense
                   </Text>
                 </View>
 
-                {/* Formulaire pour ajouter une dépense */}
-                <View style={styles.addExpenseForm}>
-                  <Text style={styles.sectionTitle}>Ajouter une dépense</Text>
-                  
+                {/* Inputs avec labels flottants style */}
+                <View className="mb-3">
+                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
+                    NOM
+                  </Text>
                   <TextInput
-                    style={styles.input}
-                    placeholder="Nom de la dépense"
+                    className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827]"
+                    placeholder="Ex: Restaurant, Essence..."
+                    placeholderTextColor="#9CA3AF"
                     value={expenseName}
                     onChangeText={setExpenseName}
+                    style={{
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}
                   />
+                </View>
 
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Montant (€)"
-                    keyboardType="numeric"
-                    value={expenseAmount}
-                    onChangeText={setExpenseAmount}
-                  />
+                <View className="flex-row gap-3 mb-3">
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
+                      MONTANT
+                    </Text>
+                    <View className="relative">
+                      <TextInput
+                        className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] pr-10"
+                        placeholder="0.00"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="numeric"
+                        value={expenseAmount}
+                        onChangeText={setExpenseAmount}
+                        style={{
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.05,
+                          shadowRadius: 2,
+                          elevation: 1,
+                        }}
+                      />
+                      <Text className="absolute right-4 top-4 text-[16px] font-semibold text-[#9CA3AF]">
+                        €
+                      </Text>
+                    </View>
+                  </View>
 
-                  <TextInput
-                    style={[styles.input, { height: 60 }]}
-                    placeholder="Description (optionnel)"
-                    value={expenseDescription}
-                    onChangeText={setExpenseDescription}
-                    multiline
-                  />
-
-                  <input
-                    type="date"
+                  <View className="flex-1">
+                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
+                      DATE
+                    </Text>
+                    <View 
+                      className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4"
+                      style={{
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 2,
+                        elevation: 1,
+                      }}
+                    >
+                      <input
+                        type="date"
                     value={expenseDate ? (() => {
                       const parts = expenseDate.split('/');
                       return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
                     })() : ''}
-                    onChange={(e) => {
-                      const dateParts = e.target.value.split('-');
-                      if (dateParts.length === 3) {
-                        setExpenseDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      borderWidth: 1,
-                      borderColor: '#ffbf00',
-                      padding: 10,
-                      borderRadius: 10,
-                      fontSize: 14,
-                      marginTop: 10
-                    }}
-                  />
-
-                  <TouchableOpacity
-                    style={[styles.addExpenseButton, (!expenseName.trim() || !expenseAmount.trim()) && styles.submitButtonDisabled]}
-                    onPress={addExpense}
-                    disabled={!expenseName.trim() || !expenseAmount.trim()}
-                  >
-                    <Ionicons name="add" size={20} color="white" />
-                    <Text style={styles.addExpenseButtonText}>Ajouter la dépense</Text>
-                  </TouchableOpacity>
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (!e.target.value) return; // ignore empty
+                          const dateParts = e.target.value.split("-");
+                          if (dateParts.length === 3) {
+                            setExpenseDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
+                          }
+                        }}
+                        style={{ 
+                          width: "100%", 
+                          border: "none", 
+                          outline: "none", 
+                          background: "transparent", 
+                          fontSize: 16, 
+                          color: "#111827",
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </View>
+                  </View>
                 </View>
 
-                {/* Liste des dépenses */}
-                <Text style={styles.sectionTitle}>Historique des dépenses</Text>
-                {expenses.length === 0 ? (
-                  <Text style={styles.noExpensesText}>Aucune dépense enregistrée</Text>
-                ) : (
-                  expenses.map((expense) => (
-                    <View key={expense.id} style={styles.expenseCard}>
-                      <View style={styles.expenseInfo}>
-                        <Text style={styles.expenseName}>{expense.name}</Text>
-                        {expense.description ? (
-                          <Text style={styles.expenseDescription}>{expense.description}</Text>
-                        ) : null}
-                        <Text style={styles.expenseDate}>{expense.date}</Text>
-                      </View>
-                      <View style={styles.expenseRight}>
-                        <Text style={styles.expenseAmount}>{expense.amount.toFixed(2)}€</Text>
-                        <TouchableOpacity
-                          onPress={() => {
-                            if (confirm(`Supprimer la dépense "${expense.name}" ?`)) {
-                              deleteExpense(expense.id);
-                            }
-                          }}
-                        >
-                          <Ionicons name="trash-outline" size={20} color="#f44336" />
-                        </TouchableOpacity>
-                      </View>
+                <View className="mb-4">
+                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
+                    DESCRIPTION (OPTIONNEL)
+                  </Text>
+                  <TextInput
+                    className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827]"
+                    placeholder="Ajouter une note..."
+                    placeholderTextColor="#9CA3AF"
+                    value={expenseDescription}
+                    onChangeText={setExpenseDescription}
+                    multiline
+                    numberOfLines={3}
+                    style={{ 
+                      minHeight: 90, 
+                      textAlignVertical: "top",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 2,
+                      elevation: 1,
+                    }}
+                  />
+                </View>
+
+                {/* CTA Button */}
+                <TouchableOpacity
+                  className={`rounded-2xl py-4 flex-row items-center justify-center ${
+                    (!expenseName.trim() || !expenseAmount.trim()) ? "bg-[#E5E7EB]" : "bg-[#FF914D]"
+                  }`}
+                  onPress={addExpense}
+                  disabled={!expenseName.trim() || !expenseAmount.trim()}
+                  activeOpacity={0.8}
+                  style={{
+                    shadowColor: (!expenseName.trim() || !expenseAmount.trim()) ? "transparent" : "#FF914D",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: (!expenseName.trim() || !expenseAmount.trim()) ? 0 : 4,
+                  }}
+                >
+                  <Ionicons
+                    name="add-circle"
+                    size={22}
+                    color={(!expenseName.trim() || !expenseAmount.trim()) ? "#9CA3AF" : "white"}
+                  />
+                  <Text
+                    className={`ml-2 text-[16px] font-bold ${
+                      (!expenseName.trim() || !expenseAmount.trim()) ? "text-[#9CA3AF]" : "text-white"
+                    }`}
+                  >
+                    Ajouter la dépense
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Liste des dépenses  */}
+              <View>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="text-[20px] font-bold text-[#111827]">
+                    Historique
+                  </Text>
+                  {expenses.length > 0 && (
+                    <View className="bg-[#F3F4F6] px-3 py-1.5 rounded-full">
+                      <Text className="text-[13px] font-semibold text-[#6B7280]">
+                        {expenses.length} {expenses.length === 1 ? 'dépense' : 'dépenses'}
+                      </Text>
                     </View>
-                  ))
+                  )}
+                </View>
+
+                {expenses.length === 0 ? (
+                  <View className="py-12 items-center">
+                    <View 
+                      className="w-16 h-16 rounded-full items-center justify-center mb-4"
+                      style={{ backgroundColor: 'rgba(255, 145, 77, 0.1)' }}
+                    >
+                      <Ionicons name="receipt-outline" size={32} color="#FF914D" />
+                    </View>
+                    <Text className="text-[16px] font-semibold text-[#111827] mb-2">
+                      Aucune dépense
+                    </Text>
+                    <Text className="text-[14px] text-[#9CA3AF] text-center px-8">
+                      Commencez à suivre vos dépenses pour ce budget
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="gap-3">
+                    {expenses.map((expense, index) => (
+                      <View
+                        key={expense.id}
+                        className="bg-white rounded-2xl p-4 flex-row items-center"
+                        style={{
+                          borderLeftWidth: 4,
+                          borderLeftColor: '#FF914D',
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.04,
+                          shadowRadius: 8,
+                          elevation: 2,
+                        }}
+                      >
+                        {/* Icon catégorie */}
+                        <View className="w-12 h-12 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-4">
+                          <Ionicons name="wallet" size={24} color="#FF914D" />
+                        </View>
+
+                        {/* Info dépense */}
+                        <View className="flex-1 pr-3">
+                          <Text className="text-[16px] font-semibold text-[#111827] mb-0.5">
+                            {expense.name}
+                          </Text>
+                          
+                          <View className="flex-row items-center gap-2">
+                            <View className="flex-row items-center">
+                              <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
+                              <Text className="text-[13px] text-[#9CA3AF] ml-1">
+                                {expense.date}
+                              </Text>
+                            </View>
+                            
+                            {expense.description && (
+                              <>
+                                <View className="w-1 h-1 rounded-full bg-[#E5E7EB]" />
+                                <Text className="text-[13px] text-[#6B7280] flex-1" numberOfLines={1}>
+                                  {expense.description}
+                                </Text>
+                              </>
+                            )}
+                          </View>
+                        </View>
+
+                        {/* Montant + Actions */}
+                        <View className="items-end">
+                          <Text className="text-[18px] font-bold text-[#111827] mb-2">
+                            {expense.amount.toFixed(2)}€
+                          </Text>
+                          <TouchableOpacity
+                            className="w-9 h-9 rounded-xl bg-[#FEF2F2] items-center justify-center"
+                            onPress={() => {
+                              if (confirm(`Supprimer "${expense.name}" ?`)) {
+                                deleteExpense(expense.id);
+                              }
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#F64040" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
                 )}
-              </>
-            )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
     </View>
-  );
+  </View>
+</Modal> 
+</View>
+);
 }
+// Pecto ici en haut 
 
 const Stack = createNativeStackNavigator();
 export default function () {
@@ -584,247 +1097,3 @@ export default function () {
     </Stack.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#f5f5f5",
-    padding: 20,
-  },
-  title: { 
-    fontSize: 26, 
-    fontWeight: "bold", 
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#ffbf00",
-  },
-  scrollView: {
-    flex: 1,
-    width: "100%",
-  },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffbf00",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    gap: 10,
-  },
-  addButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  budgetCard: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  budgetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  budgetName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    flex: 1,
-  },
-  budgetInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  budgetLimit: {
-    fontSize: 16,
-    color: "#666",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 50,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: "#999",
-    marginTop: 15,
-    fontWeight: "600",
-  },
-  emptySubText: {
-    fontSize: 14,
-    color: "#ccc",
-    marginTop: 5,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 25,
-    width: "90%",
-    maxWidth: 500,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    zIndex: 10,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#ffbf00",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  submitButton: {
-    backgroundColor: "#ffbf00",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  submitButtonDisabled: {
-    backgroundColor: "#ccc",
-  },
-  submitButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  budgetIndicator: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 10,
-  },
-  budgetBar: {
-    height: 20,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 10,
-  },
-  budgetBarFill: {
-    height: "100%",
-    borderRadius: 10,
-  },
-  budgetStats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 5,
-  },
-  budgetStatText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  budgetRemaining: {
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginTop: 5,
-  },
-  addExpenseForm: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: "#fff9e6",
-    borderRadius: 10,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-  },
-  addExpenseButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#4CAF50",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 15,
-    gap: 8,
-  },
-  addExpenseButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  expensesList: {
-    maxHeight: 300,
-  },
-  expenseCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "white",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#ffbf00",
-  },
-  expenseInfo: {
-    flex: 1,
-  },
-  expenseName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-  expenseDescription: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 2,
-  },
-  expenseDate: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 4,
-  },
-  expenseRight: {
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  expenseAmount: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#f44336",
-    marginBottom: 5,
-  },
-  noExpensesText: {
-    textAlign: "center",
-    color: "#999",
-    fontSize: 14,
-    paddingVertical: 20,
-  },
-});
