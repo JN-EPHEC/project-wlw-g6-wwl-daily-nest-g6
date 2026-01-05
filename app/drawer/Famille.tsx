@@ -250,7 +250,7 @@ const saveRoles = async () => {
 
   return (
     <View style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 10 }}>Mes familles</Text>
+      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 20, fontWeight: "400", marginBottom: 10, color: "#FF8C42" }}>Gérez vos familles</Text>
 
 <FlatList
   data={families}
@@ -263,13 +263,13 @@ const saveRoles = async () => {
       }}
     >
       <View style={styles.familyRow}>
-        <Text style={{ flex: 1, fontSize: 18 }}>{item.name}</Text>
+        <Text style={{fontFamily: "Montserrat_400Regular", flex: 1, fontSize: 16, color: "#60AFDF" }}>{item.name}</Text>
 
         <TouchableOpacity
           onPress={() => openRoleManagementForFamily(item)}
           style={{ marginRight: 10 }}
         >
-          <Ionicons name="people-circle" size={24} color="#007AFF" />
+          <Ionicons name="people-circle" size={24} color="#6DDB31" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -303,10 +303,10 @@ const saveRoles = async () => {
 
       {/* JOIN BUTTON */}
       <TouchableOpacity
-        style={[styles.btn, { backgroundColor: "#555" }]}
+        style={[styles.btn, { backgroundColor: "rgba(255, 140, 66, 0.2)" }]}
         onPress={() => setJoinModalVisible(true)}
       >
-        <Text style={styles.btnText}>Rejoindre une famille</Text>
+        <Text style={[styles.btnText, {color: "#FF8C42", borderColor: "#FF8C42"}]}>Rejoindre une famille</Text>
       </TouchableOpacity>
 
       {/* CREATE MODAL */}
@@ -326,7 +326,7 @@ const saveRoles = async () => {
             <TouchableOpacity 
         onPress={() => setCreateModalVisible(false)}
         style={{ position: "absolute", top: 10, right: 10 }}>
-        <Ionicons name="close" size={22} color="black"/>
+        <Ionicons name="close" size={22} color="#000"/>
       </TouchableOpacity>
             
           </View>
@@ -367,7 +367,7 @@ const saveRoles = async () => {
 
       {/* Code de la famille */}
       {selectedFamily && selectedFamily.joinCode && (
-        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+        <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 16, marginBottom: 10 }}>
           Code famille : {selectedFamily.joinCode}
         </Text>
       )}
@@ -385,7 +385,7 @@ const saveRoles = async () => {
             ]}>
               <Text style={[
                 { fontSize: 11, fontWeight: '600' },
-                { color: role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+                { color: role.toLowerCase() === 'parent' ? '#1976D2' : '#FF8C42' }
               ]}>
                 {role}
               </Text>
@@ -437,7 +437,7 @@ const saveRoles = async () => {
       <Text style={styles.modalTitle}>Gérer les rôles - {selectedFamilyForRoles?.name}</Text>
 
       <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
+        <Ionicons name="information-circle" size={24} color="#FF8C42" style={{ marginRight: 10 }} />
         <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
           Définissez le rôle de chaque membre dans cette famille.
         </Text>
@@ -447,7 +447,7 @@ const saveRoles = async () => {
         {Object.entries(roleAssignments).map(([email, role]) => (
           <View key={email} style={styles.roleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
+              <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: '500', marginBottom: 8 }}>{email}</Text>
               <Picker
                 selectedValue={role}
                 onValueChange={(value) => setRoleAssignments({ ...roleAssignments, [email]: value })}
@@ -484,8 +484,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     marginVertical: 5,
-    backgroundColor: "#eee",
+    backgroundColor: "#60AFDF33",
+    borderWidth : 2,
     borderRadius: 10,
+    borderColor: "#60AFDF", 
   },
   
   familyItem: {
@@ -495,15 +497,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   btn: {
-    backgroundColor: "black",
+    backgroundColor: "#FF8C42",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 20,
     alignItems: "center",
     marginTop: 10,
+    color: "#FF8C42",
   },
   btnText: {
-    color: "white",
+    color: "#fff",
     fontWeight: "bold",
+    fontFamily: "Montserrat_400Regular", 
   },
   modalContainer: {
     flex: 1,
@@ -515,15 +519,18 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 20,
     borderRadius: 12,
+    color: "#000"
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "400",
     marginBottom: 10,
+    fontFamily: "Shrikhand_400Regular",
+    color: "#FF8C42",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#FF8C42",
     padding: 10,
     borderRadius: 8,
     marginBottom: 10,
@@ -543,7 +550,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   saveRoleButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF8C42',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -566,9 +573,17 @@ export default function () {
         component={FamilyScreen}
         options={({ navigation }) => ({
           headerTitle: "Mes familles",
+          headerTitleAlign: "center",
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42",
+            // fontWeight: 'bold' // Tu peux laisser, mais Shrikhand est déjà gras par défaut
+          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color:"#6DDB31" }} />
             </TouchableOpacity>
           ),
         })}
