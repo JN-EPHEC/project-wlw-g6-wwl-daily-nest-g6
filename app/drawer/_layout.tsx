@@ -18,9 +18,10 @@ export default function DrawerLayout() {
       <Drawer.Screen name="Famille" options={{ title: "Famille" }} />
       <Drawer.Screen name="Invitations" options={{ title: "Invitations" }} />
       <Drawer.Screen name="Parametres" options={{ title: "Paramètres" }} />
-      <Drawer.Screen name="Déconnexion" options={{ title: "Déconnexion" }} />
+      <Drawer.Screen name="Deconnexion" options={{ title: "Déconnexion" }} />
     </Drawer>
    </ThemeProvider>
  
   );
 }
+
