@@ -11,7 +11,7 @@ export default function DrawerLayout() {
   return (
     <ThemeProvider>
     <Drawer screenOptions={{ headerShown: false }}>
-      <Drawer.Screen name="Acceuil" options={{ title: "Accueil" }} />
+      <Drawer.Screen name="Acceuil" options={{ title: "Accueil"}} />
       <Drawer.Screen name="Budget" options={{ title: "Budget" }} />
       <Drawer.Screen name="Avantages" options={{ title: "Avantages" }} />
       <Drawer.Screen name="profil" options={{ title: "Profil" }} />
