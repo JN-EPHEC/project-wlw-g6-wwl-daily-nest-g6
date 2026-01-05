@@ -15,7 +15,7 @@ const getPriorityColor = (priority: string): string => {
     default: return "#2196F3"; // Bleu par défaut
     case "1": return "#4CAF50"; // Vert
     case "2": return "#2196F3"; // Bleu
-    case "3": return "#FF9800"; // Orange
+    case "3": return "#FF8C42"; // Orange
     case "4": return "#F44336"; // Rouge
     
   }
@@ -65,7 +65,7 @@ export default function Home() {
   const [reminderMessage, setReminderMessage] = useState("");
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [calendarTheme, setCalendarTheme] = useState("#ffbf00"); // Couleur du thème du calendrier 
+  const [calendarTheme, setCalendarTheme] = useState("#FF8C42"); // Couleur du thème du calendrier 
 
 const [selectedCalendarType, setSelectedCalendarType] = useState("personal");
 const [families, setFamilies] = useState<any[]>([]);
@@ -218,7 +218,7 @@ useEffect(() => {
             }
           }
           
-          newEvents[calendarDate] = { marked: true, dotColor: "#ffbf00ff" };
+          newEvents[calendarDate] = { marked: true, dotColor: "#FF8C42" };
           if (!newItems[calendarDate]) newItems[calendarDate] = [];
           newItems[calendarDate].push({ 
             id: doc.id, 
@@ -501,6 +501,7 @@ const saveEvent = async () => {
   <View style={{
     borderWidth: 1,
     borderRadius: 12,
+    borderColor: "#FF8C42",
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: "white",
@@ -540,7 +541,7 @@ const saveEvent = async () => {
 
   </View>
 </View>
-
+<View style={[styles.calendarCard, { backgroundColor: calendarTheme + '20' }]}>
       <Calendar
         onDayPress={(day) => {
           setSelectedDate(day.dateString); 
@@ -559,6 +560,8 @@ const saveEvent = async () => {
         )}
         theme={{
           arrowColor: calendarTheme,
+          backgroundColor: 'transparent',      // IMPORTANT : Fond transparent
+          calendarBackground: 'transparent',
           monthTextColor: "#000000ff",
           textMonthFontSize: 18,
           textDayHeaderFontSize: 14,
@@ -566,7 +569,7 @@ const saveEvent = async () => {
           selectedDayBackgroundColor: calendarTheme,
         }}
       />
-
+</View>
       {/* Container des tâches du jour sélectionné */}
       {selectedDate && items[selectedDate] && items[selectedDate].length > 0 && (
         <View style={styles.tasksContainer}>
@@ -803,9 +806,10 @@ const saveEvent = async () => {
             onValueChange={(value) => setCalendarTheme(value as string)}
             style={{ height: 40, fontSize: 14 }}
           >
-            <Picker.Item label="🟡" value="#ffbf00" />
+            <Picker.Item label="🟠" value="#FF8C42" />
             <Picker.Item label="🔵"  value="#2196F3" />
             <Picker.Item label="🟢" value="#4CAF50" />
+            <Picker.Item label="🔴" value="#F64040" />
           </Picker>
         </View>
       </View>
@@ -821,21 +825,22 @@ const saveEvent = async () => {
           setEditingIndex(null);
           
           }} style={styles.addButton}> 
-            <Ionicons name="add" size={30} color="#ffbf00ff" /> 
+            <Ionicons name="add" size={30} color="#FF8C42" /> 
         </TouchableOpacity>
       </View> 
 
 
       <Modal transparent visible={modalVisible} animationType="slide">
         <View style={styles.modalBackground}> 
-          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
+          <ScrollView style={{ width: "80%"}} contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
           <View style={styles.modalContent}>
-           <Text style={{ fontSize: 18, marginBottom: 10, fontWeight: "bold" }}>
+           <Text style={{ fontFamily: "Shrikhand_400Regular", fontSize: 22, marginBottom: 10, fontWeight: "normal", color: "#fff" }}>
             {isEditing ? "Modifier l'événement" : "Ajouter un événement"}
              </Text>
 
             <TextInput 
               placeholder="Titre"
+              placeholderTextColor={"#fff"}
               value={eventTitle}
               onChangeText={setEventTitle} 
               style={styles.inputWeb}
@@ -843,6 +848,7 @@ const saveEvent = async () => {
             
             <TextInput 
               placeholder="Description (optionnel)"
+              placeholderTextColor={"#fff"}
               value={eventDescription}
               onChangeText={setEventDescription} 
               style={styles.inputWeb}
@@ -865,14 +871,15 @@ const saveEvent = async () => {
             
             <TextInput 
               placeholder="Points accordés (optionnel)"
+              placeholderTextColor={"#fff"}
               value={eventPoints}
               onChangeText={setEventPoints}
               keyboardType="numeric" 
               style={styles.inputWeb}
             />
 
-            <Text style={{ fontSize: 14, marginTop: 10, marginBottom: 5, fontWeight: "600" }}>Priorité</Text>
-            <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, overflow: "hidden" }}>
+            <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, marginTop: 10, marginBottom: 8, fontWeight: "600", color:"#fff" }}>Priorité</Text>
+            <View style={{ borderWidth: 1, borderColor: "#FF8C42", borderRadius: 10, overflow: "hidden" }}>
               <Picker
                 selectedValue={eventPriority}
                 onValueChange={(value) => setEventPriority(value)}
@@ -956,20 +963,20 @@ const saveEvent = async () => {
             <View style={{ marginTop: 15 }}>
               <TouchableOpacity 
                 onPress={() => setEventIsRecurring(!eventIsRecurring)}
-                style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}
+                style={{ flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#FF8C42", borderRadius: 8 }}
               >
                 <Ionicons 
                   name={eventIsRecurring ? "checkbox" : "square-outline"} 
                   size={24} 
-                  color="#2196F3" 
+                  color="#fff" 
                 />
-                <Text style={{ marginLeft: 8, fontSize: 14 }}>Activer la récurrence</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", marginLeft: 8, fontSize: 14, color: "#fff"}}>Activer la récurrence</Text>
               </TouchableOpacity>
 
               {eventIsRecurring && (
-                <View style={{ marginTop: 10, padding: 10, backgroundColor: "#e3f2fd", borderRadius: 8 }}>
+                <View style={{ marginTop: 10, padding: 10, backgroundColor: "#fff", borderRadius: 8 }}>
                   <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Type de récurrence:</Text>
-                  <View style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+                  <View style={{ borderWidth: 1, borderColor: "#FF8C42", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
                     <Picker
                       selectedValue={eventRecurrenceType}
                       onValueChange={(value) => setEventRecurrenceType(value as "daily" | "weekly" | "monthly")}
@@ -999,7 +1006,7 @@ const saveEvent = async () => {
                           <Ionicons 
                             name={eventSelectedDays.includes(index) ? "checkbox" : "square-outline"} 
                             size={18} 
-                            color="#2196F3" 
+                            color="#FF8C42" 
                           />
                           <Text style={{ marginLeft: 6, fontSize: 12 }}>{day}</Text>
                         </TouchableOpacity>
@@ -1017,7 +1024,7 @@ const saveEvent = async () => {
                           setEventMonthlyDay(Math.min(31, Math.max(1, num)));
                         }}
                         keyboardType="numeric"
-                        style={{ borderWidth: 1, borderColor: "#2196F3", borderRadius: 5, padding: 8, fontSize: 12 }}
+                        style={{ borderWidth: 1, borderColor: "#FF8C42", borderRadius: 5, padding: 8, fontSize: 12 }}
                       />
                     </View>
                   )}
@@ -1026,25 +1033,25 @@ const saveEvent = async () => {
             </View>
 
             {/* Rappels */}
-            <View style={{ marginTop: 20 }}>
+            <View style={{ marginTop: 10 }}>
               <TouchableOpacity 
                 onPress={() => setRemindersEnabled(!remindersEnabled)}
-                style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+                style={{ flexDirection: "row", alignItems: "center", marginBottom: 15, paddingLeft: 12 }}
               >
                 <View style={{
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   borderRadius: 4,
                   borderWidth: 2,
-                  borderColor: "#ffc107",
+                  borderColor: "#fff",
                   marginRight: 12,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: remindersEnabled ? "#ffc107" : "transparent"
+                  backgroundColor: remindersEnabled ? "#fff" : "transparent"
                 }}>
                   {remindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#333" }}>Rappels</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "400", color: "#fff" }}>Rappels</Text>
               </TouchableOpacity>
 
               {remindersEnabled && (
@@ -1348,6 +1355,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     backgroundColor: "white",
+    fontFamily: "Montserrat_400Regular",
+    textAlign: "right", 
   },
   calendarWrapper: {
     marginHorizontal: 10,
@@ -1356,45 +1365,50 @@ const styles = StyleSheet.create({
   calendarContainer: {
     position: "relative",
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: "#ccc",
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     paddingBottom: 20,
   },
   tasksContainer: {
-    marginTop: 20,
+    marginTop: 10,
     marginHorizontal: 15,
     padding: 15,
     backgroundColor: "#f9f9f9",
-    borderRadius: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#ffbf00",
+    borderColor: "#FF8C42",
   },
   tasksTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#ffbf00",
+    fontSize: 16,
+    fontWeight: "regular",
+    color: "#FF8C42",
     marginBottom: 15,
+    marginLeft: 5,
+    fontFamily: "Shrikhand_400Regular",
+    
   },
   taskItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    padding: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 1,
     borderLeftWidth: 3,
-    borderLeftColor: "#ffbf00",
+    borderLeftColor: "#FF8C42",
   },
   taskTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#000",
+    fontFamily: "Montserrat_200ExtraLight",
   },
   taskTime: {
     fontSize: 14,
     color: "#666",
-    marginTop: 4,
+    marginTop: 0,
   },
   Button: {
     position: "absolute",
@@ -1411,10 +1425,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#00000088",
   },
   modalContent: {
-    backgroundColor: "white",
-    padding: 20,
+    backgroundColor: "#FF8C42",
+    padding: 25,
     borderRadius: 15,
-    width: "80%",
+    width: "100%",       // Prend 90% de la largeur de l'écran
+    maxWidth: 500,      // Empêche de devenir trop géant sur tablette/PC
+    alignSelf: "center",
   },
   input: {
     borderWidth: 1,
@@ -1436,8 +1452,10 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 10,
     borderWidth: 1,
-    color: "gray",
+    color: "#fff",
     fontStyle: "italic",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderColor: "#fff",
   },
   buttonRow: {
     flexDirection: "row",
@@ -1462,8 +1480,8 @@ closeButton: {
     borderColor: "#d0d0d0",
   },
   personFilterChipActive: {
-    backgroundColor: "#ffbf00",
-    borderColor: "#ffbf00",
+    backgroundColor: "#FF8C42",
+    borderColor: "#FF8C42",
   },
   personFilterText: {
     fontSize: 12,
@@ -1473,7 +1491,29 @@ closeButton: {
   personFilterTextActive: {
     color: "white",
     fontWeight: "bold",
-  }
+  }, 
+  calendarCard: {
+    borderRadius: 25,           // Coins bien arrondis
+    marginHorizontal: 15,       // Marge sur les côtés
+    marginTop: 10,
+    paddingVertical: 15,        // Espace intérieur haut/bas
+    paddingHorizontal: 10,
+    
+    // Petite ombre pour l'effet "Carte"
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,               // Ombre pour Android
+  },
+  // Style pour la liste des événements à l'intérieur de la carte
+  eventsContainer: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)', // Ligne de séparation très discrète
+    paddingHorizontal: 10,
+  },
 
 
 });

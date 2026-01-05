@@ -1,4 +1,3 @@
-
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -6,7 +5,7 @@ import { DrawerActions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { addDoc, collection, onSnapshot, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 import Carnetfamiliale from "../tabs/Carnetfamiliale";
@@ -15,6 +14,7 @@ import Home from "../tabs/Home";
 import ListeCourse from "../tabs/ListeCourse";
 import Recompense from "../tabs/Recompense";
 import ToDo from "../tabs/ToDo";
+
 
 // Fonction pour obtenir la couleur en fonction de la priorité
 const getPriorityColor = (priority: string): string => {
@@ -645,14 +645,19 @@ const saveTodo = async () => {
       return (
         <View style={{ width: "100%", flex: 1 }}>
           {/* Flèche de retour fixe en haut */}
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, padding: 10, backgroundColor: "white" }}>
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, padding: 10, backgroundColor: "#FF8C42" }}>
             <TouchableOpacity onPress={goBack}>
-              <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
+              <Ionicons name="arrow-back-outline" size={26} color="#fff"/>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 100 }}>
-            <Text style={[styles.modalTitle, { fontSize: 18, marginBottom: 10, fontWeight: "bold" }]}>Nouvel Événement</Text>
+          <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 20 }}>
+            <Image 
+            source={require('../../assets/images/Mascotte_celebration.png')} // Change le nom de l'image ici si c'est une photo différente
+            style={styles.smallMascot} 
+            resizeMode="contain"
+            />
+            <Text style={[styles.modalTitle, { fontSize: 25, marginBottom: 10, fontWeight: "normal", fontFamily: "Shrikhand_400Regular" }]}>Nouvel Événement</Text>
 
             {/* Sélection Personnel / Famille */}
             <Picker
@@ -680,8 +685,8 @@ const saveTodo = async () => {
 
             {/* Titre */}
             <TextInput 
-              placeholder="Titre" 
-              placeholderTextColor="#ccc"
+              placeholder="Titre..." 
+              placeholderTextColor="#fff"
               value={eventTitle} 
               onChangeText={setEventTitle} 
               style={styles.inputWeb} 
@@ -689,13 +694,13 @@ const saveTodo = async () => {
 
             {/* Description */}
             <TextInput 
-              placeholder="Description (optionnel)" 
-              placeholderTextColor="#ccc"
+              placeholder="Description (optionnel)..." 
+              placeholderTextColor="#fff"
               value={eventDescription} 
               onChangeText={setEventDescription} 
               multiline
               numberOfLines={3}
-              style={[styles.inputWeb, { height: 80, textAlignVertical: "top" }]} 
+              style={[styles.inputWeb, { height: 80, textAlignVertical: "top", paddingTop: 15 }]} 
             />
 
             {/* Date et Heure */}
@@ -714,7 +719,7 @@ const saveTodo = async () => {
             />
 
             {/* Priorité */}
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 8, marginTop: 10, color: "#000" }}>Priorité</Text>
+            <Text style={{fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 5, marginTop: 15, color: "#fff" }}>Priorité</Text>
             <Picker
               selectedValue={eventPriority}
               onValueChange={(value) => setEventPriority(value)}
@@ -737,19 +742,19 @@ const saveTodo = async () => {
                     width: 20, 
                     height: 20, 
                     borderWidth: 2, 
-                    borderColor: "#ffbf00", 
+                    borderColor: "#fff", 
                     marginRight: 10,
                     justifyContent: "center",
                     alignItems: "center"
                   }}>
-                    {eventIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                    {eventIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />}
                   </View>
-                  <Text style={{ fontSize: 14, fontWeight: "600" }}>Tournante entre membres</Text>
+                  <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#fff" }}>Tournante entre membres</Text>
                 </TouchableOpacity>
 
                 {eventIsRotation && (
                   <View style={{ marginLeft: 30, marginTop: 10 }}>
-                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Sélectionnez les membres :</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Sélectionnez les membres :</Text>
                     {familyMembers.map((member) => (
                       <TouchableOpacity
                         key={member.uid}
@@ -760,19 +765,19 @@ const saveTodo = async () => {
                             setEventRotationMembers([...eventRotationMembers, member.uid]);
                           }
                         }}
-                        style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+                        style={{flexDirection: "row", alignItems: "center", marginBottom: 8 }}
                       >
                         <View style={{ 
                           width: 20, 
                           height: 20, 
                           borderWidth: 2, 
-                          borderColor: "#ffbf00", 
+                          borderColor: "#fff", 
                           marginRight: 10,
                           justifyContent: "center",
                           alignItems: "center"
                         }}>
                           {eventRotationMembers.includes(member.uid) && 
-                            <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />
+                            <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />
                           }
                         </View>
                         <Text>{member.firstName} {member.lastName}</Text>
@@ -793,26 +798,26 @@ const saveTodo = async () => {
                   width: 20, 
                   height: 20, 
                   borderWidth: 2, 
-                  borderColor: "#ffbf00", 
+                  borderColor: "#fff", 
                   marginRight: 10,
                   justifyContent: "center",
                   alignItems: "center"
                 }}>
-                  {eventIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                  {eventIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />}
                 </View>
-                <Text style={{ fontSize: 14, fontWeight: "600" }}>Événement récurrent</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color:"#fff" }}>Événement récurrent</Text>
               </TouchableOpacity>
 
               {eventIsRecurring && (
                 <View style={{ marginLeft: 30, marginTop: 10 }}>
-                  <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
+                  <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Fréquence :</Text>
                   <View style={{ flexDirection: "row", gap: 10, marginBottom: 15 }}>
                     <TouchableOpacity 
                       onPress={() => setEventRecurrenceType("daily")}
                       style={{ 
                         paddingHorizontal: 15, 
                         paddingVertical: 8, 
-                        backgroundColor: eventRecurrenceType === "daily" ? "#ffbf00" : "#f0f0f0",
+                        backgroundColor: eventRecurrenceType === "daily" ? "#F64040" : "#f0f0f0",
                         borderRadius: 5 
                       }}
                     >
@@ -823,7 +828,7 @@ const saveTodo = async () => {
                       style={{ 
                         paddingHorizontal: 15, 
                         paddingVertical: 8, 
-                        backgroundColor: eventRecurrenceType === "weekly" ? "#ffbf00" : "#f0f0f0",
+                        backgroundColor: eventRecurrenceType === "weekly" ? "#F64040" : "#f0f0f0",
                         borderRadius: 5 
                       }}
                     >
@@ -834,7 +839,7 @@ const saveTodo = async () => {
                       style={{ 
                         paddingHorizontal: 15, 
                         paddingVertical: 8, 
-                        backgroundColor: eventRecurrenceType === "monthly" ? "#ffbf00" : "#f0f0f0",
+                        backgroundColor: eventRecurrenceType === "monthly" ? "#F64040" : "#f0f0f0",
                         borderRadius: 5 
                       }}
                     >
@@ -845,7 +850,7 @@ const saveTodo = async () => {
                   {/* Sélection des jours pour hebdomadaire */}
                   {eventRecurrenceType === "weekly" && (
                     <View style={{ marginTop: 10 }}>
-                      <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
+                      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Jours de la semaine :</Text>
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                         {["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"].map((day, index) => (
                           <TouchableOpacity
@@ -861,9 +866,9 @@ const saveTodo = async () => {
                               width: 45,
                               height: 45,
                               borderRadius: 22.5,
-                              backgroundColor: eventSelectedDays.includes(index) ? "#ffbf00" : "#f0f0f0",
+                              backgroundColor: eventSelectedDays.includes(index) ? "#F64040" : "#f0f0f0",
                               justifyContent: "center",
-                              alignItems: "center"
+                              alignItems: "center",
                             }}
                           >
                             <Text style={{ color: eventSelectedDays.includes(index) ? "white" : "#333", fontSize: 12 }}>
@@ -878,7 +883,7 @@ const saveTodo = async () => {
                   {/* Sélection du jour pour mensuel */}
                   {eventRecurrenceType === "monthly" && (
                     <View style={{ marginTop: 10 }}>
-                      <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
+                      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Jour du mois :</Text>
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                         {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                           <TouchableOpacity
@@ -888,7 +893,7 @@ const saveTodo = async () => {
                               width: 40,
                               height: 40,
                               borderRadius: 20,
-                              backgroundColor: eventMonthlyDay === day ? "#ffbf00" : "#f0f0f0",
+                              backgroundColor: eventMonthlyDay === day ? "#F64040" : "#f0f0f0",
                               justifyContent: "center",
                               alignItems: "center"
                             }}
@@ -908,7 +913,7 @@ const saveTodo = async () => {
           </ScrollView>
 
           {/* Bouton sauvegarder fixe en bas */}
-          <View style={{ paddingHorizontal: 20, paddingVertical: 15, backgroundColor: "white" }}>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 3, backgroundColor: "#FF8C42" }}>
             <TouchableOpacity 
               style={styles.saveButton} 
               onPress={saveEvent}
@@ -923,19 +928,19 @@ const saveTodo = async () => {
       return (
         <View style={{ width: "100%", flex: 1 }}>
           {/* Flèche de retour fixe en haut */}
-          <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, padding: 10, backgroundColor: "white" }}>
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 9999, padding: 10, backgroundColor: "#FF8C42" }}>
             <TouchableOpacity onPress={goBack}>
-              <Ionicons name="arrow-back-outline" size={26} color="#00d0ffff"/>
+              <Ionicons name="arrow-back-outline" size={26} color="#fff"/>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 30 }}>
 
-          <Text style={[styles.modalTitle, { fontSize: 18, marginBottom: 10, fontWeight: "bold" }]}>Nouvelle Tâche</Text>
+          <Text style={[styles.modalTitle, { fontSize: 25, marginBottom: 10, fontWeight: "normal" }]}>Nouvelle Tâche</Text>
 
           {/* Sélection Personnel / Famille */}
           <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 8, color: "#000" }}>Type de liste</Text>
+            <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 8, color: "#fff" }}>Type de liste</Text>
             <Picker
               selectedValue={selectedTodoType === "personal" ? "personal" : selectedTodoFamily?.id}
               onValueChange={(value) => {
@@ -961,7 +966,7 @@ const saveTodo = async () => {
           </View>
           {/* Sélection de la liste de tâches */}
           <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Liste de tâches</Text>
+            <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 8, color: "#fff" }}>Liste de tâches</Text>
             <Picker
               selectedValue={selectedTodoList}
               onValueChange={(value) => setSelectedTodoList(value)}
@@ -976,8 +981,8 @@ const saveTodo = async () => {
 
           {/* Titre de la tâche */}
           <TextInput 
-            placeholder="Titre de la tâche"
-            placeholderTextColor="#ccc"
+            placeholder="Titre de la tâche..."
+            placeholderTextColor="#fff"
             value={todoTitle}
             onChangeText={setTodoTitle} 
             style={styles.inputWeb} 
@@ -985,8 +990,8 @@ const saveTodo = async () => {
 
           {/* Description */}
           <TextInput 
-            placeholder="Description (optionnel)"
-            placeholderTextColor="#ccc"
+            placeholder="Description (optionnel)..."
+            placeholderTextColor="#fff"
             value={todoDescription}
             onChangeText={setTodoDescription}
             multiline
@@ -996,8 +1001,8 @@ const saveTodo = async () => {
 
           {/* Points */}
           <TextInput 
-            placeholder="Points (optionnel)"
-            placeholderTextColor="#ccc"
+            placeholder="Points (optionnel)..."
+            placeholderTextColor="#fff"
             value={todoPoints}
             onChangeText={setTodoPoints}
             keyboardType="numeric"
@@ -1006,7 +1011,7 @@ const saveTodo = async () => {
 
           {/* Priorité */}
           <View style={{ marginTop: 10, marginBottom: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 6, color: "#000" }}>Priorité</Text>
+            <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 12, color: "#fff" }}>Priorité</Text>
             <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
               <TouchableOpacity
                 onPress={() => setTodoPriority("1")}
@@ -1069,7 +1074,7 @@ const saveTodo = async () => {
           {/* Assigner à (si membres famille disponibles) */}
           {familyMembers.length > 0 && !todoIsRotation && (
             <View style={{ marginBottom: 10 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Assigner à</Text>
+              <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 5, color: "#fff" }}>Assigner à</Text>
               <Picker
                 selectedValue={todoAssignedTo}
                 onValueChange={(value) => setTodoAssignedTo(value)}
@@ -1089,7 +1094,7 @@ const saveTodo = async () => {
 
           {/* Date et heure */}
           <View style={{ marginBottom: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", marginBottom: 5, color: "#000" }}>Date et heure (optionnel)</Text>
+            <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 12, color: "#fff" }}>Date et heure (optionnel)</Text>
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
               <input
                 type="date"
@@ -1106,17 +1111,18 @@ const saveTodo = async () => {
                 style={{
                   flex: 1,
                   borderWidth: 1,
-                  borderColor: '#00d0ff',
+                  borderColor: '#fff',
                   padding: 10,
                   borderRadius: 10,
-                  fontSize: 14
+                  fontSize: 14,
+                  paddingLeft: 20,
                 }}
               />
             </View>
             <TextInput
               style={styles.inputWeb}
               placeholder="HH:MM"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#fff"
               value={todoTime}
               onChangeText={(text) => {
                 let formatted = text.replace(/[^0-9]/g, '');
@@ -1140,19 +1146,19 @@ const saveTodo = async () => {
                   width: 20, 
                   height: 20, 
                   borderWidth: 2, 
-                  borderColor: "#ffbf00", 
+                  borderColor: "#fff", 
                   marginRight: 10,
                   justifyContent: "center",
                   alignItems: "center"
                 }}>
-                  {todoIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                  {todoIsRotation && <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />}
                 </View>
-                <Text style={{ fontSize: 14, fontWeight: "600" }}>Tournante entre membres</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#fff" }}>Tournante entre membres</Text>
               </TouchableOpacity>
 
               {todoIsRotation && (
                 <View style={{ marginLeft: 30, marginTop: 10 }}>
-                  <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Sélectionnez les membres :</Text>
+                  <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Sélectionnez les membres :</Text>
                   {familyMembers.map((member) => (
                     <TouchableOpacity
                       key={member.uid}
@@ -1169,13 +1175,13 @@ const saveTodo = async () => {
                         width: 20, 
                         height: 20, 
                         borderWidth: 2, 
-                        borderColor: "#ffbf00", 
+                        borderColor: "#fff", 
                         marginRight: 10,
                         justifyContent: "center",
                         alignItems: "center"
                       }}>
                         {todoRotationMembers.includes(member.uid) && 
-                          <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />
+                          <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />
                         }
                       </View>
                       <Text>{member.firstName} {member.lastName}</Text>
@@ -1196,64 +1202,64 @@ const saveTodo = async () => {
                 width: 20, 
                 height: 20, 
                 borderWidth: 2, 
-                borderColor: "#ffbf00", 
+                borderColor: "#fff", 
                 marginRight: 10,
                 justifyContent: "center",
                 alignItems: "center"
               }}>
-                {todoIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#ffbf00" }} />}
+                {todoIsRecurring && <View style={{ width: 12, height: 12, backgroundColor: "#fff" }} />}
               </View>
-              <Text style={{ fontSize: 14, fontWeight: "600" }}>Tâche récurrente</Text>
+              <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#fff" }}>Tâche récurrente</Text>
             </TouchableOpacity>
 
             {todoIsRecurring && (
               <View style={{ marginLeft: 30, marginTop: 10 }}>
-                <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Fréquence :</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Fréquence :</Text>
                 <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
                   <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("daily")}
                     style={[
                       styles.priorityButton,
                       { 
-                        borderColor: "#00d0ff", 
-                        backgroundColor: todoRecurrenceType === "daily" ? "#00d0ff" : "white",
+                        borderColor: "#fff", 
+                        backgroundColor: todoRecurrenceType === "daily" ? "#F64040" : "white",
                         flex: 1
                       }
                     ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
+                    <Text style={{ color: todoRecurrenceType === "daily" ? "white" : "#000", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("weekly")}
                     style={[
                       styles.priorityButton,
                       { 
-                        borderColor: "#00d0ff", 
-                        backgroundColor: todoRecurrenceType === "weekly" ? "#00d0ff" : "white",
+                        borderColor: "#fff", 
+                        backgroundColor: todoRecurrenceType === "weekly" ? "#F64040" : "white",
                         flex: 1
                       }
                     ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Hebdomadaire</Text>
+                    <Text style={{ color: todoRecurrenceType === "weekly" ? "white" : "#000", fontWeight: "600", fontSize: 12 }}>Hebdomadaire</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setTodoRecurrenceType("monthly")}
                     style={[
                       styles.priorityButton,
                       { 
-                        borderColor: "#00d0ff", 
-                        backgroundColor: todoRecurrenceType === "monthly" ? "#00d0ff" : "white",
+                        borderColor: "#fff", 
+                        backgroundColor: todoRecurrenceType === "monthly" ? "#F64040" : "white",
                         flex: 1
                       }
                     ]}
                   >
-                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#00d0ff", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
+                    <Text style={{ color: todoRecurrenceType === "monthly" ? "white" : "#000", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
                   </TouchableOpacity>
                 </View>
 
                 {todoRecurrenceType === "weekly" && (
                   <View style={{ marginTop: 10 }}>
-                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jours de la semaine :</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Jours de la semaine :</Text>
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                       {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((day, index) => (
                         <TouchableOpacity
@@ -1266,15 +1272,15 @@ const saveTodo = async () => {
                             }
                           }}
                           style={{
-                            backgroundColor: todoSelectedDays.includes(index) ? "#00d0ff" : "white",
+                            backgroundColor: todoSelectedDays.includes(index) ? "#F64040" : "white",
                             borderWidth: 2,
-                            borderColor: "#00d0ff",
+                            borderColor: "#fff",
                             paddingVertical: 8,
                             paddingHorizontal: 12,
                             borderRadius: 8,
                           }}
                         >
-                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#00d0ff", fontSize: 12, fontWeight: "600" }}>
+                          <Text style={{ color: todoSelectedDays.includes(index) ? "white" : "#000", fontSize: 12, fontWeight: "600" }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1285,16 +1291,16 @@ const saveTodo = async () => {
 
                 {todoRecurrenceType === "monthly" && (
                   <View style={{ marginTop: 10 }}>
-                    <Text style={{ fontSize: 13, marginBottom: 8, color: "#666" }}>Jour du mois :</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, marginBottom: 8, color: "#fff" }}>Jour du mois :</Text>
                     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                         <TouchableOpacity
                           key={day}
                           onPress={() => setTodoMonthlyDay(day)}
                           style={{
-                            backgroundColor: todoMonthlyDay === day ? "#00d0ff" : "white",
+                            backgroundColor: todoMonthlyDay === day ? "#F64040" : "white",
                             borderWidth: 2,
-                            borderColor: "#00d0ff",
+                            borderColor: "#fff",
                             width: 40,
                             height: 40,
                             borderRadius: 20,
@@ -1302,7 +1308,7 @@ const saveTodo = async () => {
                             alignItems: "center",
                           }}
                         >
-                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#00d0ff", fontSize: 12 }}>
+                          <Text style={{ color: todoMonthlyDay === day ? "white" : "#000", fontSize: 12 }}>
                             {day}
                           </Text>
                         </TouchableOpacity>
@@ -1321,19 +1327,18 @@ const saveTodo = async () => {
               style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
             >
               <View style={{
-                width: 24,
-                height: 24,
-                borderRadius: 4,
+                width: 20,
+                height: 20,
                 borderWidth: 2,
-                borderColor: "#ffbf00",
-                marginRight: 12,
+                borderColor: "#fff",
+                marginRight: 10,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: todoRemindersEnabled ? "#ffbf00" : "transparent"
+                backgroundColor: todoRemindersEnabled ? "#fff" : "transparent"
               }}>
-                {todoRemindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
+                {todoRemindersEnabled && <Ionicons name="checkmark" size={16} color="000" />}
               </View>
-              <Text style={{ fontSize: 14, fontWeight: "600" }}>Rappels</Text>
+              <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#fff" }}>Rappels</Text>
             </TouchableOpacity>
 
             {todoRemindersEnabled && (
@@ -1364,7 +1369,7 @@ const saveTodo = async () => {
                       <View style={{ 
                         flex: 1,
                         borderWidth: 1.5, 
-                        borderColor: "#ffbf00", 
+                        borderColor: "#F64040", 
                         padding: 10, 
                         borderRadius: 8,
                         backgroundColor: "#fff",
@@ -1375,7 +1380,7 @@ const saveTodo = async () => {
                       <View style={{ 
                         flex: 1,
                         borderWidth: 1.5, 
-                        borderColor: "#ffbf00", 
+                        borderColor: "#F64040", 
                         padding: 10, 
                         borderRadius: 8,
                         backgroundColor: "#fff"
@@ -1387,7 +1392,7 @@ const saveTodo = async () => {
                       <View style={{ 
                         marginTop: 8,
                         borderWidth: 1.5, 
-                        borderColor: "#ffbf00", 
+                        borderColor: "#F64040", 
                         padding: 10, 
                         borderRadius: 8,
                         backgroundColor: "#fff"
@@ -1430,7 +1435,7 @@ const saveTodo = async () => {
                       style={{
                         flex: 1,
                         borderWidth: 1.5,
-                        borderColor: '#ffbf00',
+                        borderColor: '#FF8C42',
                         padding: 10,
                         borderRadius: 8,
                         fontSize: 14,
@@ -1442,7 +1447,7 @@ const saveTodo = async () => {
                       style={{ 
                         flex: 1,
                         borderWidth: 1.5, 
-                        borderColor: '#ffbf00', 
+                        borderColor: '#FF8C42', 
                         padding: 10, 
                         borderRadius: 8,
                         fontSize: 14,
@@ -1466,7 +1471,7 @@ const saveTodo = async () => {
                     style={{ 
                       width: '100%',
                       borderWidth: 1.5, 
-                      borderColor: '#ffbf00', 
+                      borderColor: '#FF8C42', 
                       padding: 10, 
                       borderRadius: 8,
                       fontSize: 14,
@@ -1497,9 +1502,9 @@ const saveTodo = async () => {
                       }
                     }}
                     style={{
-                      backgroundColor: "#ffbf00",
+                      backgroundColor: "#F64040",
                       padding: 12,
-                      borderRadius: 8,
+                      borderRadius: 20,
                       alignItems: "center"
                     }}
                   >
@@ -1521,15 +1526,20 @@ const saveTodo = async () => {
     case "shopping":
   return (
     <View style={styles.modalInnerContainer}>
+      <Image 
+          source={require('../../assets/images/Mascotte_happy.png')} 
+          style={styles.smallMascot} // Assure-toi d'avoir ce style en bas
+          resizeMode="contain"
+        />
       <View style={styles.modalHeader}>
         <TouchableOpacity onPress={goBack}>
-          <Ionicons name="arrow-back-outline" size={26} color="#00d0ff" />
+          <Ionicons name="arrow-back-outline" size={26} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <Text style={styles.modalTitle}>Nouvelle Liste de Course</Text>
 
-      <Text style={{ fontSize: 16, marginBottom: 5 }}>Type de liste</Text>
+      <Text style={{ fontFamily: "Montserrat_400Regular", fontWeight: "bold", fontSize: 14, marginBottom: 10, color : "#fff" }}>Type de liste</Text>
       <Picker
         selectedValue={selectedShoppingType === "personal" ? "personal" : selectedShoppingFamily?.id}
         onValueChange={(value) => {
@@ -1545,7 +1555,7 @@ const saveTodo = async () => {
           }
           setSelectedListId(""); // Reset la liste sélectionnée
         }}
-        style={{ backgroundColor: "#f1f1f1", marginBottom: 10, borderRadius: 10 }}
+        style={{ backgroundColor: "#rgba(255, 255, 255, 0.2)", marginBottom: 10, borderRadius: 10, fontFamily: "Montserrat_400Regular", fontSize: 13, padding: 10, borderWidth: 1, borderColor: "#fff"}}
       >
         <Picker.Item label="Mes listes personnelles" value="personal" />
         <Picker.Item label="── Listes famille ──" value="" enabled={false} />
@@ -1554,11 +1564,11 @@ const saveTodo = async () => {
         ))}
       </Picker>
 
-      <Text style={{ fontSize: 16, marginBottom: 5 }}>Choisir une liste existante</Text>
+      <Text style={{ fontFamily: "Montserrat_400Regular", fontWeight: "bold", fontSize: 14, marginBottom: 10, color: "#fff" }}>Choisir une liste existante</Text>
       <Picker
   selectedValue={selectedListId}
   onValueChange={(val) => setSelectedListId(val)}
-  style={{ backgroundColor: "#f1f1f1", marginBottom: 10, borderRadius: 10 }}
+  style={{ backgroundColor: "rgba(255, 255, 255, 0.2)", marginBottom: 10, borderRadius: 10, fontFamily: "Montserrat_400Regular", fontSize: 13, padding: 10, borderWidth: 1, borderColor:"#fff" }}
 >
   <Picker.Item label="Créer une nouvelle liste" value="" />
   {shoppingLists.map((list) => (
@@ -1569,14 +1579,17 @@ const saveTodo = async () => {
       {!selectedListId && (
         <TextInput
           placeholder="Nom de la nouvelle liste"
+          placeholderTextColor={"#fff"}
           value={newListName}
           onChangeText={setNewListName}
           style={styles.inputWeb}
+          
         />
       )}
 
       <TextInput
         placeholder="Nom du produit"
+        placeholderTextColor={"#fff"}
         value={shoppingItem}
         onChangeText={setShoppingItem}
         style={styles.inputWeb}
@@ -1599,7 +1612,7 @@ const saveTodo = async () => {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarShowLabel: false,
-          tabBarActiveTintColor: "#ffb700ff",
+          tabBarActiveTintColor: "#FF914D",
           tabBarInactiveTintColor: "gray",
           tabBarStyle: { height: 60, paddingHorizontal: 0 },
           tabBarItemStyle: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -1624,7 +1637,7 @@ const saveTodo = async () => {
                 onPress={() => setMenuVisible(true)}
                 style={{ position: "absolute", bottom: 20, right: 20, zIndex: 10 }}
               >
-                <Ionicons name="add-circle" size={60} color="#ffbf00" />
+                <Ionicons name="add-circle" size={60} color="#FF914D" />
               </TouchableOpacity>
             ),
           }}
@@ -1635,51 +1648,83 @@ const saveTodo = async () => {
 
      
       
-      <Modal visible={menuVisible} transparent animationType="slide">
-  <TouchableOpacity
-    style={styles.modalContainer}
-    activeOpacity={1}
-    onPress={() => setMenuVisible(false)}  
-  >
-    <TouchableOpacity
-      activeOpacity={1}
-      style={styles.modalContent}
-      onPress={(e) => e.stopPropagation()}  
-    >
-      <TouchableOpacity
-        style={{ position: "absolute", top: 10, right: 10 }}
-        onPress={() => setMenuVisible(false)} 
-      >
-        <Ionicons name="close" size={30} color="black" />
-      </TouchableOpacity>
+      <Modal visible={menuVisible} transparent animationType="fade">
+        {/* On ferme le menu si on clique en dehors */}
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setMenuVisible(false)}
+        >
+          
+          {/* CAS 1 : C'est le MENU RACCOURCI (Orange) */}
+          {!modalScreen && (
+            <View style={styles.shortcutPositionContainer}>
+              <TouchableOpacity 
+                activeOpacity={1} 
+                style={styles.shortcutCard} 
+                onPress={e => e.stopPropagation()} // Empêche la fermeture si on clique sur la carte
+              >
+                {/* Mascotte */}
+                <Image 
+                  source={require('../../assets/images/bird_mascot.png')} 
+                  style={styles.mascotImage}
+                  resizeMode="contain"
+                />
 
-      {!modalScreen && (
-        <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%", marginBottom: 20 }}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("calendar")}>
-            <Ionicons name="calendar-outline" size={30} color="white" />
-            <Text style={styles.buttonText}>Événement</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("todo")}>
-            <Ionicons name="list-outline" size={30} color="white" />
-            <Text style={styles.buttonText}>Tâche</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setModalScreen("shopping")}>
-            <Ionicons name="cart-outline" size={30} color="white" />
-            <Text style={styles.buttonText}>Course</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+                <Text style={styles.shortcutTitle}>Mon raccourci</Text>
+                <Text style={styles.shortcutSubtitle}>
+                  Qu'as-tu envie d'ajouter/demander aujourd'hui ?
+                </Text>
 
-      {modalScreen && renderModalContent()}
-    </TouchableOpacity>
-  </TouchableOpacity>
-</Modal>
+                <View style={styles.buttonsContainer}>
+                  <TouchableOpacity style={styles.outlineButton} onPress={() => setModalScreen("calendar")}>
+                    <Ionicons name="add" size={24} color="white" style={{ marginRight: 10 }} />
+                    <Text style={styles.outlineButtonText}>Ajouter un événement...</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.outlineButton} onPress={() => setModalScreen("shopping")}>
+                    <Ionicons name="add" size={24} color="white" style={{ marginRight: 10 }} />
+                    <Text style={styles.outlineButtonText}>Ajouter un produit...</Text>
+                  </TouchableOpacity>
+                  
+                  {/* Exemple 3ème bouton (Rappel ou Tâche) */}
+                  <TouchableOpacity style={styles.outlineButton} onPress={() => setModalScreen("todo")}>
+                    <Ionicons name="add" size={24} color="white" style={{ marginRight: 10 }} />
+                    <Text style={styles.outlineButtonText}>Ajouter une tâche...</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* CAS 2 : C'est un FORMULAIRE (Blanc) - Calendrier/Tâche/Course */}
+          {modalScreen && (
+            <TouchableOpacity 
+              activeOpacity={1} 
+              style={styles.formModalContent} // Style différent pour les formulaires
+              onPress={e => e.stopPropagation()}
+            >
+               {/* Bouton fermeture croix */}
+              <TouchableOpacity 
+                style={{ position: "absolute", top: 15, right: 15, zIndex: 10 }} 
+                onPress={() => setMenuVisible(false)}
+              >
+                <Ionicons name="close" size={30} color="#333" />
+              </TouchableOpacity>
+
+              {renderModalContent()}
+            </TouchableOpacity>
+          )}
+
+        </TouchableOpacity>
+      </Modal>
 
     </View> 
   );
 }
 
 const Stack = createNativeStackNavigator();
+
 export default function RootStack() {
   return (
     <Stack.Navigator>
@@ -1687,19 +1732,38 @@ export default function RootStack() {
         name="Acceuil"
         component={Acceuil}
         options={({ navigation }) => ({
-          headerTitle: "Accueil",
+          headerTitle: "Mon espace",
+          headerTitleAlign: "center",
+          headerShadowVisible: false, // Supprime l'ombre et la ligne native
+          
+          // Style de la BOITE du header (fond, bordure)
+          headerStyle: {
+            backgroundColor: 'white',
+            elevation: 0, // Android
+            borderBottomWidth: 0, // iOS
+          }, // <--- C'est ici qu'il manquait la fermeture de l'objet headerStyle
+
+          // Style du TEXTE du titre
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42",
+            // fontWeight: 'bold' // Tu peux laisser, mais Shrikhand est déjà gras par défaut
+          },
+
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color: "#6DDB31" }} />
             </TouchableOpacity>
           ),
+
           headerRight: () => (
             <View style={{ flexDirection: "row", marginRight: 10 }}>
               <TouchableOpacity onPress={() => navigation.navigate("Recompense")}>
-                <Ionicons name="heart-outline" size={24} color="#ff005d" style={{ marginRight: 15 }} />
+                <Ionicons name="heart-outline" size={27} color="#F64040" style={{ marginRight: 15 }} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate("chat")}>
-                <Ionicons name="chatbubble-outline" size={24} color="#00ff91" />
+                <Ionicons name="chatbubble-outline" size={27} color="#6DDB31" />
               </TouchableOpacity>
             </View>
           ),
@@ -1712,142 +1776,156 @@ export default function RootStack() {
 }
 
 const styles = StyleSheet.create({
-
-  modalBackground: {
+  // --- LAYOUT MODAL ---
+  modalOverlay: {
     flex: 1,
-    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", // Le fond grisé
+    justifyContent: "flex-end", // On aligne tout vers le bas
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    marginBottom: 60,
   },
-
-
-  modalContent: {
-    width: "90%",
-    maxHeight: "85%",
-    marginTop: 60,
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 15,
+  
+  // --- RACCOURCI (CARTE ORANGE) ---
+  shortcutPositionContainer: {
+    width: "100%",
     alignItems: "center",
+    marginBottom: 0, // IMPORTANT: C'est ça qui "colle" la carte au-dessus du bouton + (ajuste si besoin)
+  },
+  shortcutCard: {
+    width: "85%", // Largeur de la carte (pas 100% pour voir les bords arrondis)
+    backgroundColor: "#FF8C42", // Orange vif
+    borderRadius: 30, // Coins très ronds
+    padding: 25,
+    paddingTop: 30,
+    overflow: "visible", // IMPORTANT: Permet à la mascotte de dépasser du cadre
+    position: "relative",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
   },
-
-
-  iconButton: {
-    backgroundColor: "#00d0ffff",
-    borderRadius: 15,
-    padding: 10,
-    width: 90,
-    height: 90,
-    justifyContent: "center",
+  mascotImage: {
+    position: "absolute",
+    top: 10, // On la remonte pour qu'elle sorte du cadre
+    right: -39, // On la décale à droite
+    width: 110, 
+    height: 110,
+    zIndex: 10, // Au-dessus du texte
+  },
+  shortcutTitle: {
+    fontFamily: "Shrikhand_400Regular", // Nom exact de ta police (vérifie si c'est 'Shrikhand' ou 'Shrikhand-Regular')
+    fontSize: 28,
+    color: "white",
+    marginBottom: 5,
+    lineHeight: 32,
+  },
+  shortcutSubtitle: {
+    fontFamily: "Montserrat_400Regular", // Idem pour Montserrat
+    fontSize: 13,
+    color: "white",
+    fontStyle: "italic", // Montserrat Italique si dispo
+    marginBottom: 25,
+    width: "70%", // Pour laisser la place à la mascotte
+    lineHeight: 20,
+  },
+  buttonsContainer: {
+    width: "100%",
+    gap: 12,
+  },
+  outlineButton: {
+    flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 5,
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 12,
-    marginTop: 5,
-    textAlign: "center",
-  },
-
-  closeButton: {
-    marginTop: 20,
-    backgroundColor: "#eeeeeef4",
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 50,
+    borderWidth: 1.5,
+    borderColor: "white",
+    backgroundColor: "rgba(255,255,255,0.15)", // Légère transparence
   },
-  closeText: {
-    fontSize: 16,
-    color: "#333",
+  outlineButtonText: {
+    fontFamily: "Montserrat_400Regular",
+    color: "white",
+    fontSize: 13,
+    fontWeight: "600",
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", 
+
+  // --- FORMULAIRES (MODE BLANC CLASSIC) ---
+  formModalContent: {
+    width: "87%",
+    height: "95%", // Prend presque tout l'écran
+    backgroundColor: "#FF8C42",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 20,
+    paddingTop: 40, // Place pour la croix
+    alignItems: "center",
+    // On enlève le marginBottom pour que ça colle au bas de l'écran comme une "Sheet"
   },
+  
+  // --- INPUTS & RESTE (Gardés de ton code précédent) ---
   inputWeb: {
-  width: "100%",
-  height: 45,               
-  marginTop: 10,
-  paddingHorizontal: 12,   
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: "#00d0ffff",
-  color: "gray",
-  fontStyle: "italic",
-  fontSize: 16,
-},
-  backButton: {
-  position: "absolute",
-  left: 10,
-  top: 10,
-  zIndex: 10,
-  padding: 5,
-},
-modalTitle: {
-  fontSize: 20,
-  fontWeight: "bold",
-  marginBottom: 15,
-  color: "#00d0ffff",
-  textAlign: "center",
-  width: "100%",
-},
-modalInnerContainer: {
-  width: "100%",
-  marginBottom: 5,
-  paddingHorizontal: 10,
-  maxHeight: "100%",
-},
-
-modalHeader: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  width: "100%",
-  marginBottom: 15,
-  position: "relative",
-  zIndex: 9999,
-},
-saveButton: {
-  backgroundColor: "#00d0ffff",
-  borderRadius: 50,
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  marginTop: 10,
-  alignItems: "center",
-},
-
-saveButtonText: {
-  color: "white",
-  fontWeight: "bold",
-  fontSize: 14,
-},
-closeModalButton: {
-  position: "absolute",
-  top: 10,
-  right: 10,
-  zIndex: 10,
-  padding: 5,
-},
-priorityButton: {
-  paddingVertical: 10,
-  paddingHorizontal: 15,
-  borderRadius: 8,
-  borderWidth: 2,
-  alignItems: "center",
-  justifyContent: "center",
-},
-
-
-
-
-
-
+    width: "100%",
+    height: 50,
+    marginTop: 10,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#fff",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    color: "#000",
+    fontSize: 13,
+    paddingLeft: 15,
+    paddingRight: 15,
+    fontFamily: "Montserrat_400Regular",
+  },
+  saveButton: {
+    backgroundColor: "#F64040",
+    borderRadius: 50,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+  },
+  modalTitle: {
+    fontSize: 25,
+    fontWeight: "regular",
+    color: "#fff",
+    marginBottom: 20,
+    textAlign: "center",
+    fontFamily: "Shrikhand_400Regular",
+  },
+  priorityButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 5,
+  },
+  modalInnerContainer: {
+    width: "100%",
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    width: "100%",
+    marginBottom: 10,
+  },
+  smallMascot: {
+    position: "absolute", // Pour la placer librement
+    top: -45,             // On la remonte pour qu'elle soit à cheval sur le bord
+    alignSelf: "center",  // On la centre
+    width: 75,            // Taille de l'image
+    height: 90,
+    zIndex: 100,           // Pour passer au-dessus de tout
+    elevation: 100,   // Dit à Android : "Passe devant !"
+  },
 });
