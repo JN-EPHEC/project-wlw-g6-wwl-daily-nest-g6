@@ -232,7 +232,7 @@ export function Parametres() {
         {/* Profile */}
         <TouchableOpacity style={styles.cardRow} onPress={goToProfile}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Ionicons name="person-circle" size={80} color="#00b7ff9a" />
+            <Ionicons name="person-circle" size={80} color="#60AFDF" />
             <Text style={styles.title}>Mon Profil</Text>
           </View>
         </TouchableOpacity>
@@ -244,11 +244,11 @@ export function Parametres() {
             <Text style={styles.rowSub}>Gérer les familles et membres</Text>
             <View style={{ flexDirection: "row", marginTop: 6, gap: 6 }}>
               {families.map((f) => (
-                <Ionicons key={f.id} name="people-circle" size={30} color="#00b7ff9a" />
+                <Ionicons key={f.id} name="people-circle" size={30} color="#6DDB31" />
               ))}
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={20} color="#000" />
         </TouchableOpacity>
 
         {/* Mes rôles dans les familles */}
@@ -268,11 +268,11 @@ export function Parametres() {
                       <Text style={styles.familyName}>{familyRole.familyName}</Text>
                       <View style={[
                         styles.roleBadge,
-                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+                        { backgroundColor: familyRole.role.toLowerCase() === 'parent' ? '#6DDB3133' : '#F6404033' }
                       ]}>
                         <Text style={[
                           styles.roleText,
-                          { color: familyRole.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+                          { color: familyRole.role.toLowerCase() === 'parent' ? '#6DDB31' : '#F64040' }
                         ]}>
                           {familyRole.role}
                         </Text>
@@ -281,7 +281,7 @@ export function Parametres() {
                     <Ionicons 
                       name={familyRole.role.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
                       size={28} 
-                      color={familyRole.role.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
+                      color={familyRole.role.toLowerCase() === 'parent' ? '#FF8C42' : '#F64040'} 
                     />
                   </View>
                 </View>
@@ -298,7 +298,7 @@ export function Parametres() {
             <Text style={styles.rowTitle}>Notifications</Text>
             <Text style={styles.rowSub}>Gérer les alertes et rappels</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={20} color="#000" />
         </TouchableOpacity>
 
         {/* Privacy */}
@@ -307,7 +307,7 @@ export function Parametres() {
             <Text style={styles.rowTitle}>Confidentialité</Text>
             <Text style={styles.rowSub}>Gérer la visibilité et le partage des données</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={20} color="#000" />
         </TouchableOpacity>
 
         {/* Mot de passe */}
@@ -316,7 +316,7 @@ export function Parametres() {
             <Text style={styles.rowTitle}>Mot de passe</Text>
             <Text style={styles.rowSub}>Modifier votre mot de passe</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={20} color="#000" />
         </TouchableOpacity>
 
         {/* Save button */}
@@ -499,9 +499,17 @@ export default function () {
         component={Parametres}
         options={({ navigation }) => ({
           headerTitle: "Mes paramètres",
+          headerTitleAlign: "center",
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42",
+            // fontWeight: 'bold' // Tu peux laisser, mais Shrikhand est déjà gras par défaut
+          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color:"#6DDB31" }} />
             </TouchableOpacity>
           ),
         })}
@@ -512,9 +520,9 @@ export default function () {
 
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f7f8fa", paddingBottom: 20 },
+  screen: { flex: 1, backgroundColor: "#fff", paddingBottom: 0 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 16 },
+  container: { padding: 20, backgroundColor: "#fff" },
 
   cardRow: {
     backgroundColor: "#fff",
@@ -525,20 +533,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "#FF8C42",
   },
   card: {
     backgroundColor: "#fff",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 12,
     elevation: 2,
+    borderWidth: 0,
+    borderColor: "#FF8C42",
   },
 
-  title: { fontSize: 20, fontWeight: "700", color: "#222" },
-  rowTitle: { fontSize: 16, fontWeight: "700", color: "#111" },
-  rowSub: { fontSize: 13, color: "#666", marginTop: 4 },
-  sectionTitle: { fontWeight: "700", marginBottom: 6 },
-  smallText: { color: "#666", fontSize: 12, marginBottom: 8 },
+  title: { fontFamily: "Shrikhand_400Regular", fontSize: 20, fontWeight: "400", color: "#FF8C42" },
+  rowTitle: { fontFamily: "Montserrat_400Regular", fontSize: 16, fontWeight: "700", color: "#FF8C42" },
+  rowSub: { fontFamily: "Montserrat_400Regular", fontSize: 13, color: "#000", marginTop: 4 },
+  sectionTitle: { fontFamily: "Montserrat_400Regular", fontSize: 16, fontWeight: "700", paddingTop: 5, marginBottom: 8, color: "#FF8C42" },
+  smallText: { color: "#000", fontSize: 12, marginBottom: 8 },
 
   pickerWrap: {
     borderWidth: 1,
@@ -559,9 +571,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 14,
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e5e5e5",
+    borderColor: "#FF8C42",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -569,9 +581,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   familyName: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: "#FF8C42",
     marginBottom: 8,
   },
   noFamilyText: {
@@ -593,7 +606,7 @@ const styles = StyleSheet.create({
   },
 
   saveSmallBtn: {
-    backgroundColor: "#2d9cdb",
+    backgroundColor: "#F64040",
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 25,
@@ -601,7 +614,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  saveSmallText: { color: "white", fontWeight: "600", fontSize: 14 },
+  saveSmallText: { fontFamily: "Montserrat_400Regular", color: "white", fontWeight: "600", fontSize: 14 },
 
   // modal
   modalBackdrop: {
@@ -619,11 +632,11 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  modalTitle: { fontSize: 18, fontWeight: "700" },
+  modalTitle: { fontFamily: "Montserrat_400Regular", color: "#FF8C42", fontSize: 18, fontWeight: "700" },
   modalText: { color: "#555", marginTop: 12, lineHeight: 22 },
 
   switchRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 14 },
-  switchLabel: { color: "#333" },
+  switchLabel: { fontStyle: "italic", color: "#333" },
 
   modalActions: { marginTop: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   iconClose: {
@@ -632,12 +645,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   modalSaveBtn: {
-    backgroundColor: "#ffb700",
+    backgroundColor: "#F64040",
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 20,
   },
-  modalSaveText: { color: "#222", fontWeight: "700" },
+  modalSaveText: { fontFamily: "Montserrat_400Regular", color: "#fff", fontWeight: "700" },
   inputLabel: {
     fontSize: 14,
     fontWeight: "600",
