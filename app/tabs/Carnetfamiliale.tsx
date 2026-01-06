@@ -3,17 +3,17 @@ import { Picker } from '@react-native-picker/picker';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -89,6 +89,13 @@ export default function FamilyJournal() {
   const [roleManagementVisible, setRoleManagementVisible] = useState(false); // gestion des rôles
   const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({}); // email -> role
 
+  // Récupérer l'utilisateur connecté
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, []);
 
   // Charger les familles
   useEffect(() => {

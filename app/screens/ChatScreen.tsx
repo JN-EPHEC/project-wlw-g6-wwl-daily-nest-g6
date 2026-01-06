@@ -2,30 +2,30 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import {
-  addDoc,
-  collection,
-  CollectionReference,
-  deleteDoc,
-  doc,
-  DocumentData,
-  FieldValue,
-  getDocs,
-  onSnapshot,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
+    addDoc,
+    collection,
+    CollectionReference,
+    deleteDoc,
+    doc,
+    DocumentData,
+    FieldValue,
+    getDocs,
+    onSnapshot,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View
+    FlatList,
+    Modal,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -52,13 +52,26 @@ export default function ChatScreen() {
 
   // 🔹 Charger familles
   useEffect(() => {
-    const q = query(
-      collection(db, "families"),
-      where("members", "array-contains", user.email)
-    );
+    const q = query(collection(db, "families"));
 
     return onSnapshot(q, snap => {
-      setFamilies(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Filtrer pour ne garder que les familles où l'utilisateur est membre
+      const userFamilies = allFamilies.filter(family => {
+        const members = family.members || [];
+        
+        for (const memberItem of members) {
+          if (typeof memberItem === 'string' && memberItem === user.email) {
+            return true; // Format ancien (string)
+          } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+            return true; // Format nouveau (objet)
+          }
+        }
+        return false;
+      });
+      
+      setFamilies(userFamilies);
     });
   }, []);
 
