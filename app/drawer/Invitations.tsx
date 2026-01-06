@@ -19,7 +19,6 @@ import {
   Alert,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -32,7 +31,7 @@ export default function Invitations() {
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string; code: string }[]>([]);
-  
+
   // État pour envoyer une invitation
   const [sendModalVisible, setSendModalVisible] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<{ id: string; name: string; code: string } | null>(null);
@@ -75,26 +74,26 @@ export default function Invitations() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allFamilies: any[] = [];
-      snapshot.forEach(doc => allFamilies.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach((doc) => allFamilies.push({ id: doc.id, ...doc.data() }));
       console.log("Invitations - Toutes les familles:", allFamilies.length);
       console.log("Invitations - Email utilisateur:", email);
-      
+
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
         console.log(`Invitations - Famille ${family.name}, membres:`, members);
-        
+
         for (const memberItem of members) {
-          if (typeof memberItem === 'string' && memberItem === email) {
+          if (typeof memberItem === "string" && memberItem === email) {
             console.log(`Invitations - ✓ Trouvé dans ${family.name} (format ancien)`);
             return true;
-          } else if (typeof memberItem === 'object' && memberItem.email === email) {
+          } else if (typeof memberItem === "object" && memberItem.email === email) {
             console.log(`Invitations - ✓ Trouvé dans ${family.name} (format nouveau)`);
             return true;
           }
         }
         return false;
       });
-      
+
       console.log("Invitations - Familles de l'utilisateur:", userFamilies.length);
       setFamiliesJoined(userFamilies);
     });
@@ -106,16 +105,13 @@ export default function Invitations() {
   useEffect(() => {
     if (!familiesJoined.length) return;
 
-    const familyIds = familiesJoined.map(f => f.id);
-    
-    const q = query(
-      collection(db, "invitations"),
-      where("recipientFamilyId", "in", familyIds)
-    );
+    const familyIds = familiesJoined.map((f) => f.id);
+
+    const q = query(collection(db, "invitations"), where("recipientFamilyId", "in", familyIds));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const invitations: any[] = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         invitations.push({ id: doc.id, ...doc.data() });
       });
       setReceivedInvitations(invitations);
@@ -128,8 +124,8 @@ export default function Invitations() {
   useEffect(() => {
     if (!familiesJoined.length) return;
 
-    const familyIds = familiesJoined.map(f => f.id);
-    
+    const familyIds = familiesJoined.map((f) => f.id);
+
     const q = query(
       collection(db, "invitationResponses"),
       where("senderFamilyId", "in", familyIds),
@@ -138,13 +134,13 @@ export default function Invitations() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const notifications: any[] = [];
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         notifications.push({ id: doc.id, ...doc.data() });
       });
       setRejectionNotifications(notifications);
 
       // Afficher une alerte pour chaque nouvelle notification
-      notifications.forEach(notif => {
+      notifications.forEach((notif) => {
         if (!notif.viewed) {
           Alert.alert(
             "Invitation refusée",
@@ -155,10 +151,10 @@ export default function Invitations() {
                 onPress: async () => {
                   // Marquer comme vue
                   await updateDoc(doc(db, "invitationResponses", notif.id), {
-                    viewed: true
+                    viewed: true,
                   });
-                }
-              }
+                },
+              },
             ]
           );
         }
@@ -172,7 +168,7 @@ export default function Invitations() {
   const validateDate = (dateStr: string): boolean => {
     const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
     const match = dateStr.match(dateRegex);
-    
+
     if (!match) {
       setDateError("Format invalide. Utilisez DD/MM/YYYY");
       return false;
@@ -211,7 +207,7 @@ export default function Invitations() {
   const validateTime = (timeStr: string): boolean => {
     const timeRegex = /^(\d{2}):(\d{2})$/;
     const match = timeStr.match(timeRegex);
-    
+
     if (!match) {
       setTimeError("Format invalide. Utilisez HH:MM");
       return false;
@@ -282,20 +278,18 @@ export default function Invitations() {
 
     try {
       console.log("Recherche de la famille destinataire avec code:", recipientCode);
-      
+
       // D'abord, afficher tous les codes disponibles pour le debug
       const allFamiliesSnapshot = await getDocs(collection(db, "families"));
       console.log("=== Codes de toutes les familles disponibles ===");
-      allFamiliesSnapshot.forEach(doc => {
+      allFamiliesSnapshot.forEach((doc) => {
         const data = doc.data();
         console.log(`Famille: ${data.name}, Code: ${data.joinCode}`);
       });
       console.log("==============================================");
-      
+
       // Vérifier que le code existe
-      const familiesSnapshot = await getDocs(
-        query(collection(db, "families"), where("joinCode", "==", recipientCode))
-      );
+      const familiesSnapshot = await getDocs(query(collection(db, "families"), where("joinCode", "==", recipientCode)));
 
       console.log("Résultat recherche:", familiesSnapshot.empty ? "Aucune famille trouvée" : "Famille trouvée");
 
@@ -306,7 +300,7 @@ export default function Invitations() {
 
       const recipientFamily: any = {
         id: familiesSnapshot.docs[0].id,
-        ...familiesSnapshot.docs[0].data()
+        ...familiesSnapshot.docs[0].data(),
       };
 
       console.log("Famille destinataire:", recipientFamily.name);
@@ -323,7 +317,7 @@ export default function Invitations() {
         date: invitationDate,
         time: invitationTime,
         createdAt: serverTimestamp(),
-        status: "pending"
+        status: "pending",
       });
 
       console.log("✅ Invitation créée avec succès");
@@ -347,7 +341,7 @@ export default function Invitations() {
         time: invitation.time,
         createdAt: serverTimestamp(),
         fromInvitation: true,
-        fromFamily: invitation.senderFamilyName
+        fromFamily: invitation.senderFamilyName,
       });
 
       // Créer l'événement dans le calendrier de la famille émettrice
@@ -358,7 +352,7 @@ export default function Invitations() {
         time: invitation.time,
         createdAt: serverTimestamp(),
         fromInvitation: true,
-        fromFamily: invitation.recipientFamilyName
+        fromFamily: invitation.recipientFamilyName,
       });
 
       // Supprimer l'invitation
@@ -384,7 +378,7 @@ export default function Invitations() {
         invitationTitle: invitation.title,
         status: "rejected",
         createdAt: serverTimestamp(),
-        viewed: false
+        viewed: false,
       });
 
       // Supprimer l'invitation
@@ -410,459 +404,451 @@ export default function Invitations() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header avec burger menu */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-          style={styles.burgerMenu}
-        >
-          <Ionicons name="menu" size={28} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Invitations</Text>
-      </View>
+  <View className="flex-1 bg-[#FAFBFC] pt-[50px]">
+    {/* Header avec burger menu */}
+    <View className="flex-row items-center px-5 pb-5 bg-white">
+      <TouchableOpacity 
+        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())} 
+        className="mr-4 w-12 h-12 rounded-2xl items-center justify-center"
+        activeOpacity={0.7}
+      >
+        <Ionicons name="menu" size={26} color="#68cb30" />
+      </TouchableOpacity>
+      <Text className="text-[24px] font-bold text-[#111827] flex-1">Invitations</Text>
+      
+      {/* Badge notification */}
+      {receivedInvitations.length > 0 && (
+        <View className="bg-[#F64040] px-3 py-1.5 rounded-full">
+          <Text className="text-white text-[13px] font-bold">
+            {receivedInvitations.length}
+          </Text>
+        </View>
+      )}
+    </View>
 
-      <ScrollView style={styles.scrollView}>
-        {/* Bouton pour envoyer une invitation */}
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={() => setSendModalVisible(true)}
-        >
-          <Ionicons name="send" size={24} color="#fff" />
-          <Text style={styles.sendButtonText}>Envoyer une invitation</Text>
-        </TouchableOpacity>
+    <ScrollView className="flex-1 w-full px-5 pt-5">
+      {/* Bouton pour envoyer une invitation */}
+      <TouchableOpacity 
+        className="flex-row items-center justify-center py-4 px-6 rounded-2xl mb-6"
+        style={{
+          backgroundColor: '#FF914D',
+          shadowColor: "#FF914D",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          elevation: 4,
+        }}
+        onPress={() => setSendModalVisible(true)}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="send" size={22} color="#fff" />
+        <Text className="text-white text-[16px] font-bold ml-2">Envoyer une invitation</Text>
+      </TouchableOpacity>
 
-        {/* Liste des invitations reçues */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Invitations reçues</Text>
-          {receivedInvitations.length === 0 ? (
-            <Text style={styles.emptyText}>Aucune invitation reçue</Text>
-          ) : (
-            receivedInvitations.map(invitation => (
-              <TouchableOpacity
-                key={invitation.id}
-                style={styles.invitationCard}
-                onPress={() => {
-                  setSelectedInvitation(invitation);
-                  setDetailModalVisible(true);
-                }}
-              >
-                <View style={styles.invitationHeader}>
-                  <Text style={styles.invitationTitle}>{invitation.title}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#666" />
-                </View>
-                <Text style={styles.invitationFrom}>
-                  De: {invitation.senderFamilyName}
-                </Text>
-                <Text style={styles.invitationDate}>
-                  {invitation.date} à {invitation.time}
-                </Text>
-              </TouchableOpacity>
-            ))
+      {/* Liste des invitations reçues */}
+      <View className="mb-5">
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-[13px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
+            Invitations reçues
+          </Text>
+          {receivedInvitations.length > 0 && (
+            <Text className="text-[14px] text-[#6B7280]">
+              {receivedInvitations.length} en attente
+            </Text>
           )}
         </View>
-      </ScrollView>
-
-      {/* Modal pour envoyer une invitation */}
-      <Modal
-        visible={sendModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSendModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Envoyer une invitation</Text>
-              <TouchableOpacity onPress={() => setSendModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#333" />
-              </TouchableOpacity>
+        
+        {receivedInvitations.length === 0 ? (
+          <View 
+            className="bg-white rounded-3xl p-8 items-center"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.04,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+          >
+            <View className="w-16 h-16 rounded-full bg-[#FFF4ED] items-center justify-center mb-4">
+              <Ionicons name="mail-open-outline" size={32} color="#FF914D" />
             </View>
-
-            <ScrollView style={styles.modalBody}>
-              {/* Sélection de la famille émettrice */}
-              <Text style={styles.label}>Votre famille ({familiesJoined.length})</Text>
-              <View style={styles.pickerContainer}>
-                {familiesJoined.map(family => (
-                  <TouchableOpacity
-                    key={family.id}
-                    style={[
-                      styles.familyOption,
-                      selectedFamily?.id === family.id && styles.familyOptionSelected
-                    ]}
-                    onPress={() => setSelectedFamily(family)}
-                  >
-                    <Text style={[
-                      styles.familyOptionText,
-                      selectedFamily?.id === family.id && styles.familyOptionTextSelected
-                    ]}>
-                      {family.name}
+            <Text className="text-[18px] font-bold text-[#111827] mb-2">
+              Aucune invitation
+            </Text>
+            <Text className="text-[14px] text-[#9CA3AF] text-center">
+              Vous n'avez pas encore reçu d'invitation
+            </Text>
+          </View>
+        ) : (
+          receivedInvitations.map((invitation) => (
+            <TouchableOpacity
+              key={invitation.id}
+              className="bg-white rounded-3xl p-5 mb-4"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+              onPress={() => {
+                setSelectedInvitation(invitation);
+                setDetailModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-start mb-3">
+                <View className="w-12 h-12 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-4">
+                  <Ionicons name="people" size={24} color="#60AFDF" />
+                </View>
+                
+                <View className="flex-1">
+                  <Text className="text-[18px] font-bold text-[#111827] mb-1">
+                    {invitation.title}
+                  </Text>
+                  <View className="flex-row items-center mb-2">
+                    <Ionicons name="home-outline" size={14} color="#9CA3AF" />
+                    <Text className="text-[14px] text-[#6B7280] ml-1.5">
+                      De: {invitation.senderFamilyName}
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                  </View>
+                </View>
+
+                <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
               </View>
 
-              {/* Code de la famille destinataire */}
-              <Text style={styles.label}>Code de la famille destinataire</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: 123456"
-                value={recipientCode}
-                onChangeText={setRecipientCode}
-                keyboardType="numeric"
-                maxLength={6}
-              />
+              <View 
+                className="flex-row items-center px-4 py-2.5 rounded-xl"
+                style={{ backgroundColor: '#FFF7F1' }}
+              >
+                <Ionicons name="calendar-outline" size={16} color="#FF914D" />
+                <Text className="text-[14px] text-[#FF914D] font-semibold ml-2">
+                  {invitation.date} à {invitation.time}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+    </ScrollView>
 
-              {/* Titre */}
-              <Text style={styles.label}>Titre de l'invitation</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ex: Sortie au parc"
-                value={invitationTitle}
-                onChangeText={setInvitationTitle}
-                maxLength={50}
-              />
-              <Text style={styles.charCount}>{invitationTitle.length}/50</Text>
-
-              {/* Description */}
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Décrivez l'activité..."
-                value={invitationDescription}
-                onChangeText={setInvitationDescription}
-                maxLength={500}
-                multiline
-                numberOfLines={4}
-              />
-              <Text style={styles.charCount}>{invitationDescription.length}/500</Text>
-
-              {/* Date */}
-              <Text style={styles.label}>Date (DD/MM/YYYY)</Text>
-              <TextInput
-                style={[styles.input, dateError ? styles.inputError : null]}
-                placeholder="Ex: 25/12/2025"
-                value={invitationDate}
-                onChangeText={(text) => {
-                  setInvitationDate(text);
-                  if (text.length === 10) {
-                    validateDate(text);
-                  } else {
-                    setDateError("");
-                  }
-                }}
-                maxLength={10}
-              />
-              {dateError ? <Text style={styles.errorText}>{dateError}</Text> : null}
-
-              {/* Heure */}
-              <Text style={styles.label}>Heure (HH:MM)</Text>
-              <TextInput
-                style={[styles.input, timeError ? styles.inputError : null]}
-                placeholder="Ex: 14:30"
-                value={invitationTime}
-                onChangeText={(text) => {
-                  setInvitationTime(text);
-                  if (text.length === 5) {
-                    validateTime(text);
-                  } else {
-                    setTimeError("");
-                  }
-                }}
-                maxLength={5}
-              />
-              {timeError ? <Text style={styles.errorText}>{timeError}</Text> : null}
-
-              <TouchableOpacity style={styles.submitButton} onPress={sendInvitation}>
-                <Text style={styles.submitButtonText}>Envoyer</Text>
-              </TouchableOpacity>
-            </ScrollView>
+    {/* Modal pour envoyer une invitation */}
+    <Modal 
+      visible={sendModalVisible} 
+      animationType="slide" 
+      transparent={true} 
+      onRequestClose={() => setSendModalVisible(false)}
+    >
+      <View className="flex-1 bg-black/60 justify-center items-center">
+        <View className="bg-white rounded-3xl w-[90%] max-h-[85%]">
+          <View className="flex-row items-center justify-between p-6 border-b border-[#F1F3F5]">
+            <View className="flex-row items-center flex-1">
+              <View className="w-10 h-10 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-3">
+                <Ionicons name="send" size={20} color="#FF914D" />
+              </View>
+              <Text className="text-[22px] font-bold text-[#111827]">Nouvelle invitation</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => setSendModalVisible(false)}
+              className="w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
 
-      {/* Modal de détails d'invitation */}
-      <Modal
-        visible={detailModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setDetailModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Détails de l'invitation</Text>
-              <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
-                <Ionicons name="close" size={28} color="#333" />
-              </TouchableOpacity>
+          <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
+            {/* Sélection de la famille qui envoie */}
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-3 uppercase tracking-wide">
+              Votre famille ({familiesJoined.length})
+            </Text>
+            <View className="mb-5">
+              {familiesJoined.map((family) => (
+                <TouchableOpacity
+                  key={family.id}
+                  className={`rounded-2xl p-4 mb-2 border-2 ${
+                    selectedFamily?.id === family.id 
+                      ? "bg-[#FFF4ED] border-[#FF914D]" 
+                      : "bg-white border-[#E5E7EB]"
+                  }`}
+                  onPress={() => setSelectedFamily(family)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    className={`text-[15px] font-semibold ${
+                      selectedFamily?.id === family.id ? "text-[#FF914D]" : "text-[#6B7280]"
+                    }`}
+                  >
+                    👨‍👩‍👧‍👦 {family.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
-            {selectedInvitation && (
-              <ScrollView style={styles.modalBody}>
-                <Text style={styles.detailLabel}>Titre</Text>
-                <Text style={styles.detailValue}>{selectedInvitation.title}</Text>
+            {/* Code de la famille destinataire */}
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+              Code de la famille destinataire
+            </Text>
+            <TextInput
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-5"
+              placeholder="Ex: 123456"
+              placeholderTextColor="#9CA3AF"
+              value={recipientCode}
+              onChangeText={setRecipientCode}
+              keyboardType="numeric"
+              maxLength={6}
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}
+            />
 
-                <Text style={styles.detailLabel}>De</Text>
-                <Text style={styles.detailValue}>{selectedInvitation.senderFamilyName}</Text>
+            {/* Titre */}
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+              Titre de l'invitation
+            </Text>
+            <TextInput
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-1"
+              placeholder="Ex: Sortie au parc"
+              placeholderTextColor="#9CA3AF"
+              value={invitationTitle}
+              onChangeText={setInvitationTitle}
+              maxLength={50}
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}
+            />
+            <Text className="text-[12px] text-[#9CA3AF] text-right mb-5">
+              {invitationTitle.length}/50
+            </Text>
 
-                <Text style={styles.detailLabel}>Description</Text>
-                <Text style={styles.detailValue}>{selectedInvitation.description}</Text>
+            {/* Description */}
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+              Description
+            </Text>
+            <TextInput
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-1"
+              placeholder="Décrivez l'activité..."
+              placeholderTextColor="#9CA3AF"
+              value={invitationDescription}
+              onChangeText={setInvitationDescription}
+              maxLength={500}
+              multiline
+              numberOfLines={4}
+              style={{ 
+                textAlignVertical: "top",
+                minHeight: 100,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}
+            />
+            <Text className="text-[12px] text-[#9CA3AF] text-right mb-5">
+              {invitationDescription.length}/500
+            </Text>
 
-                <Text style={styles.detailLabel}>Date et heure</Text>
-                <Text style={styles.detailValue}>
-                  {selectedInvitation.date} à {selectedInvitation.time}
+            {/* Date et Heure - Côte à côte */}
+            <View className="flex-row gap-3 mb-5">
+              <View className="flex-1">
+                <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+                  Date
                 </Text>
+                <TextInput
+                  className={`bg-white border rounded-2xl px-4 py-4 text-[16px] text-[#111827] ${
+                    dateError ? "border-[#F64040]" : "border-[#E5E7EB]"
+                  }`}
+                  placeholder="JJ/MM/AAAA"
+                  placeholderTextColor="#9CA3AF"
+                  value={invitationDate}
+                  onChangeText={(text) => {
+                    setInvitationDate(text);
+                    if (text.length === 10) {
+                      validateDate(text);
+                    } else {
+                      setDateError("");
+                    }
+                  }}
+                  maxLength={10}
+                />
+                {dateError ? (
+                  <Text className="text-[11px] text-[#F64040] mt-1">{dateError}</Text>
+                ) : null}
+              </View>
 
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.acceptButton]}
-                    onPress={() => acceptInvitation(selectedInvitation)}
-                  >
-                    <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                    <Text style={styles.actionButtonText}>Accepter</Text>
-                  </TouchableOpacity>
+              <View className="flex-1">
+                <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+                  Heure
+                </Text>
+                <TextInput
+                  className={`bg-white border rounded-2xl px-4 py-4 text-[16px] text-[#111827] ${
+                    timeError ? "border-[#F64040]" : "border-[#E5E7EB]"
+                  }`}
+                  placeholder="HH:MM"
+                  placeholderTextColor="#9CA3AF"
+                  value={invitationTime}
+                  onChangeText={(text) => {
+                    setInvitationTime(text);
+                    if (text.length === 5) {
+                      validateTime(text);
+                    } else {
+                      setTimeError("");
+                    }
+                  }}
+                  maxLength={5}
+                />
+                {timeError ? (
+                  <Text className="text-[11px] text-[#F64040] mt-1">{timeError}</Text>
+                ) : null}
+              </View>
+            </View>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.rejectButton]}
-                    onPress={() => rejectInvitation(selectedInvitation)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="#fff" />
-                    <Text style={styles.actionButtonText}>Refuser</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            )}
-          </View>
+            <TouchableOpacity 
+              className="py-4 rounded-3xl items-center mt-2"
+              style={{
+                backgroundColor: '#FF914D',
+                shadowColor: "#FF914D",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+              onPress={sendInvitation}
+              activeOpacity={0.85}
+            >
+              <Text className="text-white text-[16px] font-bold">Envoyer l'invitation</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-      </Modal>
-    </View>
-  );
-}
+      </View>
+    </Modal>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    paddingTop: 50,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  burgerMenu: {
-    marginRight: 15,
-    padding: 5,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#ffbf00",
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-    width: "100%",
-    paddingHorizontal: 20,
-  },
-  sendButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffbf00",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    gap: 10,
-  },
-  sendButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 10,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#999",
-    fontStyle: "italic",
-    textAlign: "center",
-    marginTop: 20,
-  },
-  invitationCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  invitationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  invitationTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    flex: 1,
-  },
-  invitationFrom: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
-  },
-  invitationDate: {
-    fontSize: 14,
-    color: "#ffbf00",
-    fontWeight: "500",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    width: "90%",
-    maxHeight: "80%",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  modalBody: {
-    padding: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-    marginTop: 10,
-  },
-  input: {
-    backgroundColor: "#f9f9f9",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: "#333",
-  },
-  inputError: {
-    borderColor: "#ff4444",
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  charCount: {
-    fontSize: 12,
-    color: "#999",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  errorText: {
-    fontSize: 12,
-    color: "#ff4444",
-    marginTop: 4,
-  },
-  pickerContainer: {
-    marginBottom: 10,
-  },
-  familyOption: {
-    backgroundColor: "#f9f9f9",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  familyOptionSelected: {
-    backgroundColor: "#fff8e1",
-    borderColor: "#ffbf00",
-  },
-  familyOptionText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  familyOptionTextSelected: {
-    color: "#ffbf00",
-    fontWeight: "600",
-  },
-  submitButton: {
-    backgroundColor: "#ffbf00",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-    marginTop: 15,
-    marginBottom: 5,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: "#333",
-  },
-  actionButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 30,
-    gap: 10,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 15,
-    borderRadius: 10,
-    gap: 8,
-  },
-  acceptButton: {
-    backgroundColor: "#4caf50",
-  },
-  rejectButton: {
-    backgroundColor: "#f44336",
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-});
+    {/* Modal de détails d'invitation */}
+    <Modal 
+      visible={detailModalVisible} 
+      animationType="slide" 
+      transparent={true} 
+      onRequestClose={() => setDetailModalVisible(false)}
+    >
+      <View className="flex-1 bg-black/60 justify-center items-center">
+        <View className="bg-white rounded-3xl w-[90%] max-h-[80%]">
+          <View className="flex-row items-center justify-between p-6 border-b border-[#F1F3F5]">
+            <View className="flex-row items-center flex-1">
+              <View className="w-10 h-10 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-3">
+                <Ionicons name="mail-open" size={20} color="#60AFDF" />
+              </View>
+              <Text className="text-[22px] font-bold text-[#111827]">Invitation</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => setDetailModalVisible(false)}
+              className="w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          {selectedInvitation && (
+            <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
+              {/* Titre */}
+              <View className="mb-5">
+                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                  Titre
+                </Text>
+                <Text className="text-[20px] font-bold text-[#111827]">
+                  {selectedInvitation.title}
+                </Text>
+              </View>
+
+              {/* De */}
+              <View className="mb-5">
+                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                  Famille émettrice
+                </Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="people" size={20} color="#60AFDF" />
+                  <Text className="text-[16px] text-[#111827] font-semibold ml-2">
+                    {selectedInvitation.senderFamilyName}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Description */}
+              <View className="mb-5">
+                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                  Description
+                </Text>
+                <View className="bg-[#FAFBFC] rounded-2xl p-4">
+                  <Text className="text-[15px] text-[#111827] leading-6">
+                    {selectedInvitation.description}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Date et heure */}
+              <View className="mb-6">
+                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                  Date et heure
+                </Text>
+                <View 
+                  className="flex-row items-center px-4 py-3 rounded-2xl"
+                  style={{ backgroundColor: '#FFF7F1' }}
+                >
+                  <Ionicons name="calendar" size={20} color="#FF914D" />
+                  <Text className="text-[16px] text-[#FF914D] font-bold ml-3">
+                    {selectedInvitation.date} à {selectedInvitation.time}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Boutons d'action */}
+              <View className="flex-row gap-3 mt-2">
+                <TouchableOpacity 
+                  className="flex-1 flex-row items-center justify-center py-4 rounded-2xl"
+                  style={{
+                    backgroundColor: '#ABF085',
+                    shadowColor: "#ABF085",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 3,
+                  }}
+                  onPress={() => acceptInvitation(selectedInvitation)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                  <Text className="text-white text-[15px] font-bold ml-2">Accepter</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  className="flex-1 flex-row items-center justify-center py-4 rounded-2xl"
+                  style={{
+                    backgroundColor: '#F64040',
+                    shadowColor: "#F64040",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 3,
+                  }}
+                  onPress={() => rejectInvitation(selectedInvitation)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="close-circle" size={22} color="#fff" />
+                  <Text className="text-white text-[15px] font-bold ml-2">Refuser</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  </View>
+);}
