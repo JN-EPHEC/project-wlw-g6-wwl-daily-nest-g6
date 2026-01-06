@@ -5,7 +5,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../firebaseConfig";
 
 
@@ -70,34 +70,36 @@ export default function SignUp() {
     try {
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
+    
       const newUser = userCredential.user;
 
       
 
       // Créer le document Firestore avec l'UID unique
 
-      await setDoc(doc(db, "users", newUser.uid), {
+    
+ await setDoc(
+  doc(db, "users", newUser.uid),
+  {
+    uid: newUser.uid,
+    email: newUser.email,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    birthDate: birthDate || null,
+    createdAt: Date.now(),
 
-        uid: newUser.uid,
-
-        email: newUser.email,
-
-        firstName: firstName.trim(),
-
-        lastName: lastName.trim(),
-
-        birthDate: birthDate || null,
-
-        createdAt: Date.now(),
-
-      });
-
+    // 👇 AJOUTS pour l’onboarding premium
+    onboardingPremiumSeen: false,
+    isPremium: false,
+  },
+  { merge: true }
+);
       
 
       console.log("Utilisateur créé dans Firestore avec UID:", newUser.uid);
 
-      setShowWelcome(true);
+      router.replace("/OnboardingPremium");
+
     } catch (error: any) {
       if (
         error.code == 'auth/invalid-email'
@@ -117,9 +119,9 @@ export default function SignUp() {
   };
 
   const handleCloseModal = () => {
-    setShowWelcome(false);
-    router.replace("/drawer/Acceuil");
-  }
+  setShowWelcome(false);
+  router.replace("/OnboardingPremium");
+};
  
 
 
@@ -332,7 +334,9 @@ export default function SignUp() {
             disabled={loading || !isFormValid}
           >
             <Text style={styles.signUpText}>S'inscrire</Text>
+   
           </TouchableOpacity>
+          
         );
       })()}
       </View>
@@ -343,16 +347,6 @@ export default function SignUp() {
        </TouchableOpacity>
     </View>
       
-      <Modal visible={showWelcome} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-                <Text style={styles.modalText}>Bienvenue sur Daily Nest ! Votre compte a été créé avec succès.</Text>
-                <TouchableOpacity style={styles.closeButton} onPress={handleCloseModal}>
-                    <Text style={styles.closeText}>x</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-      </Modal>
     </ View> 
     </View>
     
