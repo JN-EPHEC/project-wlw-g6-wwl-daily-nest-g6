@@ -2,12 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDocs, increment, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { auth, db } from "../../firebaseConfig";
 
+import { useNavigation } from "@react-navigation/native";
+
 export default function Recompense() {
+  const navigation = useNavigation();
   const [points, setPoints] = useState(0);
   const [selectedType, setSelectedType] = useState<"personal" | "family">("personal");
   const [familiesJoined, setFamiliesJoined] = useState<{ id: string; name: string }[]>([]);
@@ -24,6 +27,23 @@ export default function Recompense() {
   const [filterBy, setFilterBy] = useState<"none" | "date" | "priority" | "points">("none");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showFilters, setShowFilters] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Mes récompenses", // Change le texte "Recompense"
+      headerShadowVisible: false, // Enlève la ligne (l'ombre) sous le titre
+      headerTitleAlign: "center",
+      headerStyle: {
+        backgroundColor: "white", // Assure que le fond est blanc comme ta page
+      },
+      headerTintColor: "#6DDB31",
+      headerTitleStyle: {
+        fontFamily: "Shrikhand_400Regular",
+        fontSize: 28,
+        color: "#FF8C42",
+      }
+    });
+  }, [navigation]);
 
   // Charger l'utilisateur connecté
   useEffect(() => {
@@ -369,7 +389,7 @@ export default function Recompense() {
     switch(priority) {
       case "1": return "#4CAF50"; // Vert
       case "2": return "#2196F3"; // Bleu
-      case "3": return "#FF9800"; // Orange
+      case "3": return "#FF8C42"; // Orange
       case "4": return "#F44336"; // Rouge
       default: return "#2196F3";
     }
@@ -497,9 +517,9 @@ export default function Recompense() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mes Récompenses</Text>
+      <Text style={styles.title}>Continue tes efforts !</Text>
 
-      <ScrollView style={{ width: "100%" }} contentContainerStyle={{ alignItems: "center", paddingBottom: 20 }}>
+      <ScrollView style={{ width: "90%" }} contentContainerStyle={{ alignItems: "center", paddingBottom: 20 }}>
         {/* Sélecteur Personnel / Famille */}
         <View style={styles.pickerContainer}>
         <Picker
@@ -564,7 +584,7 @@ export default function Recompense() {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#e0e0e0"
+            stroke="#F6404033"
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -573,7 +593,7 @@ export default function Recompense() {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#ffbf00"
+            stroke="#F64040"
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={circumference}
@@ -585,7 +605,7 @@ export default function Recompense() {
         
         {/* Points au centre */}
         <View style={styles.pointsCenter}>
-          <Ionicons name="heart" size={60} color="#ff4d6d" />
+          <Ionicons name="heart" size={60} color="#F64040" />
           <Text style={styles.pointsText}>{points}</Text>
           <Text style={styles.maxPointsText}>/ {maxPoints}</Text>
         </View>
@@ -596,7 +616,7 @@ export default function Recompense() {
         <View style={styles.rewardHeader}>
           <Text style={styles.rewardsTitle}> Récompenses disponibles</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
-            <Ionicons name="add-circle" size={32} color="#ffbf00" />
+            <Ionicons name="add-circle" size={32} color="#FF8C42" />
           </TouchableOpacity>
         </View>
 
@@ -649,13 +669,13 @@ export default function Recompense() {
               onPress={() => setShowFilters(!showFilters)}
               style={styles.filterButton}
             >
-              <Ionicons name="filter" size={24} color="#ffbf00" />
+              <Ionicons name="filter" size={24} color="#FF8C42" />
             </TouchableOpacity>
           </View>
 
           {showFilters && (
             <View style={styles.filtersContainer}>
-              <Text style={styles.filterLabel}>Trier par:</Text>
+              <Text style={styles.filterLabel}>Trier par :</Text>
               <View style={styles.filterOptions}>
                 <TouchableOpacity
                   style={[styles.filterOption, filterBy === "none" && styles.filterOptionActive]}
@@ -686,7 +706,7 @@ export default function Recompense() {
                       onPress={() => setSortOrder("asc")}
                     >
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Ionicons name="arrow-up" size={14} color={sortOrder === "asc" ? "white" : "#666"} />
+                        <Ionicons name="arrow-up" size={14} color={sortOrder === "asc" ? "white" : "#FF8C42"} />
                         <Text style={[styles.filterOptionText, sortOrder === "asc" && styles.filterOptionTextActive]}>Croissant</Text>
                       </View>
                     </TouchableOpacity>
@@ -695,7 +715,7 @@ export default function Recompense() {
                       onPress={() => setSortOrder("desc")}
                     >
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Ionicons name="arrow-down" size={14} color={sortOrder === "desc" ? "white" : "#666"} />
+                        <Ionicons name="arrow-down" size={14} color={sortOrder === "desc" ? "white" : "#FF8C42"} />
                         <Text style={[styles.filterOptionText, sortOrder === "desc" && styles.filterOptionTextActive]}>Décroissant</Text>
                       </View>
                     </TouchableOpacity>
@@ -815,17 +835,25 @@ const styles = StyleSheet.create({
     padding: 20 
   },
   title: { 
-    fontSize: 24, 
+    fontSize: 18, 
     fontWeight: "bold", 
-    marginBottom: 20 
+    marginBottom: 20,
+    fontFamily: "Montserrat_400Regular",
+    color: "#6DDB31"
   },
   pickerContainer: { 
     width: "100%", 
-    marginBottom: 30 
+    marginBottom: 30,
+    color: "#6DDB31",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#6DDB31",
+    borderRadius: 20,
   },
   picker: { 
-    backgroundColor: "#f0f0f0", 
-    borderRadius: 10 
+    backgroundColor: "#fff", 
+    borderRadius: 20,
+    padding: 10 
   },
   circleContainer: { 
     position: "relative", 
@@ -839,11 +867,13 @@ const styles = StyleSheet.create({
     justifyContent: "center" 
   },
   pointsText: { 
+    fontFamily: "Montserrat_400Regular",
     fontSize: 48, 
     fontWeight: "bold", 
     color: "#333" 
   },
   maxPointsText: { 
+    fontFamily: "Montserrat_400Regular",
     fontSize: 18, 
     color: "#666" 
   },
@@ -861,7 +891,7 @@ const styles = StyleSheet.create({
   },
   rewardsSection: {
     width: "100%",
-    marginTop: 30
+    marginTop: 30,
   },
   rewardHeader: {
     flexDirection: "row",
@@ -870,9 +900,10 @@ const styles = StyleSheet.create({
     marginBottom: 15
   },
   rewardsTitle: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333"
+    color: "#FF8C42"
   },
   addButton: {
     padding: 5
@@ -880,32 +911,37 @@ const styles = StyleSheet.create({
   rewardItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FF8C4233",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: "#ccc"
+    borderLeftColor: "#FF8C42"
   },
   rewardItemUnlocked: {
     backgroundColor: "#e8f5e9",
     borderLeftColor: "#4CAF50"
   },
   rewardName: {
+    fontFamily: "Shrikhand_400Regular",
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5
+    fontWeight: "300",
+    color: "#FF8C42",
+    marginBottom: 5,
+    marginTop: -5,
   },
   rewardPointsText: {
-    fontSize: 14,
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 13,
+    fontStyle: 'italic',
     color: "#666"
   },
   assignedToText: {
     fontSize: 12,
-    color: "#ffbf00",
+    color: "#6DDB31",
     fontWeight: "600",
-    marginTop: 4
+    marginTop: 10,
+    marginBottom: -5,
   },
   claimButton: {
     backgroundColor: "#4CAF50",
@@ -941,26 +977,27 @@ const styles = StyleSheet.create({
     maxWidth: 400
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontFamily: "Shrikhand_400Regular",
+    fontSize: 25,
     marginBottom: 20,
     textAlign: "center",
-    color: "#333"
+    color: "#FF8C42"
   },
   label: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 14,
     fontWeight: "600",
-    color: "#555",
+    color: "#6DDB31",
     marginBottom: 8,
     marginTop: 10
   },
   input: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 8,
-    fontSize: 16,
+    fontSize: 13,
     borderWidth: 1,
-    borderColor: "#ddd"
+    borderColor: "#FF8C42"
   },
   infoModalText: {
     fontSize: 13,
@@ -968,7 +1005,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 15,
     textAlign: "center",
-    backgroundColor: "#f0f8ff",
+    backgroundColor: "#FF8C4233",
     padding: 10,
     borderRadius: 8
   },
@@ -981,18 +1018,19 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 20,
     alignItems: "center"
   },
   cancelButton: {
-    backgroundColor: "#757575"
+    backgroundColor: "#F6404033",
   },
   saveButton: {
-    backgroundColor: "#ffbf00"
+    backgroundColor: "#F64040"
   },
   buttonText: {
+    fontFamily: "Montserrat_400Regular",
     color: "white",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold"
   },
   tasksSection: {
@@ -1007,24 +1045,27 @@ const styles = StyleSheet.create({
     marginBottom: 15
   },
   tasksTitle: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333"
+    color: "#FF8C42",
+    paddingLeft: 9,
   },
   filterButton: {
     padding: 5
   },
   filtersContainer: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#FF8C4233",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 20,
     marginBottom: 15
   },
   filterLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
-    marginBottom: 10
+    fontWeight: "500",
+    color: "#FF8C42",
+    marginBottom: 10,
+    fontFamily: "Montserrat_400Regular",
   },
   filterOptions: {
     flexDirection: "row",
@@ -1035,21 +1076,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ccc"
+    borderColor: "#FF8C42"
   },
   filterOptionActive: {
-    backgroundColor: "#ffbf00",
-    borderColor: "#ffbf00"
+    backgroundColor: "#FF8C42",
+    borderColor: "#FF8C42"
   },
   filterOptionText: {
-    fontSize: 14,
-    color: "#555",
-    fontWeight: "500"
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 12,
+    color: "#FF8C42",
+    fontWeight: "500",
   },
   filterOptionTextActive: {
-    color: "white",
+    fontFamily: "Montserrat_400Regular",
+    color: "#fff",
     fontWeight: "bold"
   },
   taskItem: {
