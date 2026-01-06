@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
 export default function ShoppingList() {
@@ -32,21 +32,21 @@ export default function ShoppingList() {
 
     const unsub = onSnapshot(q, (snap) => {
       const allFamilies = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      
+
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter((family: any) => {
         const members = family.members || [];
-        
+
         for (const memberItem of members) {
-          if (typeof memberItem === 'string' && memberItem === user.email) {
+          if (typeof memberItem === "string" && memberItem === user.email) {
             return true; // Format ancien
-          } else if (typeof memberItem === 'object' && memberItem.email === user.email) {
+          } else if (typeof memberItem === "object" && memberItem.email === user.email) {
             return true; // Format nouveau
           }
         }
         return false;
       });
-      
+
       setFamilies(userFamilies);
     });
 
@@ -55,15 +55,18 @@ export default function ShoppingList() {
 
   // Charger les listes selon type
   useEffect(() => {
-    let path = selectedListType === "personal" 
-      ? collection(db, "users", user.uid, "shopping")
-      : selectedFamily ? collection(db, "families", selectedFamily.id, "shopping") : null;
+    let path =
+      selectedListType === "personal"
+        ? collection(db, "users", user.uid, "shopping")
+        : selectedFamily
+        ? collection(db, "families", selectedFamily.id, "shopping")
+        : null;
 
     if (!path) return;
 
-    const unsubscribe = onSnapshot(path, snapshot => {
+    const unsubscribe = onSnapshot(path, (snapshot) => {
       const lists: any[] = [];
-      snapshot.forEach(doc => lists.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach((doc) => lists.push({ id: doc.id, ...doc.data() }));
       setShoppingLists(lists);
     });
     return unsubscribe;
@@ -71,9 +74,12 @@ export default function ShoppingList() {
 
   const createList = async () => {
     if (!newListName.trim()) return;
-    const path = selectedListType === "personal" 
-      ? collection(db, "users", user.uid, "shopping")
-      : selectedFamily ? collection(db, "families", selectedFamily.id, "shopping") : null;
+    const path =
+      selectedListType === "personal"
+        ? collection(db, "users", user.uid, "shopping")
+        : selectedFamily
+        ? collection(db, "families", selectedFamily.id, "shopping")
+        : null;
 
     if (!path) return;
 
@@ -85,15 +91,18 @@ export default function ShoppingList() {
     setSelectedList(list);
     setModalVisible(true);
 
-    const path = selectedListType === "personal" 
-      ? collection(db, "users", user.uid, "shopping", list.id, "items")
-      : selectedFamily ? collection(db, "families", selectedFamily.id, "shopping", list.id, "items") : null;
+    const path =
+      selectedListType === "personal"
+        ? collection(db, "users", user.uid, "shopping", list.id, "items")
+        : selectedFamily
+        ? collection(db, "families", selectedFamily.id, "shopping", list.id, "items")
+        : null;
 
     if (!path) return;
 
-    const unsubscribe = onSnapshot(path, snapshot => {
+    const unsubscribe = onSnapshot(path, (snapshot) => {
       const loadedItems: any[] = [];
-      snapshot.forEach(doc => loadedItems.push({ id: doc.id, ...doc.data() }));
+      snapshot.forEach((doc) => loadedItems.push({ id: doc.id, ...doc.data() }));
       setItems(loadedItems);
     });
     return unsubscribe;
@@ -101,50 +110,74 @@ export default function ShoppingList() {
 
   const addItem = async () => {
     if (!newItem.trim() || !selectedList) return;
-    const path = selectedListType === "personal" 
-      ? collection(db, "users", user.uid, "shopping", selectedList.id, "items")
-      : selectedFamily ? collection(db, "families", selectedFamily.id, "shopping", selectedList.id, "items") : null;
+    const path =
+      selectedListType === "personal"
+        ? collection(db, "users", user.uid, "shopping", selectedList.id, "items")
+        : selectedFamily
+        ? collection(db, "families", selectedFamily.id, "shopping", selectedList.id, "items")
+        : null;
     if (!path) return;
     await addDoc(path, { name: newItem, checked: false });
     setNewItem("");
   };
 
   const toggleItem = async (item: any) => {
-    const path = selectedListType === "personal" 
-      ? doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id)
-      : selectedFamily ? doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id) : null;
+    const path =
+      selectedListType === "personal"
+        ? doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id)
+        : selectedFamily
+        ? doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id)
+        : null;
     if (!path) return;
     await updateDoc(path, { checked: !item.checked });
   };
 
   const deleteList = async (list: any) => {
-    const path = selectedListType === "personal" 
-      ? doc(db, "users", user.uid, "shopping", list.id)
-      : selectedFamily ? doc(db, "families", selectedFamily.id, "shopping", list.id) : null;
+    const path =
+      selectedListType === "personal"
+        ? doc(db, "users", user.uid, "shopping", list.id)
+        : selectedFamily
+        ? doc(db, "families", selectedFamily.id, "shopping", list.id)
+        : null;
     if (!path) return;
     await deleteDoc(path);
   };
 
   const deleteItem = async (item: any) => {
-    const path = selectedListType === "personal" 
-      ? doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id)
-      : selectedFamily ? doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id) : null;
+    const path =
+      selectedListType === "personal"
+        ? doc(db, "users", user.uid, "shopping", selectedList.id, "items", item.id)
+        : selectedFamily
+        ? doc(db, "families", selectedFamily.id, "shopping", selectedList.id, "items", item.id)
+        : null;
     if (!path) return;
     await deleteDoc(path);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Listes de Courses</Text>
-          <View style={{ width: "100%", marginBottom: 15 }}>
-        <View style={{
-          borderWidth: 1,
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          backgroundColor: "white",
-          borderColor: "#00d0ff"
-        }}>
+  <View className="flex-1 bg-[#FAFBFC]">
+    {/* Header */}
+    <View 
+      className="px-5 pt-16 pb-5 bg-white"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 3,
+      }}
+    >
+      <Text className="text-[28px] font-bold text-[#111827] mb-4">Listes de Courses</Text>
+
+      {/* Sélecteur Personnel/Famille */}
+      <View className="w-full">
+        <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+          Type de liste
+        </Text>
+        <View 
+          className="border-2 rounded-2xl px-4 py-1 bg-white overflow-hidden"
+          style={{ borderColor: '#60AFDF' }}
+        >
           <Picker
             selectedValue={selectedFamily?.id || "personal"}
             onValueChange={(value) => {
@@ -152,189 +185,278 @@ export default function ShoppingList() {
                 setSelectedListType("personal");
                 setSelectedFamily(null);
               } else {
-                const fam = families.find(f => f.id === value);
+                const fam = families.find((f) => f.id === value);
                 if (fam) {
                   setSelectedFamily(fam);
                   setSelectedListType("family");
                 }
               }
             }}
-            style={{ width: '100%', backgroundColor: 'white' }}
+            style={{ width: "100%", backgroundColor: "white" }}
           >
-            <Picker.Item label="Mes listes personnelles" value="personal" />
-            <Picker.Item label="── Listes famille ──" value="" enabled={false} />
-            {families.map(f => (
-              <Picker.Item key={f.id} label={f.name} value={f.id} />
+            <Picker.Item label="👤 Mes listes personnelles" value="personal" />
+            <Picker.Item label="──────────" value="" enabled={false} />
+            {families.map((f) => (
+              <Picker.Item key={f.id} label={`👨‍👩‍👧‍👦 ${f.name}`} value={f.id} />
             ))}
           </Picker>
         </View>
       </View>
-      <View style={styles.addContainer}>
+    </View>
+
+    <View className="flex-1 px-5 pt-5">
+      {/* Créer une nouvelle liste */}
+      <View className="flex-row items-center mb-5 gap-3">
         <TextInput
-          style={styles.input}
-          placeholder="Nouvelle liste"
+          className="flex-1 border border-[#E5E7EB] px-4 py-4 rounded-2xl bg-white text-[16px] text-[#111827]"
+          placeholder="Nouvelle liste de courses"
+          placeholderTextColor="#9CA3AF"
           value={newListName}
           onChangeText={setNewListName}
           onSubmitEditing={createList}
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+            elevation: 1,
+          }}
         />
-        <TouchableOpacity onPress={createList}>
-          <Ionicons name="add-circle" size={40} color="#00d0ff" />
+        <TouchableOpacity 
+          onPress={createList}
+          className="w-10 h-10 rounded-3xl items-center justify-center"
+          style={{backgroundColor: newListName.trim()
+              ? '#FF914D'       
+              : '#F8D8C0'       
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={28} color="white" />
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={shoppingLists}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.listItem}>
-            <TouchableOpacity onPress={() => openList(item)} style={{ flex: 1 }}>
-              <Text style={styles.listText}>{item.title}</Text>
+      {/* Liste des listes de courses */}
+      {shoppingLists.length === 0 ? (
+        <View 
+          className="bg-white rounded-3xl p-8 items-center mt-8"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 12,
+            elevation: 2,
+          }}
+        >
+          <View className="w-16 h-16 rounded-full bg-[#EBF5FF] items-center justify-center mb-4">
+            <Ionicons name="cart-outline" size={32} color="#60AFDF" />
+          </View>
+          <Text className="text-[18px] font-bold text-[#111827] mb-2">
+            Aucune liste
+          </Text>
+          <Text className="text-[14px] text-[#9CA3AF] text-center">
+            Créez votre première liste de courses
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={shoppingLists}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              onPress={() => openList(item)}
+              className="bg-white rounded-3xl p-5 mb-4 flex-row items-center justify-between"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center flex-1">
+                <View className="w-12 h-12 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-4">
+                  <Ionicons name="cart" size={24} color="#60AFDF" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[18px] font-bold text-[#111827]">
+                    {item.title}
+                  </Text>
+                  <Text className="text-[13px] text-[#9CA3AF] mt-1">
+                    Appuyez pour voir les articles
+                  </Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center gap-2">
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Supprimer la liste "${item.title}" ?`)) {
+                      deleteList(item);
+                    }
+                  }}
+                  className="w-10 h-10 rounded-xl bg-[#FEF2F2] items-center justify-center"
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#F64040" />
+                </TouchableOpacity>
+                <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+              </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteList(item)}>
-              <Ionicons name="trash" size={20} color="red" />
+          )}
+        />
+      )}
+    </View>
+
+    {/* Modal items */}
+    <Modal visible={modalVisible} transparent animationType="slide">
+      <View className="flex-1 bg-black/60 justify-center items-center">
+        <View className="bg-white rounded-3xl w-[90%] max-h-[85%]">
+          {/* Header du modal */}
+          <View className="flex-row items-center justify-between p-6 border-b border-[#F1F3F5]">
+            <View className="flex-row items-center flex-1">
+              <View className="w-10 h-10 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-3">
+                <Ionicons name="cart" size={20} color="#60AFDF" />
+              </View>
+              <Text className="text-[22px] font-bold text-[#111827] flex-1" numberOfLines={1}>
+                {selectedList?.title}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => setModalVisible(false)}
+              className="w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center ml-2"
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
-        )}
-      />
 
-      {/* Modal items */}
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.modalContainer}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.modalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={styles.modalTitle}>{selectedList?.title}</Text>
-
-            <View style={styles.addItemRow}>
+          {/* Contenu du modal */}
+          <View className="p-6">
+            {/* Ajouter un article */}
+            <View className="flex-row items-center mb-5 gap-3">
               <TextInput
-                style={styles.input}
-                placeholder="Ajouter un produit"
+                className="flex-1 border border-[#E5E7EB] px-4 py-3.5 rounded-2xl bg-white text-[16px] text-[#111827]"
+                placeholder="Ajouter un article"
+                placeholderTextColor="#9CA3AF"
                 value={newItem}
                 onChangeText={setNewItem}
                 onSubmitEditing={addItem}
               />
-              <TouchableOpacity onPress={addItem}>
-                <Ionicons name="add-circle" size={40} color="#00d0ff" />
+              <TouchableOpacity 
+                onPress={addItem}
+                className="w-12 h-12 rounded-2xl items-center justify-center"
+                style={{
+                backgroundColor: newItem.trim()
+                  ? '#FF914D'
+                  : '#F8D8C0'
+                  }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={26} color="white" />
               </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={items}
-              keyExtractor={(i) => i.id}
-              renderItem={({ item }) => (
-                <View style={styles.itemRow}>
-                  <TouchableOpacity onPress={() => toggleItem(item)} style={{ flexDirection: "row", flex: 1 }}>
-                    <Ionicons name={item.checked ? "checkbox" : "square-outline"} size={28} color="#00d0ff" />
-                    <Text style={[styles.itemText, item.checked && { textDecorationLine: "line-through" }]}>
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => deleteItem(item)}>
-                    <Ionicons name="trash" size={20} color="red" />
-                  </TouchableOpacity>
+            {/* Liste des articles */}
+            {items.length === 0 ? (
+              <View className="py-12 items-center">
+                <View className="w-14 h-14 rounded-full bg-[#F8F9FA] items-center justify-center mb-3">
+                  <Ionicons name="basket-outline" size={28} color="#9CA3AF" />
                 </View>
-              )}
-            />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
+                <Text className="text-[15px] font-semibold text-[#6B7280]">
+                  Liste vide
+                </Text>
+                <Text className="text-[13px] text-[#9CA3AF] text-center mt-1">
+                  Ajoutez vos premiers articles
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={items}
+                keyExtractor={(i) => i.id}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 10 }}
+                style={{ maxHeight: 400 }}
+                renderItem={({ item }) => (
+                  <View 
+                    className="flex-row items-center py-3 px-4 mb-2 rounded-2xl"
+                    style={{ 
+                      backgroundColor: item.checked ? '#F0F9ED' : '#FAFBFC'
+                    }}
+                  >
+                    <TouchableOpacity 
+                      onPress={() => toggleItem(item)} 
+                      className="flex-row flex-1 items-center"
+                      activeOpacity={0.7}
+                    >
+                      <View 
+                        className="w-7 h-7 rounded-lg items-center justify-center mr-3"
+                        style={{ 
+                          backgroundColor: item.checked ? '#ABF085' : 'white',
+                          borderWidth: item.checked ? 0 : 2,
+                          borderColor: '#E5E7EB'
+                        }}
+                      >
+                        {item.checked && (
+                          <Ionicons name="checkmark" size={18} color="white" />
+                        )}
+                      </View>
+                      
+                      <Text 
+                        className="text-[16px] flex-1"
+                        style={[
+                          { color: item.checked ? '#7CB368' : '#111827' },
+                          item.checked && { textDecorationLine: "line-through" }
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      onPress={() => {
+                        if (confirm(`Supprimer "${item.name}" ?`)) {
+                          deleteItem(item);
+                        }
+                      }}
+                      className="w-9 h-9 rounded-xl bg-[#FEF2F2] items-center justify-center ml-2"
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#F64040" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            )}
+
+            {/* Footer avec stats */}
+            {items.length > 0 && (
+              <View 
+                className="mt-4 pt-4 border-t border-[#F1F3F5] flex-row justify-between"
+              >
+                <View>
+                  <Text className="text-[12px] text-[#9CA3AF] mb-1">Articles cochés</Text>
+                  <Text className="text-[16px] font-bold text-[#111827]">
+                    {items.filter(i => i.checked).length} / {items.length}
+                  </Text>
+                </View>
+                {items.filter(i => i.checked).length === items.length && (
+                  <View className="flex-row items-center bg-[#F0F9ED] px-4 py-2 rounded-full">
+                    <Ionicons name="checkmark-circle" size={18} color="#ABF085" />
+                    <Text className="text-[13px] font-semibold text-[#7CB368] ml-2">
+                      Terminé !
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  </View>
+);
 }
-
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "white",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  addContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#00d0ff",
-    padding: 10,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  listItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 15,
-    backgroundColor: "#f4f4f4",
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  listText: {
-    fontSize: 18,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    maxHeight: "90%",
-    width: "95%",
-  },
-
-  modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 15, color: "#ffbf00" },
-  
-  addItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
- 
-  itemRow: { flexDirection: "row", alignItems: "center", marginTop: 12, paddingVertical: 8 },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: "#00b7ffff",
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  picker: {
-    height: 50,
-    width: "100%",
-  },
-   itemText: { fontSize: 18, flex: 1 },
-    assignedText: {
-    fontSize: 12,
-    color: "#FF9800",
-    marginTop: 2,
-    fontWeight: "600",
-  },
-  inputWeb: {
-  width: "100%",
-  height: 45,               
-  marginTop: 10,
-  paddingHorizontal: 12,   
-  borderRadius: 10,
-  borderWidth: 1,
-  borderColor: "#00d0ffff",
-  color: "gray",
-  fontStyle: "italic",
-  fontSize: 16,
-},
-});
