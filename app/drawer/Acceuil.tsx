@@ -1098,28 +1098,22 @@ const saveTodo = async () => {
           <View style={{ marginBottom: 10 }}>
             <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 12, color: "#fff" }}>Date et heure (optionnel)</Text>
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
-              <input
-                type="date"
-                value={todoDate ? (() => {
-                  const parts = todoDate.split('/');
-                  return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                })() : ''}
-                onChange={(e) => {
-                  const dateParts = e.target.value.split('-');
-                  if (dateParts.length === 3) {
-                    setTodoDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  borderWidth: 1,
-                  borderColor: '#fff',
-                  padding: 10,
-                  borderRadius: 10,
-                  fontSize: 14,
-                  paddingLeft: 20,
-                }}
-              />
+              <TextInput
+  placeholder="Date (JJ/MM/AAAA)"
+  placeholderTextColor="#fff"
+  value={todoDate}
+  onChangeText={setTodoDate}
+  style={{
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#fff",
+    padding: 10,
+    borderRadius: 10,
+    fontSize: 14,
+    paddingLeft: 20,
+    color: "#fff",
+  }}
+/>
             </View>
             <TextInput
               style={styles.inputWeb}
@@ -1422,20 +1416,24 @@ const saveTodo = async () => {
                   
                   <View style={{ flexDirection: "row", marginBottom: 12 }}>
                   <TextInput
-  placeholder="Date (YYYY-MM-DD)"
-  placeholderTextColor="#fff"
-  value={eventDate}
-  onChangeText={setEventDate}
-  style={styles.inputWeb}
+  placeholder="jj / mm / aaaa"
+  placeholderTextColor="#999"
+  value={todoReminderDate}
+  onChangeText={setTodoReminderDate}
+  style={{
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: "#FF8C42",
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 14,
+    backgroundColor: "#fff",
+    marginRight: 8,
+    color: "#000",
+  }}
 />
 
-<TextInput
-  placeholder="Heure (HH:MM)"
-  placeholderTextColor="#fff"
-  value={eventTime}
-  onChangeText={setEventTime}
-  style={styles.inputWeb}
-/>
+
                     <TextInput
                       style={{ 
                         flex: 1,
