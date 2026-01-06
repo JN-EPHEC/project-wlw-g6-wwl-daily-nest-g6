@@ -856,18 +856,21 @@ const saveEvent = async () => {
               numberOfLines={3}
             />
             
-            <input 
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}  
-              style={styles.inputWeb}
-            />
-            <input
-              type="time"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)} 
-              style={styles.inputWeb}
-            />
+            <TextInput
+  placeholder="Date (YYYY-MM-DD)"
+  placeholderTextColor="#fff"
+  value={eventDate}
+  onChangeText={setEventDate}
+  style={styles.inputWeb}
+/>
+
+<TextInput
+  placeholder="Heure (HH:MM)"
+  placeholderTextColor="#fff"
+  value={eventTime}
+  onChangeText={setEventTime}
+  style={styles.inputWeb}
+/>
             
             <TextInput 
               placeholder="Points accordés (optionnel)"
@@ -1120,30 +1123,23 @@ const saveEvent = async () => {
                     <Text style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Date et heure :</Text>
                   
                   <View style={{ flexDirection: "row", marginBottom: 12 }}>
-                    <input
-                      type="date"
-                      value={reminderDate ? (() => {
-                        const parts = reminderDate.split('/');
-                        return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : '';
-                      })() : ''}
-                      onChange={(e) => {
-                        const dateParts = e.target.value.split('-');
-                        if (dateParts.length === 3) {
-                          setReminderDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
-                        }
-                      }}
-                      placeholder="jj / mm / aaaa"
-                      style={{
-                        flex: 1,
-                        borderWidth: 1.5,
-                        borderColor: '#ffc107',
-                        padding: 10,
-                        borderRadius: 8,
-                        fontSize: 14,
-                        backgroundColor: '#fff',
-                        marginRight: 8
-                      }}
-                    />
+                    <TextInput
+  placeholder="jj / mm / aaaa"
+  placeholderTextColor="#999"
+  value={reminderDate}
+  onChangeText={setReminderDate}
+  style={{
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: "#ffc107",
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 14,
+    backgroundColor: "#fff",
+    marginRight: 8,
+    color: "#000",
+  }}
+/>
                     <TextInput
                       style={{ 
                         flex: 1,
