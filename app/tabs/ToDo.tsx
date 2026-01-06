@@ -11,7 +11,7 @@ const getPriorityColor = (priority: string): string => {
   switch(priority) {
     case "1": return "#4CAF50"; // Vert
     case "2": return "#2196F3"; // Bleu
-    case "3": return "#FF9800"; // Orange
+    case "3": return "#FF8C42"; // Orange
     case "4": return "#F44336"; // Rouge
     default: return "#2196F3"; // Bleu par défaut
   }
@@ -638,16 +638,17 @@ export default function TodoList() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📝 Mes Listes de Tâches</Text>
+      <Text style={styles.title}>Mes listes de tâches</Text>
 
-      <View style={{ width: "100%", padding: 10, alignItems: "center" }}>
+      <View style={{ width: "100%", paddingBottom: 20, alignItems: "center" }}>
         <View style={{
           borderWidth: 1,
-          borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 6,
+          borderColor: "#6DDB31",
+          borderRadius: 20,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
           backgroundColor: "white",
-          width: "70%",
+          width: "100%",
           boxShadow: "0px 2px 6px rgba(0,0,0,0.15)"
         }}>
           <Picker
@@ -665,11 +666,12 @@ export default function TodoList() {
               }
             }}
             style={{
-              width: '100%',
+              width: '98%',
               backgroundColor: 'white',
               borderRadius: 12,
               paddingHorizontal: 12,
               paddingVertical: 6,
+              color: "#6DDB31",
             }}
           >
             <Picker.Item label="Listes personnelles" value="personal" />
@@ -690,7 +692,7 @@ export default function TodoList() {
           onSubmitEditing={createList}
         />
         <TouchableOpacity onPress={createList}>
-          <Ionicons name="add-circle" size={40} color="#ffbf00" />
+          <Ionicons name="add-circle" size={45} color="#FF8C42" />
         </TouchableOpacity>
       </View>
 
@@ -772,7 +774,7 @@ export default function TodoList() {
 
             {/* Sélecteur de priorité */}
             <View style={{ marginTop: 20 }}>
-              <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 10, color: "#333" }}>Priorité</Text>
+              <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", marginBottom: 10, color: "#FF8C42" }}>Priorité</Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <TouchableOpacity
                   onPress={() => setNewItemPriority("1")}
@@ -781,7 +783,7 @@ export default function TodoList() {
                     { borderColor: getPriorityColor("1"), backgroundColor: newItemPriority === "1" ? getPriorityColor("1") : "white" }
                   ]}
                 >
-                  <Text style={{ color: newItemPriority === "1" ? "white" : getPriorityColor("1"), fontWeight: "600" }}>Basse</Text>
+                  <Text style={{ color: newItemPriority === "1" ? "white" : getPriorityColor("1"), fontWeight: "600", fontFamily: "Montserrat_400Regular" }}>Basse</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -791,7 +793,7 @@ export default function TodoList() {
                     { borderColor: getPriorityColor("2"), backgroundColor: newItemPriority === "2" ? getPriorityColor("2") : "white" }
                   ]}
                 >
-                  <Text style={{ color: newItemPriority === "2" ? "white" : getPriorityColor("2"), fontWeight: "600" }}>Moyenne</Text>
+                  <Text style={{ color: newItemPriority === "2" ? "white" : getPriorityColor("2"), fontWeight: "600", fontFamily: "Montserrat_400Regular" }}>Moyenne</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -801,7 +803,7 @@ export default function TodoList() {
                     { borderColor: getPriorityColor("3"), backgroundColor: newItemPriority === "3" ? getPriorityColor("3") : "white" }
                   ]}
                 >
-                  <Text style={{ color: newItemPriority === "3" ? "white" : getPriorityColor("3"), fontWeight: "600" }}>Haute</Text>
+                  <Text style={{ color: newItemPriority === "3" ? "white" : getPriorityColor("3"), fontWeight: "600", fontFamily: "Montserrat_400Regular" }}>Haute</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -811,7 +813,7 @@ export default function TodoList() {
                     { borderColor: getPriorityColor("4"), backgroundColor: newItemPriority === "4" ? getPriorityColor("4") : "white" }
                   ]}
                 >
-                  <Text style={{ color: newItemPriority === "4" ? "white" : getPriorityColor("4"), fontWeight: "600" }}>Urgente</Text>
+                  <Text style={{ color: newItemPriority === "4" ? "white" : getPriorityColor("4"), fontWeight: "600", fontFamily: "Montserrat_400Regular" }}>Urgente</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -819,7 +821,7 @@ export default function TodoList() {
             {/* Sélectionner le membre */}
             {familyMembers.length > 0 && (
               <View style={{ marginTop: 20 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 10, color: "#333" }}>Assigner à</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", marginBottom: 12, color: "#FF8C42" }}>Assigner à</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={newItemAssignedTo}
@@ -854,7 +856,7 @@ export default function TodoList() {
                   <Ionicons 
                     name={isRotation ? "checkbox" : "square-outline"} 
                     size={24} 
-                    color="#ffbf00" 
+                    color="#FF8C42" 
                     style={{ marginRight: 8 }}
                   />
                   <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tournante entre membres</Text>
@@ -878,7 +880,7 @@ export default function TodoList() {
                         <Ionicons 
                           name={rotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
                           size={22} 
-                          color="#ffbf00" 
+                          color="#FF8C42" 
                           style={{ marginRight: 8 }}
                         />
                         <Text style={{ fontSize: 14, color: "#333" }}>
@@ -909,13 +911,14 @@ export default function TodoList() {
                 style={{
                   flex: 1,
                   borderWidth: 1,
-                  borderColor: '#ffbf00',
+                  borderColor: '#FF8C42',
                   padding: 10,
-                  borderRadius: 10,
-                  fontSize: 16
+                  borderRadius: 20,
+                  fontSize: 16,
+                  paddingLeft: 20,
                 }}
               />
-              <Ionicons name="time-outline" size={20} color="#ffbf00" style={{ marginLeft: 10, marginRight: 10 }} />
+              <Ionicons name="time-outline" size={20} color="#FF8C42" style={{ marginLeft: 10, marginRight: 10 }} />
               <TextInput
                 style={styles.timeInput}
                 placeholder="HH:MM"
@@ -941,31 +944,31 @@ export default function TodoList() {
                 <Ionicons 
                   name={isRecurring ? "checkbox" : "square-outline"} 
                   size={24} 
-                  color="#ffbf00" 
+                  color="#FF8C42" 
                   style={{ marginRight: 8 }}
                 />
-                <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tâche récurrente</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#FF8C42" }}>Tâche récurrente</Text>
               </TouchableOpacity>
 
               {isRecurring && (
-                <View style={{ backgroundColor: "#f5f5f5", padding: 12, borderRadius: 10 }}>
+                <View style={{ backgroundColor: "#FF8C4233", padding: 12, borderRadius: 10 }}>
                   {/* Type de récurrence */}
                   <View style={{ marginBottom: 15 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Fréquence</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, fontWeight: "600", marginBottom: 12, color: "#FF8C42" }}>Fréquence :</Text>
                     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                       <TouchableOpacity
                         onPress={() => setRecurrenceType("daily")}
                         style={[
                           styles.priorityButton,
                           { 
-                            borderColor: "#2196F3", 
-                            backgroundColor: recurrenceType === "daily" ? "#2196F3" : "white",
+                            borderColor: "#F64040", 
+                            backgroundColor: recurrenceType === "daily" ? "#F64040" : "white",
                             flex: 1,
                             marginRight: 5
                           }
                         ]}
                       >
-                        <Text style={{ color: recurrenceType === "daily" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Quotidien</Text>
+                        <Text style={{ color: recurrenceType === "daily" ? "white" : "#F64040", fontWeight: "600", fontSize: 11, fontFamily: "Montserrat_400Regular" }}>Quotidien</Text>
                       </TouchableOpacity>
                       
                       <TouchableOpacity
@@ -973,14 +976,14 @@ export default function TodoList() {
                         style={[
                           styles.priorityButton,
                           { 
-                            borderColor: "#2196F3", 
-                            backgroundColor: recurrenceType === "weekly" ? "#2196F3" : "white",
+                            borderColor: "#F64040", 
+                            backgroundColor: recurrenceType === "weekly" ? "#F64040" : "white",
                             flex: 1,
                             marginHorizontal: 5
                           }
                         ]}
                       >
-                        <Text style={{ color: recurrenceType === "weekly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Hebdo</Text>
+                        <Text style={{ color: recurrenceType === "weekly" ? "white" : "#F64040", fontWeight: "600", fontSize: 11, fontFamily: "Montserrat_400Regular" }}>Hebdo</Text>
                       </TouchableOpacity>
                       
                       <TouchableOpacity
@@ -988,14 +991,14 @@ export default function TodoList() {
                         style={[
                           styles.priorityButton,
                           { 
-                            borderColor: "#2196F3", 
-                            backgroundColor: recurrenceType === "monthly" ? "#2196F3" : "white",
+                            borderColor: "#F64040", 
+                            backgroundColor: recurrenceType === "monthly" ? "#F64040" : "white",
                             flex: 1,
                             marginLeft: 5
                           }
                         ]}
                       >
-                        <Text style={{ color: recurrenceType === "monthly" ? "white" : "#2196F3", fontWeight: "600", fontSize: 12 }}>Mensuel</Text>
+                        <Text style={{ color: recurrenceType === "monthly" ? "white" : "#F64040", fontWeight: "600", fontSize: 11, fontFamily: "Montserrat_400Regular" }}>Mensuel</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1003,7 +1006,7 @@ export default function TodoList() {
                   {/* Sélection des jours (pour hebdomadaire) */}
                   {recurrenceType === "weekly" && (
                     <View>
-                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jours de la semaine</Text>
+                      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, fontWeight: "600", marginBottom: 12, color: "#FF8C42" }}>Jours de la semaine</Text>
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                         {[
                           { label: "Lun", value: 1 },
@@ -1028,14 +1031,14 @@ export default function TodoList() {
                               height: 45,
                               borderRadius: 22.5,
                               borderWidth: 2,
-                              borderColor: "#ffbf00",
-                              backgroundColor: selectedDays.includes(day.value) ? "#ffbf00" : "white",
+                              borderColor: "#F64040",
+                              backgroundColor: selectedDays.includes(day.value) ? "#F64040" : "white",
                               justifyContent: "center",
                               alignItems: "center"
                             }}
                           >
                             <Text style={{ 
-                              color: selectedDays.includes(day.value) ? "white" : "#ffbf00", 
+                              color: selectedDays.includes(day.value) ? "white" : "#F64040", 
                               fontWeight: "600",
                               fontSize: 12
                             }}>
@@ -1050,7 +1053,7 @@ export default function TodoList() {
                   {/* Sélection du jour du mois (pour mensuel) */}
                   {recurrenceType === "monthly" && (
                     <View>
-                      <Text style={{ fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#333" }}>Jour du mois</Text>
+                      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 13, fontWeight: "600", marginBottom: 8, color: "#FF8C42" }}>Jour du mois</Text>
                       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                         {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
                           <TouchableOpacity
@@ -1061,14 +1064,14 @@ export default function TodoList() {
                               height: 38,
                               borderRadius: 19,
                               borderWidth: 2,
-                              borderColor: "#ffbf00",
-                              backgroundColor: monthlyDay === day ? "#ffbf00" : "white",
+                              borderColor: "#F64040",
+                              backgroundColor: monthlyDay === day ? "#F64040" : "white",
                               justifyContent: "center",
                               alignItems: "center"
                             }}
                           >
                             <Text style={{ 
-                              color: monthlyDay === day ? "white" : "#ffbf00", 
+                              color: monthlyDay === day ? "white" : "#F64040", 
                               fontWeight: "600",
                               fontSize: 11
                             }}>
@@ -1090,19 +1093,20 @@ export default function TodoList() {
                 style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
               >
                 <View style={{
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   borderRadius: 4,
+                  marginLeft: 3,
                   borderWidth: 2,
-                  borderColor: "#ffc107",
+                  borderColor: "#FF8C42",
                   marginRight: 12,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: remindersEnabled ? "#ffc107" : "transparent"
+                  backgroundColor: remindersEnabled ? "#FF8C42" : "transparent"
                 }}>
                   {remindersEnabled && <Ionicons name="checkmark" size={16} color="white" />}
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#333" }}>Rappels</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", color: "#FF8C42" }}>Rappels</Text>
               </TouchableOpacity>
 
               {remindersEnabled && (
@@ -1111,7 +1115,7 @@ export default function TodoList() {
                   {/* Liste des rappels existants */}
                   {newItemReminders.map((reminder, index) => (
                 <View key={index} style={{ 
-                  backgroundColor: "#fff",
+                  backgroundColor: "#FF8C4233",
                   padding: 15,
                   borderRadius: 10,
                   marginBottom: 10,
@@ -1134,7 +1138,7 @@ export default function TodoList() {
                     <View style={{ 
                       flex: 1,
                       borderWidth: 1.5, 
-                      borderColor: "#ffc107", 
+                      borderColor: "#FF8C42", 
                       padding: 10, 
                       borderRadius: 8,
                       backgroundColor: "#fff"
@@ -1144,7 +1148,7 @@ export default function TodoList() {
                     <View style={{ 
                       flex: 1,
                       borderWidth: 1.5, 
-                      borderColor: "#ffc107", 
+                      borderColor: "#FF8C42", 
                       padding: 10, 
                       borderRadius: 8,
                       backgroundColor: "#fff"
@@ -1157,9 +1161,9 @@ export default function TodoList() {
 
                   {/* Formulaire d'ajout de rappel */}
                   <View style={{ 
-                    backgroundColor: "#fff", 
+                    backgroundColor: "#FF8C4233", 
                     padding: 15, 
-                    borderRadius: 10,
+                    borderRadius: 20,
                     marginBottom: 10,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 1 },
@@ -1187,7 +1191,7 @@ export default function TodoList() {
                       style={{
                         flex: 1,
                         borderWidth: 1.5,
-                        borderColor: '#ffc107',
+                        borderColor: '#FF8C42',
                         padding: 10,
                         borderRadius: 8,
                         fontSize: 14,
@@ -1199,7 +1203,7 @@ export default function TodoList() {
                       style={{ 
                         flex: 1,
                         borderWidth: 1.5, 
-                        borderColor: '#ffc107', 
+                        borderColor: '#FF8C42', 
                         padding: 10, 
                         borderRadius: 8,
                         fontSize: 14,
@@ -1223,7 +1227,7 @@ export default function TodoList() {
                     style={{ 
                       width: '100%',
                       borderWidth: 1.5, 
-                      borderColor: '#ffc107', 
+                      borderColor: '#FF8C42', 
                       padding: 10, 
                       borderRadius: 8,
                       fontSize: 14,
@@ -1254,13 +1258,13 @@ export default function TodoList() {
                       }
                     }}
                     style={{
-                      backgroundColor: "#ffc107",
+                      backgroundColor: "#FF8C42",
                       padding: 12,
                       borderRadius: 8,
                       alignItems: "center"
                     }}
                   >
-                    <Text style={{ color: "white", fontWeight: "600", fontSize: 14 }}>Ajouter</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", color: "white", fontWeight: "600", fontSize: 15 }}>Ajouter</Text>
                   </TouchableOpacity>
                   </View>
                 </>
@@ -1275,10 +1279,10 @@ export default function TodoList() {
               style={{ 
                 alignSelf: "center", 
                 marginTop: 15, 
-                backgroundColor: "#ffbf00", 
-                borderRadius: 30, 
+                backgroundColor: "#FF8C42", 
+                borderRadius: 20, 
                 paddingVertical: 12, 
-                paddingHorizontal: 30,
+                paddingHorizontal: 90,
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 8
@@ -1291,7 +1295,7 @@ export default function TodoList() {
             {/* Filtre */}
             <View style={{ flexDirection: "row", alignItems: "center", marginTop: 15, marginBottom: 10 }}>
               <Text style={{ fontSize: 12, fontWeight: "600", color: "#999", marginRight: 8 }}>Trier :</Text>
-              <View style={{ width: 180, borderWidth: 1, borderColor: "#e0e0e0", borderRadius: 6, overflow: "hidden" }}>
+              <View style={{ width: 180, borderWidth: 1, borderColor: "#FF8C42", borderRadius: 6, overflow: "hidden" }}>
                 <Picker
                   selectedValue={sortBy}
                   onValueChange={(value) => setSortBy(value)}
@@ -1374,7 +1378,7 @@ export default function TodoList() {
                       {/*Afficher le membre assigné ou la tournante */}
                       {item.isRotation && item.rotationMembers?.length > 0 ? (
                         <Text style={styles.assignedText}>
-                          <Ionicons name="repeat-outline" size={14} color="#ff9800" /> 
+                          <Ionicons name="repeat-outline" size={14} color="#FF8C42" /> 
                           {" "}Tournante: {item.rotationMembers.map((memberId: string) => {
                             const member = familyMembers.find(m => m.uid === memberId);
                             return member ? `${member.firstName}` : "";
@@ -1441,7 +1445,7 @@ export default function TodoList() {
       <Modal visible={editModalVisible} transparent animationType="fade">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
           <View style={{ backgroundColor: "white", padding: 20, borderRadius: 15, width: "80%", maxHeight: "85%" }}>
-            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>
+            <Text style={{ fontFamily: "Shrikhand_400Regular", fontSize: 25, marginBottom: 15, color: "#FF8C42" }}>
               {editingItem?.name ? "Modifier la tâche" : "Modifier la liste"}
             </Text>
 
@@ -1452,7 +1456,7 @@ export default function TodoList() {
                 <TextInput
                   value={editText}
                   onChangeText={setEditText}
-                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+                  style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10, marginBottom: 15 }}
                   placeholder="Nom de la liste"
                 />
               </View>
@@ -1465,7 +1469,7 @@ export default function TodoList() {
             <TextInput
               value={editText}
               onChangeText={setEditText}
-              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+              style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10, marginBottom: 15 }}
               placeholder="Nom de la tâche"
             />
 
@@ -1475,7 +1479,7 @@ export default function TodoList() {
               onChangeText={setEditDescription}
               multiline
               numberOfLines={3}
-              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15, height: 80, textAlignVertical: 'top' }}
+              style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10, marginBottom: 15, height: 80, textAlignVertical: 'top' }}
               placeholder="Description (optionnel)"
             />
 
@@ -1485,7 +1489,7 @@ export default function TodoList() {
               onChangeText={setEditPoints}
               keyboardType="numeric"
               maxLength={3}
-              style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, marginBottom: 15 }}
+              style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10, marginBottom: 15 }}
               placeholder="Points"
             />
 
@@ -1549,7 +1553,7 @@ export default function TodoList() {
                       setEditDate(`${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`);
                     }
                   }}
-                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10, width: '100%' }}
+                  style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10, width: '100%' }}
                 />
               </View>
 
@@ -1566,7 +1570,7 @@ export default function TodoList() {
                   }}
                   placeholder="HH:MM"
                   maxLength={5}
-                  style={{ borderWidth: 1, borderColor: "#ffbf00", padding: 10, borderRadius: 10 }}
+                  style={{ borderWidth: 1, borderColor: "#FF8C42", padding: 10, borderRadius: 10 }}
                 />
               </View>
             </View>
@@ -1574,7 +1578,7 @@ export default function TodoList() {
             {/* On choisi qui est assigné */}
             {familyMembers.length > 0 && (
               <View style={{ marginBottom: 15 }}>
-                <Text style={{ fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#333" }}>Assigner à</Text>
+                <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#FF8C42" }}>Assigner à</Text>
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={editAssignedTo}
@@ -1604,7 +1608,7 @@ export default function TodoList() {
                   <Ionicons 
                     name={editIsRotation ? "checkbox" : "square-outline"} 
                     size={24} 
-                    color="#ffbf00" 
+                    color="#FF8C42" 
                     style={{ marginRight: 8 }}
                   />
                   <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tournante entre membres</Text>
@@ -1628,7 +1632,7 @@ export default function TodoList() {
                         <Ionicons 
                           name={editRotationMembers.includes(member.uid) ? "checkbox" : "square-outline"} 
                           size={22} 
-                          color="#ffbf00" 
+                          color="#FF8C42" 
                           style={{ marginRight: 8 }}
                         />
                         <Text style={{ fontSize: 14, color: "#333" }}>
@@ -1650,7 +1654,7 @@ export default function TodoList() {
                 <Ionicons 
                   name={editIsRecurring ? "checkbox" : "square-outline"} 
                   size={24} 
-                  color="#ffbf00" 
+                  color="#FF8C42" 
                   style={{ marginRight: 8 }}
                 />
                 <Text style={{ fontSize: 14, fontWeight: "600", color: "#333" }}>Tâche récurrente</Text>
@@ -1735,14 +1739,14 @@ export default function TodoList() {
                               height: 45,
                               borderRadius: 22.5,
                               borderWidth: 2,
-                              borderColor: "#ffbf00",
-                              backgroundColor: editSelectedDays.includes(day.value) ? "#ffbf00" : "white",
+                              borderColor: "#FF8C42",
+                              backgroundColor: editSelectedDays.includes(day.value) ? "#FF8C42" : "white",
                               justifyContent: "center",
                               alignItems: "center"
                             }}
                           >
                             <Text style={{ 
-                              color: editSelectedDays.includes(day.value) ? "white" : "#ffbf00", 
+                              color: editSelectedDays.includes(day.value) ? "white" : "#FF8C42", 
                               fontWeight: "600",
                               fontSize: 12
                             }}>
@@ -1767,14 +1771,14 @@ export default function TodoList() {
                               height: 38,
                               borderRadius: 19,
                               borderWidth: 2,
-                              borderColor: "#ffbf00",
-                              backgroundColor: editMonthlyDay === day ? "#ffbf00" : "white",
+                              borderColor: "#FF8C42",
+                              backgroundColor: editMonthlyDay === day ? "#FF8C42" : "white",
                               justifyContent: "center",
                               alignItems: "center"
                             }}
                           >
                             <Text style={{ 
-                              color: editMonthlyDay === day ? "white" : "#ffbf00", 
+                              color: editMonthlyDay === day ? "white" : "#FF8C42", 
                               fontWeight: "600",
                               fontSize: 11
                             }}>
@@ -1826,26 +1830,28 @@ export default function TodoList() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "white" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 15, color: "#ffbf00" },
+  title: { fontFamily: "Montserrat_400Regular", fontSize: 20, fontWeight: "bold", marginBottom: 20, color: "#6DDB31" },
   addContainer: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ffbf00",
+    borderColor: "#FF8C42",
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 20,
     marginRight: 10,
+    paddingLeft: 28,
+    fontStyle: 'italic',
   },
   listItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 15,
-    backgroundColor: "#f4f4f4",
-    borderRadius: 10,
+    backgroundColor: "#FF8C4233",
+    borderRadius: 20,
     marginTop: 10,
   },
-  listText: { fontSize: 18 },
+  listText: { fontSize: 18, fontFamily: "Montserrat_400Regular", paddingLeft: 20, color: "#FF8C42" },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1859,7 +1865,7 @@ const styles = StyleSheet.create({
     maxHeight: "90%",
     width: "95%",
   },
-  modalTitle: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 15, color: "#ffbf00" },
+  modalTitle: { fontFamily: "Shrikhand_400Regular", fontSize: 25, textAlign: "center", marginTop: 10, marginBottom: 5, color: "#FF8C42" },
   addItemRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   dateRow: { 
     flexDirection: "row", 
@@ -1870,7 +1876,7 @@ const styles = StyleSheet.create({
   dateInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ffbf00",
+    borderColor: "#FF8C42",
     padding: 10,
     borderRadius: 10,
     fontSize: 16,
@@ -1878,9 +1884,9 @@ const styles = StyleSheet.create({
   timeInput: {
     width: 80,
     borderWidth: 1,
-    borderColor: "#ffbf00",
+    borderColor: "#FF8C42",
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 20,
     fontSize: 16,
     textAlign: "center",
   },
@@ -1888,7 +1894,7 @@ const styles = StyleSheet.create({
   itemText: { fontSize: 18, flex: 1 },
     assignedText: {
     fontSize: 12,
-    color: "#FF9800",
+    color: "#FF8C42",
     marginTop: 2,
     fontWeight: "600",
   },
@@ -1901,10 +1907,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    borderColor: "#FF8C42",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     marginRight: 10,
   },
   heartIcon: {
@@ -1933,9 +1939,10 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     borderWidth: 1,
-    borderColor: "#ffbf00",
-    borderRadius: 10,
+    borderColor: "#FF8C42",
+    borderRadius: 20,
     overflow: "hidden",
+    paddingLeft: 20,
   },
   picker: {
     height: 50,
