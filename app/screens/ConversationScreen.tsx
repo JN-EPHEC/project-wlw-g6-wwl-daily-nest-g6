@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { addDoc, collection, onSnapshot, query, serverTimestamp } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    FlatList,
-    KeyboardAvoidingView, Platform,
-    StyleSheet,
-    Text,
-    TextInput, TouchableOpacity,
-    View
+  FlatList,
+  KeyboardAvoidingView, Platform,
+  StyleSheet,
+  Text,
+  TextInput, TouchableOpacity,
+  View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -24,6 +24,7 @@ type Message = {
 
 export default function ConversationScreen() {
   const route = useRoute();
+  const navigation = useNavigation();
     const { conversationId } = route.params as {
     conversationId: string;
   };
