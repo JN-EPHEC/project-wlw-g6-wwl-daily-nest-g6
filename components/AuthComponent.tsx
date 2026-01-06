@@ -1,9 +1,9 @@
 import Mascotte_Happy from "assets/images/Mascotte_happy.png";
-import Checkbox from "expo-checkbox";
-import { makeRedirectUri } from "expo-auth-session";
+import * as AuthSession from "expo-auth-session";
 import * as Google from "expo-auth-session/providers/google";
+import Checkbox from "expo-checkbox";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   GoogleAuthProvider,
@@ -14,7 +14,7 @@ import {
   signInWithPopup,
   User,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -29,6 +29,7 @@ import {
 import fond_etoile_app from "../assets/images/fond_etoile_app.png";
 import { auth, db } from "../firebaseConfig";
 import ThemedText from "./themed-text";
+
 
 
 export default function AuthComponent() {
@@ -48,33 +49,73 @@ export default function AuthComponent() {
   const [resetEmail, setResetEmail] = useState("");
   const [resetError, setResetError] = useState("");
 
-  WebBrowser.maybeCompleteAuthSession();
+  
 
-  const redirectUri = makeRedirectUri({
-    scheme: 'dailynest'
+ WebBrowser.maybeCompleteAuthSession();
+
+const redirectUri = AuthSession.makeRedirectUri({
+    scheme: "dailynest",
   });
 
-  console.log('🔗 Redirect URI:', redirectUri);
+  console.log("🔗 Redirect URI:", redirectUri);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: '353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com',
-    scopes: ['profile', 'email'],
-    redirectUri: makeRedirectUri({
-      scheme: "dailynest",
-    }),
+    iosClientId: "REMPLACE_PAR_TON_VRAI_IOS_CLIENT_ID.apps.googleusercontent.com",
+    webClientId:
+      "353116805631-u804rsqhscj016kvovaqfjj7eo5icp0u.apps.googleusercontent.com",
+    scopes: ["profile", "email"],
+    responseType: "id_token", // ✅ pour avoir authentication.idToken
+    redirectUri,
   });
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsLoggedIn(!!currentUser);
-      if (currentUser) {
+
+  const rootNavState = useRootNavigationState();
+
+useEffect(() => {
+  if (!rootNavState?.key) return; // ✅ attendre que la navigation soit prête
+
+  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    setUser(currentUser);
+    setIsLoggedIn(!!currentUser);
+
+    if (!currentUser) return;
+
+    try {
+      const userRef = doc(db, "users", currentUser.uid);
+      const snap = await getDoc(userRef);
+
+      // ✅ Si le doc n’existe pas encore (cas inscription), on le crée
+      if (!snap.exists()) {
+        await setDoc(
+          userRef,
+          {
+            email: currentUser.email ?? "",
+            createdAt: Date.now(),
+            onboardingPremiumSeen: false,
+            isPremium: false,
+          },
+          { merge: true }
+        );
+        router.replace("/OnboardingPremium");
+        return;
+      }
+
+      const seen = !!snap.data()?.onboardingPremiumSeen;
+
+      if (!seen) {
+        router.replace("/OnboardingPremium");
+      } else {
         router.replace("/drawer/Acceuil");
       }
-    });
+    } catch (e) {
+      console.log("❌ auth redirect error:", e);
+      // fallback
+      router.replace("/drawer/Acceuil");
+    }
+  });
 
-    return () => unsubscribe();
-  }, []);
+  return () => unsubscribe();
+}, [rootNavState?.key]);
 
   const handleSignIn = async () => {
     setErrorMessage("");
