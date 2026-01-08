@@ -5,9 +5,12 @@ import {
 } from "@react-navigation/drawer";
 import { useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import React, { useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import "react-native-reanimated";
+import { auth, db } from "../../firebaseConfig";
 import { ThemeProvider } from "../Theme";
 import { LogoutModal, performLogout } from "./Deconnexion";
 
@@ -52,6 +55,32 @@ function DrawerRow({
 function CustomDrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUserEmail(user?.email ?? null);
+
+       // Try to get first name from displayName or Firestore profile
+      if (user?.displayName) {
+        const nameParts = user.displayName.split(" ");
+        setFirstName(nameParts[0] || null);
+      } else if (user?.uid) {
+        try {
+          const snap = await getDoc(doc(db, "users", user.uid));
+          setFirstName((snap.data()?.firstName as string) ?? null);
+        } catch (err) {
+          console.log("Failed to load firstName", err);
+          setFirstName(null);
+        }
+      } else {
+        setFirstName(null);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const openLogoutModal = () => {
     props.navigation.closeDrawer();
@@ -78,13 +107,17 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
             style={{ backgroundColor: "rgba(255, 255, 255, 0.25)" }}
           >
             <View className="w-14 h-14 rounded-full bg-white items-center justify-center">
-              <Text className="text-[24px]">🐦</Text>
+              <Text className="text-[32px]">🐦</Text>
             </View>
           </View>
 
           <View className="flex-1">
-            <Text className="text-white text-[20px] font-bold mb-1">Bonjour !</Text>
-            <Text className="text-white/90 text-[14px]">user@email.com</Text>
+            <Text className="text-white text-[20px] font-bold mb-1">
+              Bonjour {firstName ? `${firstName}!` : "!"}
+            </Text>
+            <Text className="text-white/90 text-[12px] whitespace-pre mt-2">
+              {userEmail ?? "Utilisateur connecté"}
+            </Text>
           </View>
         </View>
 

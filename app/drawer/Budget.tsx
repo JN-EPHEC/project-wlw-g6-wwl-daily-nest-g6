@@ -283,7 +283,7 @@ return (
       </Text>
       
       <View 
-        className="rounded-2xl overflow-hidden bg-white border-2 item-center px-3 py-0.5"
+        className="rounded-xl overflow-hidden bg-white border shadow-sm item-center px-3 py-0.5"
         style={{ borderColor: '#60AFDF' }}
       >
         <Picker
@@ -300,6 +300,7 @@ return (
               }
             }
           }}
+          className="p-1"
           style={{
             width: "100%",
             backgroundColor: "white",
