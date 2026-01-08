@@ -3,11 +3,13 @@ import {
   DrawerContentScrollView,
   type DrawerContentComponentProps
 } from "@react-navigation/drawer";
+import { useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import React from "react";
+import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import "react-native-reanimated";
 import { ThemeProvider } from "../Theme";
+import { LogoutModal, performLogout } from "./Deconnexion";
 
 // ✅ Small reusable row item (custom drawer item)
 function DrawerRow({
@@ -48,6 +50,21 @@ function DrawerRow({
 
 //  Drawer Content custom. 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
+  const router = useRouter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const openLogoutModal = () => {
+    props.navigation.closeDrawer();
+    setShowLogoutModal(true);
+  };
+
+  const closeLogoutModal = () => setShowLogoutModal(false);
+
+  const handleLogout = async () => {
+    await performLogout(router);
+    setShowLogoutModal(false);
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
@@ -167,7 +184,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
             icon="log-out-outline"
             label="Déconnexion"
             color="#F64040"
-            onPress={() => props.navigation.navigate("Deconnexion")}
+            onPress={openLogoutModal}
+          />
+          <LogoutModal
+            visible={showLogoutModal}
+            onClose={closeLogoutModal}
+            onConfirm={handleLogout}
           />
         </View>
       </DrawerContentScrollView>
