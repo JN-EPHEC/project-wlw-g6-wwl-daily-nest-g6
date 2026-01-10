@@ -14,7 +14,7 @@ export default function AppNavigator() {
       <Stack.Screen 
         name="ChatHome"
         component={ChatHome}
-        options={{ title: "Chat" }}
+        options={{ title: "" }}
       />
        <Stack.Screen name="Conversation" component={ConversationScreen} />
     </Stack.Navigator>
