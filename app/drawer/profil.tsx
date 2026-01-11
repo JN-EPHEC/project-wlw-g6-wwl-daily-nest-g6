@@ -178,8 +178,8 @@ function ProfilScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="person-circle" size={80} color="#00b7ff9a" />
-        <Text style={styles.title}>Mon Profil</Text>
+        <Ionicons name="person-circle" size={80} color="#ccc" />
+        <Text style={styles.title}>Mes données personnelles</Text>
       </View>
 
       <View style={styles.section}>
@@ -188,7 +188,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Prénom</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -222,7 +222,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Nom</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -264,7 +264,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Genre</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -293,7 +293,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Date de naissance</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -343,7 +343,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Téléphone</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -370,7 +370,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Groupe sanguin</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -402,7 +402,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Allergies</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -424,7 +424,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Maladies génétiques</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -446,7 +446,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Numéro national</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -473,7 +473,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Nom du médecin</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -494,7 +494,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Téléphone du médecin</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -516,7 +516,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Adresse du cabinet</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -543,7 +543,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Nom de l'école</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -564,7 +564,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Téléphone de l'école</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -586,7 +586,7 @@ function ProfilScreen() {
             <Text style={styles.label}>Adresse de l'école</Text>
             {!isEditing && (
               <TouchableOpacity onPress={() => setIsEditing(true)}>
-                <Ionicons name="pencil" size={16} color="#ff9500" />
+                <Ionicons name="pencil" size={16} color="#FF8C42" />
               </TouchableOpacity>
             )}
           </View>
@@ -639,9 +639,17 @@ export default function Profil() {
         component={ProfilScreen}
         options={({ navigation }) => ({
           headerTitle: "Mon Profil",
+          headerTitleAlign: "center",
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42",
+            // fontWeight: 'bold' // Tu peux laisser, mais Shrikhand est déjà gras par défaut
+          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color:"#6DDB31" }} />
             </TouchableOpacity>
           ),
         })}
@@ -653,31 +661,38 @@ export default function Profil() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    padding: 15,
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingVertical: 10,
     backgroundColor: 'white',
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 20,
     fontWeight: 'bold',
     marginTop: 10,
-    color: '#333',
+    color: '#000',
   },
   section: {
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 13,
     backgroundColor: 'white',
     padding: 20,
     marginHorizontal: 10,
     borderRadius: 10,
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#FF8C42",
   },
   sectionTitle: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: '#FF8C42',
     marginBottom: 15,
   },
   fieldContainer: {
@@ -688,24 +703,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 5,
+    color: "#ccc"
   },
   label: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#000',
     marginBottom: 5,
   },
   value: {
-    fontSize: 16,
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 13,
     color: '#333',
     paddingVertical: 8,
+    backgroundColor: "#f5f5f5ff",
+    borderRadius: 10,
+    paddingLeft: 10,
   },
   input: {
+    fontFamily: "Montserrat_400Regular",
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 10,
-    fontSize: 16,
+    fontSize: 13,
     backgroundColor: 'white',
   },
   pickerContainer: {
@@ -719,11 +741,13 @@ const styles = StyleSheet.create({
     height: 50,
   },
   errorText: {
-    color: 'red',
+    fontFamily: "Montserrat_400Regular",
+    color: '#F64040',
     fontSize: 12,
     marginTop: 5,
   },
   infoText: {
+    fontFamily: "Montserrat_400Regular",
     color: '#999',
     fontSize: 12,
     marginTop: 5,
@@ -742,16 +766,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 10,
     maxWidth: 200,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#6DDB31',
   },
   cancelButton: {
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#F64040',
   },
   buttonText: {
+    fontFamily: "Montserrat_400Regular",
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
