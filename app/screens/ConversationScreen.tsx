@@ -181,8 +181,8 @@ export default function ConversationScreen() {
           className="w-[120%] h-full -ml-20"
         />
         */}
-        <View className="flex-col items-center mt-3 mb-2">
-          <View className="w-[62px] h-[62px] rounded-full bg-[#D9D9D9] mr-3.5 items-center justify-center">
+        <View className="flex-col items-center mt-1 mb-2">
+          <View className="w-[52px] h-[52px] rounded-full bg-[#D9D9D9] mr-3.5 items-center justify-center">
               {/*
               <Image
               source={require("../assets/images/mascotte_portrait_person.png")}
@@ -191,7 +191,7 @@ export default function ConversationScreen() {
               */}
               <Ionicons
                 name={"person"}
-                size={26}
+                size={20}
                 color="#9CA3AF"
               />
             </View>
@@ -199,7 +199,7 @@ export default function ConversationScreen() {
             className="text-[30px] font-extrabold italic text-[#FF914D] text-center tracking-[0.3px]"
             style={{ fontFamily: "Shrikhand_400Regular" }}
           >
-            user firstName
+          
           </Text>
         </View>
         {/* BOUTON setting 
