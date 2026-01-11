@@ -82,7 +82,7 @@ export default function ChatScreen() {
     const q = query(collection(db, "families"));
 
     return onSnapshot(q, snap => {
-      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter(family => {
@@ -264,12 +264,7 @@ const deleteGroup = async (group: any) => {
   return (
     <View className="flex-1 px-5 pt-[18px] bg-white">
       <View className="items-center mb-1.5 relative px-5">
-        <Text
-          className="text-[30px] font-extrabold italic text-[#FF914D] text-center tracking-[0.3px]"
-          style={{ fontFamily: "Shrikhand_400Regular" }}
-        >
-          Messages
-        </Text>
+        
         {/* BOUTON + */}
         {selectedFamily && (
           <TouchableOpacity
@@ -287,7 +282,8 @@ const deleteGroup = async (group: any) => {
 
       {/* PICKER FAMILLE */}
       <View className=" rounded-[18px] px-3.5 py-2.5 my-3">
-        <ThemedText type='subtitle'className="text-[12px] text-[#9CA3AF] italic mb-1.5 mt-1.5">
+        <ThemedText type='subtitle'className="text-[12px] text-[#9CA3AF] italic mb-1.5 mt-1.5"
+        style={{ fontFamily: 'Montserrat_400Regular', marginTop: -25 }}>
           Choisir une famille
         </ThemedText>
         <View className="flex-row items-center gap-3">
@@ -325,7 +321,8 @@ const deleteGroup = async (group: any) => {
         keyExtractor={item => item.id}
         ListEmptyComponent={
           selectedFamily ? (
-            <Text className="text-center mt-7.5 text-[#9CA3AF]">Aucune conversation</Text>
+            <Text className="text-center mt-7.5 text-[#9CA3AF]"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>Aucune conversation</Text>
           ) : null
         }
         renderItem={({ item }) => (
@@ -388,7 +385,7 @@ const deleteGroup = async (group: any) => {
   }}>
         <View className="flex-1 bg-black/45 justify-center items-center px-5">
           <TouchableWithoutFeedback>
-          <View className="w-[90%] bg-white rounded-[22px] p-[18px]">
+          <View className="w-[90%] bg-white rounded-[22px] p-[10px]">
 {!createType ? (
               <>
                 <TouchableOpacity
@@ -401,7 +398,8 @@ const deleteGroup = async (group: any) => {
   }}
   className="mt-3.5 bg-[#FF914D] py-3.5 rounded-[16px]"
 >
-  <Text className="text-center font-extrabold text-white">
+  <Text className="text-center font-extrabold text-white"
+  style={{ fontFamily: 'Montserrat_400Regular'}}>
     {editingGroup ? "Modifier le groupe" : "Créer conversation"}
   </Text>
 </TouchableOpacity>
@@ -409,7 +407,8 @@ const deleteGroup = async (group: any) => {
 
             <View className="bg-[#F9FAFB] rounded-[16px] p-3.5 mb-2.5 border border-[#EEF2F7]">
   <TouchableOpacity onPress={() => setCreateType("private")}>
-    <Text className="text-center text-[15px] text-[#111827] font-semibold">Conversation privée</Text>
+    <Text className="text-center text-[15px] text-[#111827] font-semibold"
+    style={{ fontFamily: 'Montserrat_400Regular' }}>Conversation privée</Text>
   </TouchableOpacity>
 </View>
 
