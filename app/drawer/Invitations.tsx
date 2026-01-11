@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useNavigation } from "expo-router";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -26,7 +27,7 @@ import {
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
-export default function Invitations() {
+function InvitationsScreen() {
   const navigation = useNavigation();
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
@@ -404,35 +405,15 @@ export default function Invitations() {
   };
 
   return (
-  <View className="flex-1 bg-[#FAFBFC] pt-[50px]">
-    {/* Header avec burger menu */}
-    <View className="flex-row items-center px-5 pb-5 bg-white">
-      <TouchableOpacity 
-        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())} 
-        className="mr-4 w-12 h-12 rounded-2xl items-center justify-center"
-        activeOpacity={0.7}
-      >
-        <Ionicons name="menu" size={26} color="#68cb30" />
-      </TouchableOpacity>
-      <Text className="text-[24px] font-bold text-[#111827] flex-1">Invitations</Text>
-      
-      {/* Badge notification */}
-      {receivedInvitations.length > 0 && (
-        <View className="bg-[#F64040] px-3 py-1.5 rounded-full">
-          <Text className="text-white text-[13px] font-bold">
-            {receivedInvitations.length}
-          </Text>
-        </View>
-      )}
-    </View>
+  <View className="flex-1 bg-[#FAFBFC]">
 
     <ScrollView className="flex-1 w-full px-5 pt-5">
       {/* Bouton pour envoyer une invitation */}
       <TouchableOpacity 
         className="flex-row items-center justify-center py-4 px-6 rounded-2xl mb-6"
         style={{
-          backgroundColor: '#FF914D',
-          shadowColor: "#FF914D",
+          backgroundColor: '#FF8C42',
+          shadowColor: "#FF8C42",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.25,
           shadowRadius: 12,
@@ -442,17 +423,20 @@ export default function Invitations() {
         activeOpacity={0.85}
       >
         <Ionicons name="send" size={22} color="#fff" />
-        <Text className="text-white text-[16px] font-bold ml-2">Envoyer une invitation</Text>
+        <Text className="text-white text-[16px] font-bold ml-2"
+        style={{ fontFamily: 'Montserrat_400Regular' }}>Envoyer une invitation</Text>
       </TouchableOpacity>
 
       {/* Liste des invitations reçues */}
       <View className="mb-5">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-[13px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
+          <Text className="text-[14px] font-semibold text-[#9CA3AF] tracking-wide"
+          style={{ fontFamily: 'Montserrat_400Regular' }}>
             Invitations reçues
           </Text>
           {receivedInvitations.length > 0 && (
-            <Text className="text-[14px] text-[#6B7280]">
+            <Text className="text-[13px] text-[#6B7280]"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               {receivedInvitations.length} en attente
             </Text>
           )}
@@ -470,12 +454,14 @@ export default function Invitations() {
             }}
           >
             <View className="w-16 h-16 rounded-full bg-[#FFF4ED] items-center justify-center mb-4">
-              <Ionicons name="mail-open-outline" size={32} color="#FF914D" />
+              <Ionicons name="mail-open-outline" size={32} color="#FF8C42" />
             </View>
-            <Text className="text-[18px] font-bold text-[#111827] mb-2">
+            <Text className="text-[18px] font-bold text-[#111827] mb-2"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Aucune invitation
             </Text>
-            <Text className="text-[14px] text-[#9CA3AF] text-center">
+            <Text className="text-[14px] text-[#9CA3AF] text-center"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Vous n'avez pas encore reçu d'invitation
             </Text>
           </View>
@@ -498,30 +484,32 @@ export default function Invitations() {
               activeOpacity={0.7}
             >
               <View className="flex-row items-start mb-3">
-                <View className="w-12 h-12 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-4">
-                  <Ionicons name="people" size={24} color="#60AFDF" />
+                <View className="w-12 h-12 rounded-2xl bg-[#6DDB31] items-center justify-center mr-4">
+                  <Ionicons name="people" size={24} color="#6DDB31" />
                 </View>
                 
                 <View className="flex-1">
-                  <Text className="text-[18px] font-bold text-[#111827] mb-1">
+                  <Text className="text-[18px] font-bold text-[#111827] mb-1"
+                  style={{ fontFamily: 'Montserrat_400Regular', color:"#FF8C42" }}>
                     {invitation.title}
                   </Text>
                   <View className="flex-row items-center mb-2">
                     <Ionicons name="home-outline" size={14} color="#9CA3AF" />
-                    <Text className="text-[14px] text-[#6B7280] ml-1.5">
+                    <Text className="text-[13px] text-[#6B7280] ml-1.5"
+                    style={{ fontFamily: 'Montserrat_400Regular' }}>
                       De: {invitation.senderFamilyName}
                     </Text>
                   </View>
                 </View>
 
-                <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={22} color="#000" />
               </View>
 
               <View 
                 className="flex-row items-center px-4 py-2.5 rounded-xl"
                 style={{ backgroundColor: '#FFF7F1' }}
               >
-                <Ionicons name="calendar-outline" size={16} color="#FF914D" />
+                <Ionicons name="calendar-outline" size={16} color="#FF8C42" />
                 <Text className="text-[14px] text-[#FF914D] font-semibold ml-2">
                   {invitation.date} à {invitation.time}
                 </Text>
@@ -543,23 +531,25 @@ export default function Invitations() {
         <View className="bg-white rounded-3xl w-[90%] max-h-[85%]">
           <View className="flex-row items-center justify-between p-6 border-b border-[#F1F3F5]">
             <View className="flex-row items-center flex-1">
-              <View className="w-10 h-10 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-3">
-                <Ionicons name="send" size={20} color="#FF914D" />
+              <View className="w-10 h-10 rounded-2xl items-center justify-center mr-3">
+                <Ionicons name="send" size={20} color="#FF8C42" />
               </View>
-              <Text className="text-[22px] font-bold text-[#111827]">Nouvelle invitation</Text>
+              <Text className="text-[22px] font-bold text-[#111827]"
+              style={{ fontFamily: 'Shrikhand_400Regular', fontWeight: "400", color: "#FF8C42" }}>Nouvelle invitation</Text>
             </View>
             <TouchableOpacity 
               onPress={() => setSendModalVisible(false)}
               className="w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
 
           <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
             {/* Sélection de la famille qui envoie */}
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-3 uppercase tracking-wide">
+            <Text className="text-[14px] font-semibold text-[#6B7280] mb-3 tracking-wide"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Votre famille ({familiesJoined.length})
             </Text>
             <View className="mb-5">
@@ -575,7 +565,7 @@ export default function Invitations() {
                   activeOpacity={0.7}
                 >
                   <Text
-                    className={`text-[15px] font-semibold ${
+                    className={`text-[13px] font-semibold ${
                       selectedFamily?.id === family.id ? "text-[#FF914D]" : "text-[#6B7280]"
                     }`}
                   >
@@ -586,11 +576,12 @@ export default function Invitations() {
             </View>
 
             {/* Code de la famille destinataire */}
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+            <Text className="text-[14px] font-semibold text-[#6B7280] mb-2 tracking-wide"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Code de la famille destinataire
             </Text>
             <TextInput
-              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-5"
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[13px] text-[#111827] mb-5"
               placeholder="Ex: 123456"
               placeholderTextColor="#9CA3AF"
               value={recipientCode}
@@ -598,6 +589,7 @@ export default function Invitations() {
               keyboardType="numeric"
               maxLength={6}
               style={{
+                fontFamily: 'Montserrat_400Regular',
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.05,
@@ -607,17 +599,19 @@ export default function Invitations() {
             />
 
             {/* Titre */}
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+            <Text className="text-[14px] font-semibold text-[#6B7280] mb-2 tracking-wide"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Titre de l'invitation
             </Text>
             <TextInput
-              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-1"
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[13px] text-[#111827] mb-1"
               placeholder="Ex: Sortie au parc"
               placeholderTextColor="#9CA3AF"
               value={invitationTitle}
               onChangeText={setInvitationTitle}
               maxLength={50}
               style={{
+                fontFamily: 'Montserrat_400Regular',
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 1 },
                 shadowOpacity: 0.05,
@@ -630,11 +624,12 @@ export default function Invitations() {
             </Text>
 
             {/* Description */}
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+            <Text className="text-[14px] font-semibold text-[#6B7280] mb-2 tracking-wide"
+            style={{ fontFamily: 'Montserrat_400Regular' }}>
               Description
             </Text>
             <TextInput
-              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827] mb-1"
+              className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[13px] text-[#111827] mb-1"
               placeholder="Décrivez l'activité..."
               placeholderTextColor="#9CA3AF"
               value={invitationDescription}
@@ -643,6 +638,7 @@ export default function Invitations() {
               multiline
               numberOfLines={4}
               style={{ 
+                fontFamily: 'Montserrat_400Regular',
                 textAlignVertical: "top",
                 minHeight: 100,
                 shadowColor: "#000",
@@ -659,11 +655,12 @@ export default function Invitations() {
             {/* Date et Heure - Côte à côte */}
             <View className="flex-row gap-3 mb-5">
               <View className="flex-1">
-                <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#6B7280] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular' }}>
                   Date
                 </Text>
                 <TextInput
-                  className={`bg-white border rounded-2xl px-4 py-4 text-[16px] text-[#111827] ${
+                  className={`bg-white border rounded-2xl px-4 py-4 text-[13px] text-[#111827] ${
                     dateError ? "border-[#F64040]" : "border-[#E5E7EB]"
                   }`}
                   placeholder="JJ/MM/AAAA"
@@ -680,16 +677,18 @@ export default function Invitations() {
                   maxLength={10}
                 />
                 {dateError ? (
-                  <Text className="text-[11px] text-[#F64040] mt-1">{dateError}</Text>
+                  <Text className="text-[11px] text-[#F64040] mt-1"
+                  style={{ fontFamily: 'Montserrat_400Regular' }}>{dateError}</Text>
                 ) : null}
               </View>
 
               <View className="flex-1">
-                <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#6B7280] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular' }}>
                   Heure
                 </Text>
                 <TextInput
-                  className={`bg-white border rounded-2xl px-4 py-4 text-[16px] text-[#111827] ${
+                  className={`bg-white border rounded-2xl px-4 py-4 text-[13px] text-[#111827] ${
                     timeError ? "border-[#F64040]" : "border-[#E5E7EB]"
                   }`}
                   placeholder="HH:MM"
@@ -706,7 +705,8 @@ export default function Invitations() {
                   maxLength={5}
                 />
                 {timeError ? (
-                  <Text className="text-[11px] text-[#F64040] mt-1">{timeError}</Text>
+                  <Text className="text-[11px] text-[#F64040] mt-1"
+                  style={{ fontFamily: 'Montserrat_400Regular' }}>{timeError}</Text>
                 ) : null}
               </View>
             </View>
@@ -714,8 +714,8 @@ export default function Invitations() {
             <TouchableOpacity 
               className="py-4 rounded-3xl items-center mt-2"
               style={{
-                backgroundColor: '#FF914D',
-                shadowColor: "#FF914D",
+                backgroundColor: '#FF8C42',
+                shadowColor: "#FF8C42",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
                 shadowRadius: 8,
@@ -724,7 +724,8 @@ export default function Invitations() {
               onPress={sendInvitation}
               activeOpacity={0.85}
             >
-              <Text className="text-white text-[16px] font-bold">Envoyer l'invitation</Text>
+              <Text className="text-white text-[16px] font-bold"
+              style={{ fontFamily: 'Montserrat_400Regular' }}>Envoyer l'invitation</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -742,17 +743,18 @@ export default function Invitations() {
         <View className="bg-white rounded-3xl w-[90%] max-h-[80%]">
           <View className="flex-row items-center justify-between p-6 border-b border-[#F1F3F5]">
             <View className="flex-row items-center flex-1">
-              <View className="w-10 h-10 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-3">
-                <Ionicons name="mail-open" size={20} color="#60AFDF" />
+              <View className="w-10 h-10 rounded-2xl bg-[#FF8C42] items-center justify-center mr-3">
+                <Ionicons name="mail-open" size={20} color="#FF8C42" />
               </View>
-              <Text className="text-[22px] font-bold text-[#111827]">Invitation</Text>
+              <Text className="text-[22px] font-bold text-[#111827]"
+              style={{ fontFamily: 'Shrikhand_400Regular', color: "#FF8C42", fontWeight: "400" }}>Invitation</Text>
             </View>
             <TouchableOpacity 
               onPress={() => setDetailModalVisible(false)}
               className="w-10 h-10 rounded-full bg-[#F8F9FA] items-center justify-center"
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
           </View>
 
@@ -760,22 +762,26 @@ export default function Invitations() {
             <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
               {/* Titre */}
               <View className="mb-5">
-                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#9CA3AF] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular', color: "#000" }}>
                   Titre
                 </Text>
-                <Text className="text-[20px] font-bold text-[#111827]">
+                <Text className="text-[20px] font-bold text-[#111827]"
+                style={{ fontFamily: 'Montserrat_400Regular', color:"#FF8C42" }}>
                   {selectedInvitation.title}
                 </Text>
               </View>
 
               {/* De */}
               <View className="mb-5">
-                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#9CA3AF] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
                   Famille émettrice
                 </Text>
                 <View className="flex-row items-center">
-                  <Ionicons name="people" size={20} color="#60AFDF" />
-                  <Text className="text-[16px] text-[#111827] font-semibold ml-2">
+                  <Ionicons name="people" size={20} color="#6DDB31" />
+                  <Text className="text-[18px] text-[#111827] font-semibold ml-2"
+                  style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
                     {selectedInvitation.senderFamilyName}
                   </Text>
                 </View>
@@ -783,11 +789,13 @@ export default function Invitations() {
 
               {/* Description */}
               <View className="mb-5">
-                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#9CA3AF] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
                   Description
                 </Text>
                 <View className="bg-[#FAFBFC] rounded-2xl p-4">
-                  <Text className="text-[15px] text-[#111827] leading-6">
+                  <Text className="text-[15px] text-[#111827] leading-6"
+                  style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
                     {selectedInvitation.description}
                   </Text>
                 </View>
@@ -795,15 +803,17 @@ export default function Invitations() {
 
               {/* Date et heure */}
               <View className="mb-6">
-                <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+                <Text className="text-[14px] font-semibold text-[#9CA3AF] mb-2 tracking-wide"
+                style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
                   Date et heure
                 </Text>
                 <View 
                   className="flex-row items-center px-4 py-3 rounded-2xl"
                   style={{ backgroundColor: '#FFF7F1' }}
                 >
-                  <Ionicons name="calendar" size={20} color="#FF914D" />
-                  <Text className="text-[16px] text-[#FF914D] font-bold ml-3">
+                  <Ionicons name="calendar" size={20} color="#FF8C42" />
+                  <Text className="text-[16px] text-[#FF914D] font-bold ml-3"
+                  style={{ fontFamily: 'Montserrat_400Regular' }}>
                     {selectedInvitation.date} à {selectedInvitation.time}
                   </Text>
                 </View>
@@ -814,8 +824,8 @@ export default function Invitations() {
                 <TouchableOpacity 
                   className="flex-1 flex-row items-center justify-center py-4 rounded-2xl"
                   style={{
-                    backgroundColor: '#ABF085',
-                    shadowColor: "#ABF085",
+                    backgroundColor: '#6DDB31',
+                    shadowColor: "#6DDB31",
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.25,
                     shadowRadius: 8,
@@ -825,7 +835,8 @@ export default function Invitations() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="checkmark-circle" size={22} color="#fff" />
-                  <Text className="text-white text-[15px] font-bold ml-2">Accepter</Text>
+                  <Text className="text-white text-[15px] font-bold ml-2"
+                  style={{ fontFamily: 'Montserrat_400Regular' }}>Accepter</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -842,7 +853,8 @@ export default function Invitations() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="close-circle" size={22} color="#fff" />
-                  <Text className="text-white text-[15px] font-bold ml-2">Refuser</Text>
+                  <Text className="text-white text-[15px] font-bold ml-2"
+                  style={{ fontFamily: 'Montserrat_400Regular' }}>Refuser</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -852,3 +864,35 @@ export default function Invitations() {
     </Modal>
   </View>
 );}
+const Stack = createNativeStackNavigator();
+
+export default function Invitations() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="InvitationsMain"
+        component={InvitationsScreen} // 👈 On appelle la fonction du haut ici
+        options={({ navigation }) => ({
+          headerTitle: "Invitations", // 👈 Change le titre ici
+          headerTitleAlign: "center",
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42", // Orange (ou #111827 pour noir comme ta capture)
+          },
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color:"#6DDB31" }} />
+            </TouchableOpacity>
+          ),
+          // 👇 Si tu veux garder le badge rouge des notifs, tu peux l'ajouter ici aussi (optionnel)
+          /* headerRight: () => (
+             <View>...</View> 
+          )
+          */
+        })}
+      />
+    </Stack.Navigator>
+  );
+}
