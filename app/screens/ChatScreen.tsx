@@ -396,25 +396,26 @@ const deleteGroup = async (group: any) => {
       createConversation();
     }
   }}
-  className="mt-3.5 bg-[#FF914D] py-3.5 rounded-[16px]"
+  className="mt-1 mb-2 py-3.5 rounded-[16px] text-[15px] "
 >
-  <Text className="text-center font-extrabold text-white"
+  <Text className="text-center font-extrabold text-[20px] "
   style={{ fontFamily: 'Montserrat_400Regular'}}>
     {editingGroup ? "Modifier le groupe" : "Créer conversation"}
   </Text>
 </TouchableOpacity>
 
 
-            <View className="bg-[#F9FAFB] rounded-[16px] p-3.5 mb-2.5 border border-[#EEF2F7]">
+            <View className="bg-[#EEFAE6] rounded-[16px] p-3.5 mb-2.5 border border-[#68cb30]">
   <TouchableOpacity onPress={() => setCreateType("private")}>
     <Text className="text-center text-[15px] text-[#111827] font-semibold"
     style={{ fontFamily: 'Montserrat_400Regular' }}>Conversation privée</Text>
   </TouchableOpacity>
 </View>
 
-<View className="bg-[#F9FAFB] rounded-[16px] p-3.5 mb-2.5 border border-[#EEF2F7]">
+<View className="bg-[#E6F2FB] rounded-[16px] p-3.5 mb-2.5 border border-[#5AA9E6]">
   <TouchableOpacity onPress={() => setCreateType("group")}>
-    <Text className="text-center text-[15px] text-[#111827] font-semibold">👨‍👩‍👧‍👦Groupe</Text>
+    <Text className="text-center text-[15px] text-[#111827] font-semibold"
+     style={{ fontFamily: 'Montserrat_400Regular' }}>👨‍👩‍👧‍👦Groupe</Text>
   </TouchableOpacity>
 </View>
               </>
