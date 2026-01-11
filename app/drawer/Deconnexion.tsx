@@ -35,11 +35,13 @@ export function LogoutModal({ visible, onClose, onConfirm }: LogoutModalProps) {
             />
           </View>
 
-          <Text className="text-lg font-semibold text-gray-900 text-center">
+          <Text className="text-lg font-semibold text-gray-900 text-center"
+          style={{ fontFamily: 'Montserrat_400Regular', color:"#FF8C42" }}>
             Voulez-vous vraiment vous déconnecter ?
           </Text>
 
-          <Text className="text-sm text-gray-500 text-center mt-2 mb-6">
+          <Text className="text-sm text-gray-500 text-center mt-2 mb-6"
+          style={{ fontFamily: 'Montserrat_400Regular' }}>
             Vous pourrez vous reconnecter à tout moment.
           </Text>
 
@@ -48,7 +50,8 @@ export function LogoutModal({ visible, onClose, onConfirm }: LogoutModalProps) {
               onPress={onClose}
               className="rounded-full py-4 bg-[#F64040]"
             >
-              <Text className="text-white text-center font-semibold">
+              <Text className="text-white text-center font-semibold"
+              style={{ fontFamily: 'Montserrat_400Regular' }}>
                 Annuler
               </Text>
             </TouchableOpacity>
@@ -57,7 +60,8 @@ export function LogoutModal({ visible, onClose, onConfirm }: LogoutModalProps) {
               onPress={onConfirm}
               className="rounded-full py-4 border border-gray-200 bg-white"
             >
-              <Text className="text-[#F64040] text-center font-semibold">
+              <Text className="text-[#F64040] text-center font-semibold"
+              style={{ fontFamily: 'Montserrat_400Regular' }}>
                 Se déconnecter
               </Text>
             </TouchableOpacity>
