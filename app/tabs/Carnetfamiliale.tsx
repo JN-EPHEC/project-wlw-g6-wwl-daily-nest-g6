@@ -3,17 +3,17 @@ import { Picker } from '@react-native-picker/picker';
 import { collection, doc, getDoc, getDocs, onSnapshot, query, setDoc, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -335,10 +335,10 @@ export default function FamilyJournal() {
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.familyCard} onPress={() => openMembersModal(item)}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ionicons name="people" size={22} color="#333" />
+                <Ionicons name="people" size={22} color="#FF8C42" />
                 <Text style={styles.familyName}>{item.name}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#999" />
+              <Ionicons name="chevron-forward" size={18} color="#000" />
             </TouchableOpacity>
           )}
         />
@@ -354,10 +354,10 @@ export default function FamilyJournal() {
         <Text style={styles.modalTitle}>{selectedFamily?.name}</Text>
         <View style={{ flexDirection: 'row', marginLeft: 'auto', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity onPress={openRoleManagement}>
-            <Ionicons name="people-circle" size={24} color="#007AFF" />
+            <Ionicons name="people-circle" size={24} color="#6DDB31" />
           </TouchableOpacity>
           <TouchableOpacity onPress={closeMembersModal}>
-            <Ionicons name="close" size={22} color="#333" />
+            <Ionicons name="close" size={22} color="#000" />
           </TouchableOpacity>
         </View>
       </View>
@@ -368,7 +368,7 @@ export default function FamilyJournal() {
                     <Ionicons 
                       name={m.role?.toLowerCase() === 'parent' ? 'person' : 'person-outline'} 
                       size={24} 
-                      color={m.role?.toLowerCase() === 'parent' ? '#2196F3' : '#FF9800'} 
+                      color={m.role?.toLowerCase() === 'parent' ? '#F64040' : '#FF8C42'} 
                       style={{ marginRight: 10 }}
                     />
                     <View style={{ flex: 1 }}>
@@ -376,11 +376,11 @@ export default function FamilyJournal() {
                       {m.role && (
                         <View style={[
                           styles.roleBadge, 
-                          { backgroundColor: m.role.toLowerCase() === 'parent' ? '#E3F2FD' : '#FFF3E0' }
+                          { backgroundColor: m.role.toLowerCase() === 'parent' ? '#F6404033' : '#FF8C4233' }
                         ]}>
                           <Text style={[
                             styles.roleText,
-                            { color: m.role.toLowerCase() === 'parent' ? '#1976D2' : '#F57C00' }
+                            { color: m.role.toLowerCase() === 'parent' ? '#F64040' : '#FF8C42' }
                           ]}>
                             {m.role}
                           </Text>
@@ -388,7 +388,7 @@ export default function FamilyJournal() {
                       )}
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                  <Ionicons name="chevron-forward" size={20} color="#000" />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -413,27 +413,27 @@ export default function FamilyJournal() {
           {/* Bouton d'édition visible seulement si: utilisateur = parent ET membre = enfant */}
           {currentUserRole?.toLowerCase() === 'parent' && selectedMember?.role?.toLowerCase() === 'enfant' && (
             <TouchableOpacity onPress={() => setEditMode(!editMode)}>
-              <Ionicons name={editMode ? "checkmark" : "pencil"} size={22} color="#ff9500" />
+              <Ionicons name={editMode ? "checkmark" : "pencil"} size={22} color="#FF8C42" />
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={closeMemberDetailModal}>
-            <Ionicons name="close" size={22} color="#333" />
+            <Ionicons name="close" size={22} color="#000" />
           </TouchableOpacity>
         </View>
       </View>
       
       {/* Message informatif */}
       {currentUserRole?.toLowerCase() === 'parent' && selectedMember?.role?.toLowerCase() === 'enfant' ? (
-        <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
-          <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
+        <View style={{ backgroundColor: '#F6404033', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="information-circle" size={24} color="#F64040" style={{ marginRight: 10 }} />
+          <Text style={{ flex: 1, color: '#F64040', fontSize: 13 }}>
             En tant que parent, vous pouvez modifier les informations de cet enfant.
           </Text>
         </View>
       ) : (
-        <View style={{ backgroundColor: '#E3F2FD', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="information-circle" size={24} color="#2196F3" style={{ marginRight: 10 }} />
-          <Text style={{ flex: 1, color: '#1976D2', fontSize: 13 }}>
+        <View style={{ backgroundColor: '#FF8C4233', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="information-circle" size={24} color="#FF8C42" style={{ marginRight: 10 }} />
+          <Text style={{ flex: 1, color: '#FF8C42', fontSize: 13 }}>
             Ces informations sont en lecture seule. Chaque membre peut les modifier dans son propre profil.
           </Text>
         </View>
@@ -450,7 +450,7 @@ export default function FamilyJournal() {
         )}
 
         {/* INFOS DE BASE */}
-        <Text style={styles.sectionTitle}>Infos de base</Text>
+        <Text style={styles.sectionTitle}>Informations de base</Text>
         
         <Text style={styles.label}>Prénom</Text>
         {editMode ? (
@@ -698,13 +698,13 @@ export default function FamilyJournal() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Gérer les rôles</Text>
               <TouchableOpacity onPress={() => setRoleManagementVisible(false)}>
-                <Ionicons name="close" size={22} color="#333" />
+                <Ionicons name="close" size={22} color="#000" />
               </TouchableOpacity>
             </View>
 
             <View style={{ backgroundColor: '#FFF3E0', padding: 12, borderRadius: 8, marginVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="information-circle" size={24} color="#F57C00" style={{ marginRight: 10 }} />
-              <Text style={{ flex: 1, color: '#E65100', fontSize: 13 }}>
+              <Ionicons name="information-circle" size={24} color="#FF8C42" style={{ marginRight: 10 }} />
+              <Text style={{ flex: 1, color: '#FF8C42', fontSize: 13 }}>
                 Définissez le rôle de chaque membre dans cette famille.
               </Text>
             </View>
@@ -713,7 +713,7 @@ export default function FamilyJournal() {
               {Object.entries(roleAssignments).map(([email, role]) => (
                 <View key={email} style={styles.roleRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
+                    <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: '500', marginBottom: 5 }}>{email}</Text>
                     <Picker
                       selectedValue={role}
                       onValueChange={(value) => setRoleAssignments({ ...roleAssignments, [email]: value })}
@@ -738,10 +738,10 @@ export default function FamilyJournal() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 12, backgroundColor: "#fff" },
-  header: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  familyCard: { padding: 14, backgroundColor: "#fff", borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: "#eee", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  familyName: { fontSize: 16, marginLeft: 10, fontWeight: "600" },
+  screen: { flex: 1, padding: 14, backgroundColor: "#fff" },
+  header: { fontFamily: "Montserrat_400Regular", fontSize: 20, fontWeight: "700", marginBottom: 12, padding: 10, color: "#6DDB31" },
+  familyCard: { padding: 14, backgroundColor: "#fff", borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: "#FF8C42", flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  familyName: { fontFamily: "Montserrat_400Regular", fontSize: 14, marginLeft: 10, fontWeight: "500" },
   modalBackground: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -756,6 +756,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalHeader: {
+    justifyContent: 'space-between',
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -763,8 +764,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   modalTitle: {
+    fontFamily: "Shrikhand_400Regular",
     fontSize: 20,
-    fontWeight: '700',
+    color: "#FF8C42",
   },
   profilePhoto: {
     width: 100,
@@ -774,20 +776,24 @@ const styles = StyleSheet.create({
     marginVertical: 15,
   },
   sectionTitle: {
+    fontFamily: "Montserrat_400Regular",
+    color: "#FF8C42",
     fontSize: 16,
     fontWeight: '600',
     marginTop: 15,
     marginBottom: 5,
   },
   label: {
+    fontFamily: "Montserrat_400Regular",
     fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: '400',
+    color: '#000',
     marginTop: 10,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   value: {
-    fontSize: 15,
+    fontFamily: "Montserrat_400Regular",
+    fontSize: 13,
     color: '#333',
     marginBottom: 8,
     backgroundColor: '#f5f5f5',
@@ -823,14 +829,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#F64040',
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 20,
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 20,
   },
   saveButtonText: {
+    fontFamily: "Montserrat_400Regular",
     color: '#fff',
     fontWeight: '700',
     fontSize: 16,
