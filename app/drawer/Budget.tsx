@@ -278,13 +278,14 @@ return (
         elevation: 3,
       }}
     >
-      <Text className="text-[13px] font-semibold mb-3 uppercase tracking-wide">
+      <Text className="text-[13px] font-semibold mb-3 tracking-wide"
+      style={{ fontFamily: 'Montserrat_400Regular', color: "#6DDB31", fontSize: 20 }}>
         Type de budget
       </Text>
       
       <View 
-        className="rounded-xl overflow-hidden bg-white border shadow-sm item-center px-3 py-0.5"
-        style={{ borderColor: '#60AFDF' }}
+        className="rounded-xl overflow-hidden bg-white border item-center px-3 py-0.5"
+        style={{ borderColor: '#FF8C42' }}
       >
         <Picker
           selectedValue={selectedFamily?.id || "personal"}
@@ -304,6 +305,8 @@ return (
           style={{
             width: "100%",
             backgroundColor: "white",
+            fontFamily: 'Montserrat_400Regular',
+            fontSize: 14,
           }}
         >
           <Picker.Item label="👤 Personnel" value="personal" />
@@ -332,7 +335,8 @@ return (
       activeOpacity={0.85}
     >
       <Ionicons name="add-circle" size={22} color="white" />
-      <Text className="text-white text-[15px] font-bold ml-2 tracking-wide">
+      <Text className="text-white text-[15px] font-bold ml-2 tracking-wide"
+      style={{ fontFamily: 'Montserrat_400Regular' }}>
         Nouveau budget
       </Text>
     </TouchableOpacity>
@@ -366,10 +370,12 @@ return (
             />
           </View>
 
-          <Text className="text-[22px] text-[#111827] font-bold mb-2">
+          <Text className="text-[22px] text-[#111827] font-bold mb-2"
+          style={{ fontFamily: 'Montserrat_400Regular', color: "#FF8C42" }}>
             Commencez à budgétiser
           </Text>
-          <Text className="text-[15px] text-[#6B7280] text-center px-4 mb-6 leading-5">
+          <Text className="text-[15px] text-[#6B7280] text-center px-4 mb-6 leading-5"
+          style={{ fontFamily: 'Montserrat_400Regular' }}>
             Gérez vos dépenses{'\n'}pour atteindre vos objectifs financiers
           </Text>
       
@@ -379,15 +385,16 @@ return (
         onPress={() => setCreateModalVisible(true)}
         activeOpacity={0.8}
         style={{
-          shadowColor: "#FF914D",
+          shadowColor: "#FF8C42",
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
           shadowRadius: 8,
           elevation: 4,
         }}
       >
-        <Ionicons name="add-circle" size={22} color="white" />
-        <Text className="text-white font-bold ml-2 text-[16px]">
+        <Ionicons name="add-circle" size={25} color="white" />
+        <Text className="text-white font-bold ml-2 text-[16px]"
+        style={{ fontFamily: 'Montserrat_400Regular' }}>
           Créer mon premier budget
         </Text>
       </TouchableOpacity>
@@ -398,10 +405,12 @@ return (
     <>
       {/* Header de section simple */}
       <View className="mb-4 mt-3">
-        <Text className="text-[13px] font-semibold text-[#9CA3AF] uppercase tracking-wide">
+        <Text className="text-[15px] font-semibold text-[#9CA3AF] tracking-wide"
+        style={{ fontFamily: 'Montserrat_400Regular', color:"#000" }}>
           Mes budgets
         </Text>
-        <Text className="text-[15px] text-[#6B7280] mt-0.5">
+        <Text className="text-[13px] text-[#6B7280] mt-0.5"
+        style={{ fontFamily: 'Montserrat_400Regular' }}>
           {budgets.length} budget{budgets.length > 1 ? 's' : ''} actif{budgets.length > 1 ? 's' : ''}
         </Text>
       </View>
@@ -431,15 +440,17 @@ return (
                     {/* Titre avec icône catégorie */}
                     <View className="flex-row items-center mb-3">
                       <View className="w-12 h-12 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-3">
-                        <Ionicons name="wallet" size={24} color="#FF914D" />
+                        <Ionicons name="wallet" size={24} color="#FF8C42" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-[20px] font-bold text-[#111827] mb-1">
+                        <Text className="text-[20px] font-bold text-[#111827] mb-1"
+                        style={{ fontFamily: 'Montserrat_400Regular', color:"#FF8C42" }}>
                           {budget.name}
                         </Text>
                         <View className="flex-row items-center">
                           <Ionicons name="card-outline" size={14} color="#9CA3AF" />
-                          <Text className="text-[14px] text-[#6B7280] ml-1.5 font-medium">
+                          <Text className="text-[14px] text-[#6B7280] ml-1.5 font-medium"
+                          style={{ fontFamily: 'Montserrat_400Regular' }}>
                             Budget : {budget.limit.toFixed(2)}€
                           </Text>
                         </View>
@@ -456,8 +467,9 @@ return (
                     setExpensesModalVisible(true);
                   }}
                 >
-                  <Ionicons name="add" size={20} color="#60AFDF" />
-                  <Text className="text-[14px] font-semibold text-[#60AFDF] ml-2">
+                  <Ionicons name="add" size={20} color="#6DDB31" />
+                  <Text className="text-[14px] font-semibold text-[#60AFDF] ml-2"
+                  style={{ fontFamily: 'Montserrat_400Regular', color:"#6DDB31" }}>
                     Ajouter une dépense
                   </Text>
                 </TouchableOpacity>
@@ -475,7 +487,7 @@ return (
                       className="w-10 h-10 rounded-xl items-center justify-center"
                       activeOpacity={0.7}
                     >
-                    <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+                    <Ionicons name="chevron-forward" size={24} color="#000" />
 
                     </TouchableOpacity>
                       <Ionicons name="trash-outline" size={18} color="#F64040" />
@@ -493,7 +505,8 @@ return (
         activeOpacity={0.7}
       >
         <Ionicons name="add-circle-outline" size={22} color="#9CA3AF" />
-        <Text className="text-[15px] font-semibold text-[#6B7280] ml-2">
+        <Text className="text-[15px] font-semibold text-[#6B7280] ml-2"
+        style={{ fontFamily: 'Montserrat_400Regular' }}>
           Ajouter un budget
         </Text>
       </TouchableOpacity>
@@ -527,7 +540,7 @@ return (
             onPress={() => setCreateModalVisible(false)}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={24} color="#6B7280" />
+            <Ionicons name="close" size={24} color="#000" />
           </TouchableOpacity>
 
           {/* Header */}
@@ -535,10 +548,12 @@ return (
             <View className="w-14 h-14 rounded-full bg-[#FFF4ED] items-center justify-center mb-3">
               <Ionicons name="wallet" size={28} color="#FF914D" />
             </View>
-            <Text className="text-[24px] font-bold text-[#111827] mb-1">
+            <Text className="text-[24px] font-bold text-[#111827] mb-1"
+            style={{ fontFamily: 'Shrikhand_400Regular', fontWeight: "400", color: "#FF8C42" }}>
               Nouveau budget
             </Text>
-            <Text className="text-[14px] text-[#6B7280]">
+            <Text className="text-[14px] text-[#6B7280]"
+            style={{fontFamily: 'Montserrat_400Regular'}}>
               Définissez votre budget
             </Text>
           </View>
@@ -553,7 +568,7 @@ return (
             <Text
               className="text-center font-semibold text-[15px]"
               style={{
-                color: selectedType === "personal" ? "#60AFDF" : "#7CB368",
+                color: selectedType === "personal" ? "#60AFDF" : "#6DDB31",
               }}
             >
               {selectedType === "personal" ? "👤 Personnel" : `👨‍👩‍👧‍👦 ${selectedFamily?.name}`}
@@ -562,7 +577,8 @@ return (
 
           {/* Formulaire */}
           <View className="mb-2">
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 uppercase tracking-wide">
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 tracking-wide"
+            style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
               Nom du budget
             </Text>
             <TextInput
@@ -584,7 +600,8 @@ return (
           </View>
 
           <View className="mb-6">
-            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 uppercase tracking-wide">
+            <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1 tracking-wide"
+            style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
               Montant limite
             </Text>
             <View className="relative">
@@ -618,10 +635,10 @@ return (
             style={{
               backgroundColor: (!budgetName.trim() || !budgetLimit.trim()) 
                 ? "#E5E7EB"  // Gris quand désactivé
-                : "#FF914D",  // ✅ Orange Daily Nest quand actif
+                : "#FF8C42",  // ✅ Orange Daily Nest quand actif
               shadowColor: (!budgetName.trim() || !budgetLimit.trim()) 
                 ? "transparent" 
-                : "#FF914D",
+                : "#FF8C42",
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: (!budgetName.trim() || !budgetLimit.trim()) ? 0 : 0.35,
               shadowRadius: 7,
@@ -638,7 +655,7 @@ return (
             <Text
               className="text-[16px] font-bold"
               style={{
-                color: (!budgetName.trim() || !budgetLimit.trim()) ? "#9CA3AF" : "#FFFFFF",
+                fontFamily: 'Montserrat_400Regular', color: (!budgetName.trim() || !budgetLimit.trim()) ? "#9CA3AF" : "#FFFFFF",
               }}
             >
               Créer le budget
@@ -705,10 +722,12 @@ return (
 
           {selectedBudget && (
             <>
-              <Text className="text-[28px] font-bold text-[#111827] mb-1 pr-12">
+              <Text className="text-[28px] font-bold text-[#111827] mb-1 pr-12"
+              style={{fontFamily: 'Montserrat_400Regular', color:"#FF8C42"}}>
                 {selectedBudget.name}
               </Text>
-              <Text className="text-[15px] text-[#6B7280]">
+              <Text className="text-[15px] text-[#6B7280]"
+              style={{fontFamily: 'Montserrat_400Regular'}}>
                 Budget • {selectedBudget.limit.toFixed(2)}€
               </Text>
             </>
@@ -732,7 +751,8 @@ return (
                 {/* Stats principales */}
                 <View className="flex-row justify-between items-start mb-5">
                   <View className="flex-1">
-                    <Text className="text-[13px] font-medium text-[#6B7280] mb-1">
+                    <Text className="text-[13px] font-medium text-[#6B7280] mb-1"
+                    style={{fontFamily: 'Montserrat_400Regular'}}>
                       Dépensé
                     </Text>
                     <Text 
@@ -819,15 +839,17 @@ return (
                   <View className="w-10 h-10 rounded-full bg-[#FF914D]/10 items-center justify-center mr-3">
                     <Ionicons name="add-circle" size={22} color="#FF914D" />
                   </View>
-                  <Text className="text-[20px] font-bold text-[#111827]">
+                  <Text className="text-[20px] font-bold text-[#111827]"
+                  style={{fontFamily: 'Montserrat_400Regular', color:"#FF8C42"}}>
                     Nouvelle dépense
                   </Text>
                 </View>
 
                 {/* Inputs avec labels flottants style */}
                 <View className="mb-3">
-                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
-                    NOM
+                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1"
+                  style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
+                    Nom
                   </Text>
                   <TextInput
                     className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827]"
@@ -847,8 +869,9 @@ return (
 
                 <View className="flex-row gap-3 mb-3">
                   <View className="flex-1">
-                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
-                      MONTANT
+                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1"
+                    style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
+                      Montant
                     </Text>
                     <View className="relative">
                       <TextInput
@@ -873,8 +896,9 @@ return (
                   </View>
 
                   <View className="flex-1">
-                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
-                      DATE
+                    <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1"
+                    style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
+                      Date
                     </Text>
                     <View 
                       className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4"
@@ -915,8 +939,9 @@ return (
                 </View>
 
                 <View className="mb-4">
-                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1">
-                    DESCRIPTION (OPTIONNEL)
+                  <Text className="text-[12px] font-semibold text-[#6B7280] mb-2 ml-1"
+                  style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
+                    Description (optionnel)
                   </Text>
                   <TextInput
                     className="bg-white border border-[#E5E7EB] rounded-2xl px-4 py-4 text-[16px] text-[#111827]"
@@ -947,7 +972,7 @@ return (
                   disabled={!expenseName.trim() || !expenseAmount.trim()}
                   activeOpacity={0.8}
                   style={{
-                    shadowColor: (!expenseName.trim() || !expenseAmount.trim()) ? "transparent" : "#FF914D",
+                    shadowColor: (!expenseName.trim() || !expenseAmount.trim()) ? "transparent" : "#FF8C42",
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -963,6 +988,7 @@ return (
                     className={`ml-2 text-[16px] font-bold ${
                       (!expenseName.trim() || !expenseAmount.trim()) ? "text-[#9CA3AF]" : "text-white"
                     }`}
+                    style={{fontFamily: 'Montserrat_400Regular'}}
                   >
                     Ajouter la dépense
                   </Text>
@@ -972,7 +998,8 @@ return (
               {/* Liste des dépenses  */}
               <View>
                 <View className="flex-row items-center justify-between mb-4">
-                  <Text className="text-[20px] font-bold text-[#111827]">
+                  <Text className="text-[20px] font-bold text-[#111827]"
+                  style={{fontFamily: 'Montserrat_400Regular', color:"#FF8C42"}}>
                     Historique
                   </Text>
                   {expenses.length > 0 && (
@@ -990,12 +1017,14 @@ return (
                       className="w-16 h-16 rounded-full items-center justify-center mb-4"
                       style={{ backgroundColor: 'rgba(255, 145, 77, 0.1)' }}
                     >
-                      <Ionicons name="receipt-outline" size={32} color="#FF914D" />
+                      <Ionicons name="receipt-outline" size={32} color="#FF8C42" />
                     </View>
-                    <Text className="text-[16px] font-semibold text-[#111827] mb-2">
+                    <Text className="text-[16px] font-semibold text-[#111827] mb-2"
+                    style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
                       Aucune dépense
                     </Text>
-                    <Text className="text-[14px] text-[#9CA3AF] text-center px-8">
+                    <Text className="text-[14px] text-[#9CA3AF] text-center px-8"
+                    style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
                       Commencez à suivre vos dépenses pour ce budget
                     </Text>
                   </View>
@@ -1007,7 +1036,7 @@ return (
                         className="bg-white rounded-2xl p-4 flex-row items-center"
                         style={{
                           borderLeftWidth: 4,
-                          borderLeftColor: '#FF914D',
+                          borderLeftColor: '#FF8C42',
                           shadowColor: "#000",
                           shadowOffset: { width: 0, height: 2 },
                           shadowOpacity: 0.04,
@@ -1017,19 +1046,21 @@ return (
                       >
                         {/* Icon catégorie */}
                         <View className="w-12 h-12 rounded-2xl bg-[#FFF4ED] items-center justify-center mr-4">
-                          <Ionicons name="wallet" size={24} color="#FF914D" />
+                          <Ionicons name="wallet" size={24} color="#FF8C42" />
                         </View>
 
                         {/* Info dépense */}
                         <View className="flex-1 pr-3">
-                          <Text className="text-[16px] font-semibold text-[#111827] mb-0.5">
+                          <Text className="text-[16px] font-semibold text-[#111827] mb-0.5"
+                          style={{fontFamily: 'Montserrat_400Regular', color:"#000"}}>
                             {expense.name}
                           </Text>
                           
                           <View className="flex-row items-center gap-2">
                             <View className="flex-row items-center">
                               <Ionicons name="calendar-outline" size={12} color="#9CA3AF" />
-                              <Text className="text-[13px] text-[#9CA3AF] ml-1">
+                              <Text className="text-[13px] text-[#9CA3AF] ml-1"
+                              style={{fontFamily: 'Montserrat_400Regular'}}>
                                 {expense.date}
                               </Text>
                             </View>
@@ -1088,9 +1119,17 @@ export default function () {
         component={Budget}
         options={({ navigation }) => ({
           headerTitle: "Mon Budget",
+          headerTitleAlign: "center",
+          headerShadowVisible: false,
+          headerTitleStyle: {
+            fontFamily: "Shrikhand_400Regular", 
+            fontSize: 28,
+            color: "#FF8C42",
+            // fontWeight: 'bold' // Tu peux laisser, mais Shrikhand est déjà gras par défaut
+          },
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}>
-              <Ionicons name="menu" size={26} style={{ marginLeft: 15 }} />
+              <Ionicons name="menu" size={40} style={{ marginLeft: 15, color:"#6DDB31" }} />
             </TouchableOpacity>
           ),
         })}
