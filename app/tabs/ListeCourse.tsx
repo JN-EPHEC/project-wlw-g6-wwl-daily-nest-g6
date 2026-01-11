@@ -155,28 +155,31 @@ export default function ShoppingList() {
   };
 
   return (
-  <View className="flex-1 bg-[#FAFBFC]">
+  <View className="flex-1 bg-white">
     {/* Header */}
     <View 
-      className="px-5 pt-16 pb-5 bg-white"
+      className="px-5 pt-12 pb-5 bg-white"
       style={{
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.0,
         shadowRadius: 8,
         elevation: 3,
+        paddingTop: 18,
       }}
     >
-      <Text className="text-[28px] font-bold text-[#111827] mb-4">Listes de Courses</Text>
+      <Text className="text-[20px] font-bold text-[#111827] mb-4"
+      style={{ fontFamily: 'Montserrat_400Regular', color: "#6DDB31" }}>Listes de courses</Text>
 
       {/* Sélecteur Personnel/Famille */}
       <View className="w-full">
-        <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 uppercase tracking-wide">
+        <Text className="text-[12px] font-semibold text-[#9CA3AF] mb-2 tracking-wide"
+        style={{ fontFamily: 'Montserrat_400Regular', color: "#6DDB31" }}>
           Type de liste
         </Text>
         <View 
           className="border-2 rounded-2xl px-4 py-1 bg-white overflow-hidden"
-          style={{ borderColor: '#60AFDF' }}
+          style={{ borderColor: '#6DDB31' }}
         >
           <Picker
             selectedValue={selectedFamily?.id || "personal"}
@@ -192,7 +195,7 @@ export default function ShoppingList() {
                 }
               }
             }}
-            style={{ width: "100%", backgroundColor: "white" }}
+            style={{ fontSize: 15, fontFamily: 'Montserrat_400Regular', width: "100%", backgroundColor: "fff", color: "#6DDB31" }}
           >
             <Picker.Item label="👤 Mes listes personnelles" value="personal" />
             <Picker.Item label="──────────" value="" enabled={false} />
@@ -208,13 +211,14 @@ export default function ShoppingList() {
       {/* Créer une nouvelle liste */}
       <View className="flex-row items-center mb-5 gap-3">
         <TextInput
-          className="flex-1 border border-[#E5E7EB] px-4 py-4 rounded-2xl bg-white text-[16px] text-[#111827]"
+          className="flex-1 border border-[#E5E7EB] px-4 py-4 rounded-2xl bg-white text-[14px] text-[#111827]"
           placeholder="Nouvelle liste de courses"
           placeholderTextColor="#9CA3AF"
           value={newListName}
           onChangeText={setNewListName}
           onSubmitEditing={createList}
           style={{
+            fontFamily: 'Montserrat_400Regular',
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.05,
@@ -226,7 +230,7 @@ export default function ShoppingList() {
           onPress={createList}
           className="w-10 h-10 rounded-3xl items-center justify-center"
           style={{backgroundColor: newListName.trim()
-              ? '#FF914D'       
+              ? '#FF8C42'       
               : '#F8D8C0'       
           }}
           activeOpacity={0.8}
@@ -242,7 +246,7 @@ export default function ShoppingList() {
           style={{
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.04,
+            shadowOpacity: 0.10,
             shadowRadius: 12,
             elevation: 2,
           }}
@@ -250,10 +254,12 @@ export default function ShoppingList() {
           <View className="w-16 h-16 rounded-full bg-[#EBF5FF] items-center justify-center mb-4">
             <Ionicons name="cart-outline" size={32} color="#60AFDF" />
           </View>
-          <Text className="text-[18px] font-bold text-[#111827] mb-2">
+          <Text className="text-[18px] font-bold text-[#111827] mb-2"
+          style={{ fontFamily: 'Montserrat_400Regular', color: "#60AFDF" }}>
             Aucune liste
           </Text>
-          <Text className="text-[14px] text-[#9CA3AF] text-center">
+          <Text className="text-[14px] text-[#9CA3AF] text-center"
+          style={{ fontFamily: 'Montserrat_400Regular' }}>
             Créez votre première liste de courses
           </Text>
         </View>
@@ -266,13 +272,13 @@ export default function ShoppingList() {
           renderItem={({ item }) => (
             <TouchableOpacity 
               onPress={() => openList(item)}
-              className="bg-white rounded-3xl p-5 mb-4 flex-row items-center justify-between"
+              className="bg-white rounded-3xl p-5 mb-4 flex-row items-center justify-between border border-[#F3F4F6]"
               style={{
                 shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.06,
-                shadowRadius: 8,
-                elevation: 2,
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+                elevation: 3,
               }}
               activeOpacity={0.7}
             >
@@ -281,10 +287,12 @@ export default function ShoppingList() {
                   <Ionicons name="cart" size={24} color="#60AFDF" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[18px] font-bold text-[#111827]">
+                  <Text className="text-[18px] font-bold text-[#111827]"
+                  style={{ fontFamily: 'Montserrat_400Regular', color: "#60AFDF" }}>
                     {item.title}
                   </Text>
-                  <Text className="text-[13px] text-[#9CA3AF] mt-1">
+                  <Text className="text-[13px] text-[#9CA3AF] mt-1"
+                  style={{ fontFamily: 'Montserrat_400Regular'}}>
                     Appuyez pour voir les articles
                   </Text>
                 </View>
@@ -303,7 +311,7 @@ export default function ShoppingList() {
                 >
                   <Ionicons name="trash-outline" size={18} color="#F64040" />
                 </TouchableOpacity>
-                <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+                <Ionicons name="chevron-forward" size={22} color="#000" />
               </View>
             </TouchableOpacity>
           )}
@@ -321,7 +329,8 @@ export default function ShoppingList() {
               <View className="w-10 h-10 rounded-2xl bg-[#EBF5FF] items-center justify-center mr-3">
                 <Ionicons name="cart" size={20} color="#60AFDF" />
               </View>
-              <Text className="text-[22px] font-bold text-[#111827] flex-1" numberOfLines={1}>
+              <Text className="text-[22px] font-bold text-[#111827] flex-1" numberOfLines={1}
+              style={{ fontFamily: 'Montserrat_400Regular', color: "#60AFDF" }}>
                 {selectedList?.title}
               </Text>
             </View>
@@ -339,7 +348,7 @@ export default function ShoppingList() {
             {/* Ajouter un article */}
             <View className="flex-row items-center mb-5 gap-3">
               <TextInput
-                className="flex-1 border border-[#E5E7EB] px-4 py-3.5 rounded-2xl bg-white text-[16px] text-[#111827]"
+                className="flex-1 border border-[#E5E7EB] px-4 py-3.5 rounded-2xl bg-white text-[15px] text-[#111827]"
                 placeholder="Ajouter un article"
                 placeholderTextColor="#9CA3AF"
                 value={newItem}
@@ -351,7 +360,7 @@ export default function ShoppingList() {
                 className="w-12 h-12 rounded-2xl items-center justify-center"
                 style={{
                 backgroundColor: newItem.trim()
-                  ? '#FF914D'
+                  ? '#FF8C42'
                   : '#F8D8C0'
                   }}
                 activeOpacity={0.8}
@@ -366,10 +375,12 @@ export default function ShoppingList() {
                 <View className="w-14 h-14 rounded-full bg-[#F8F9FA] items-center justify-center mb-3">
                   <Ionicons name="basket-outline" size={28} color="#9CA3AF" />
                 </View>
-                <Text className="text-[15px] font-semibold text-[#6B7280]">
+                <Text className="text-[15px] font-semibold text-[#6B7280]"
+                style={{ fontFamily: 'Montserrat_400Regular'}}>
                   Liste vide
                 </Text>
-                <Text className="text-[13px] text-[#9CA3AF] text-center mt-1">
+                <Text className="text-[13px] text-[#9CA3AF] text-center mt-1"
+                style={{ fontFamily: 'Montserrat_400Regular'}}>
                   Ajoutez vos premiers articles
                 </Text>
               </View>
@@ -384,7 +395,7 @@ export default function ShoppingList() {
                   <View 
                     className="flex-row items-center py-3 px-4 mb-2 rounded-2xl"
                     style={{ 
-                      backgroundColor: item.checked ? '#F0F9ED' : '#FAFBFC'
+                      backgroundColor: item.checked ? '#F0F9ED' : '#60AFDF33'
                     }}
                   >
                     <TouchableOpacity 
@@ -395,9 +406,9 @@ export default function ShoppingList() {
                       <View 
                         className="w-7 h-7 rounded-lg items-center justify-center mr-3"
                         style={{ 
-                          backgroundColor: item.checked ? '#ABF085' : 'white',
+                          backgroundColor: item.checked ? '#6DDB31' : 'white',
                           borderWidth: item.checked ? 0 : 2,
-                          borderColor: '#E5E7EB'
+                          borderColor: '#60AFDF'
                         }}
                       >
                         {item.checked && (
@@ -408,7 +419,7 @@ export default function ShoppingList() {
                       <Text 
                         className="text-[16px] flex-1"
                         style={[
-                          { color: item.checked ? '#7CB368' : '#111827' },
+                          { color: item.checked ? '#6DDB31' : '#111827' },
                           item.checked && { textDecorationLine: "line-through" }
                         ]}
                       >
@@ -422,7 +433,7 @@ export default function ShoppingList() {
                           deleteItem(item);
                         }
                       }}
-                      className="w-9 h-9 rounded-xl bg-[#FEF2F2] items-center justify-center ml-2"
+                      className="w-9 h-9 rounded-xl bg-[#fff] items-center justify-center ml-2"
                       activeOpacity={0.7}
                     >
                       <Ionicons name="trash-outline" size={16} color="#F64040" />
@@ -438,15 +449,18 @@ export default function ShoppingList() {
                 className="mt-4 pt-4 border-t border-[#F1F3F5] flex-row justify-between"
               >
                 <View>
-                  <Text className="text-[12px] text-[#9CA3AF] mb-1">Articles cochés</Text>
-                  <Text className="text-[16px] font-bold text-[#111827]">
+                  <Text className="text-[12px] text-[#9CA3AF] mb-1"
+                  style={{ fontFamily: 'Montserrat_400Regular'}}>Articles cochés</Text>
+                  <Text className="text-[16px] font-bold text-[#111827]"
+                  style={{ fontFamily: 'Montserrat_400Regular'}}>
                     {items.filter(i => i.checked).length} / {items.length}
                   </Text>
                 </View>
                 {items.filter(i => i.checked).length === items.length && (
                   <View className="flex-row items-center bg-[#F0F9ED] px-4 py-2 rounded-full">
-                    <Ionicons name="checkmark-circle" size={18} color="#ABF085" />
-                    <Text className="text-[13px] font-semibold text-[#7CB368] ml-2">
+                    <Ionicons name="checkmark-circle" size={18} color="#6DDB31" />
+                    <Text className="text-[13px] font-semibold text-[#7CB368] ml-2"
+                     style={{ fontFamily: 'Montserrat_400Regular'}}>
                       Terminé !
                     </Text>
                   </View>
