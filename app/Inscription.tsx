@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import MascottePhoto from "assets/images/Mascotte_Photo_1.png";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import {
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth, db } from "../firebaseConfig";
 
 
@@ -17,7 +17,7 @@ export default function SignUp() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [errorMessage, setErrorMessage] = useState ("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [emailError, setEmailError] = useState(false);
@@ -33,14 +33,14 @@ export default function SignUp() {
   const [passwordFormatError, setPasswordFormatError] = useState(false);
 
   const handleSignUp = async () => {
-     setErrorMessage("");
+    setErrorMessage("");
     setEmailError(false);
     setPasswordError(false);
     setNameError(false);
     setLastNameError(false);
 
     let hasError = false;
-    if (!email.trim ()) {
+    if (!email.trim()) {
       setEmailError(true);
       hasError = true;
     }
@@ -50,393 +50,311 @@ export default function SignUp() {
     if (password.length < 6 || !hasNumber || !hasUpperCase) {
       setPasswordError(true);
       hasError = true;
-    } 
+    }
 
     if (!firstName.trim()) {
       setNameError(true);
-      hasError = true;  
+      hasError = true;
     }
     if (!lastName.trim()) {
       setLastNameError(true);
-      hasError = true;  
+      hasError = true;
     }
     if (!termsAccepted) {
       setTermsError(true);
       hasError = true;
     }
-     if (hasError) return;
+    if (hasError) return;
 
     setLoading(true);
     try {
-
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
       const newUser = userCredential.user;
 
-      
+      await setDoc(
+        doc(db, "users", newUser.uid),
+        {
+          uid: newUser.uid,
+          email: newUser.email,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          birthDate: birthDate || null,
+          createdAt: Date.now(),
 
-      // Créer le document Firestore avec l'UID unique
-
-    
- await setDoc(
-  doc(db, "users", newUser.uid),
-  {
-    uid: newUser.uid,
-    email: newUser.email,
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    birthDate: birthDate || null,
-    createdAt: Date.now(),
-
-    // 👇 AJOUTS pour l’onboarding premium
-    onboardingPremiumSeen: false,
-    isPremium: false,
-  },
-  { merge: true }
-);
-      
+          // 👇 AJOUTS pour l’onboarding premium
+          onboardingPremiumSeen: false,
+          isPremium: false,
+        },
+        { merge: true }
+      );
 
       console.log("Utilisateur créé dans Firestore avec UID:", newUser.uid);
 
       router.replace("/OnboardingPremium");
-
     } catch (error: any) {
-      if (
-        error.code == 'auth/invalid-email'
-      ) {
+      if (error.code == "auth/invalid-email") {
         setErrorMessage("Email ou mot de passe incorrect");
-      } else if (
-        error.code == 'auth/email-already-in-use'
-      ) {
+      } else if (error.code == "auth/email-already-in-use") {
         setErrorMessage("Cet email est déjà utilisé");
       } else {
         setErrorMessage("Une erreur est survenue. Veuillez réessayer.");
-      } 
+      }
     } finally {
       setLoading(false);
     }
-
   };
 
   const handleCloseModal = () => {
-  setShowWelcome(false);
-  router.replace("/OnboardingPremium");
-};
- 
+    setShowWelcome(false);
+    router.replace("/OnboardingPremium");
+  };
 
-
-  return (
-
-    <View style={{ flex: 1, padding: 20 }}>
-      <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 20 }}>
-        <Ionicons name="arrow-back" size={24} color="#00b7ff9a" />
+return (
+  <View className="flex-1 bg-white">
+    {/* Header (back) */}
+    <View className="pt-6 px-5">
+      <TouchableOpacity
+        onPress={() => router.back()}
+        activeOpacity={0.8}
+       
+      >
+        <Ionicons name="arrow-back" size={22} color="#FF914D" />
       </TouchableOpacity>
-
-
-    <View style={styles.container}>
-      <Text style={styles.title}>Création de compte</Text>
-
-
-    <TextInput
-   style= {[styles.input, (nameError || nameFormatError) && { borderColor: "red" }]}
-    placeholder="Prénom*"
-    value={firstName}
-    maxLength={50}
-    onChangeText={(text) => {
-    // N'accepter que les lettres et les accents
-    const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, '');
-    if (text !== filteredText) {
-      setNameFormatError(true);
-    } else {
-      setNameFormatError(false);
-    }
-    setFirstName(filteredText); 
-    setNameError(false);
-    }}
-    />
-    {nameError && (
-    <Text style={styles.fieldError}>Cette case doit être remplie</Text>
-    )}
-    {nameFormatError && (
-    <Text style={styles.fieldError}>Seules les lettres et accents sont autorisés</Text>
-    )}
-    <TextInput
-    style={[styles.input, (lastNameError || lastNameFormatError) && { borderColor: "red" }]}
-    placeholder="Nom*"
-    value={lastName}
-    maxLength={50}
-    onChangeText={(text) => {
-    // N'accepter que les lettres et les accents
-    const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, '');
-    if (text !== filteredText) {
-      setLastNameFormatError(true);
-    } else {
-      setLastNameFormatError(false);
-    }
-    setLastName(filteredText); 
-    setLastNameError(false);
-    }}
-    />
-   {lastNameError && (
-  <Text style={styles.fieldError}>Cette case doit être remplie</Text>
-)}
-   {lastNameFormatError && (
-  <Text style={styles.fieldError}>Seules les lettres et accents sont autorisés</Text>
-)}
-
-    <TextInput
-    style= {[styles.input, (emailError || emailFormatError) && { borderColor: "red" }]}
-    placeholder="Email*"
-    value={email}
-    onChangeText={(text) => {
-    setEmail(text); 
-    setEmailError(false);
-    // Vérifier si l'email contient un @xxx.xx
-    if (text.length > 0 && !text.includes('@')) {
-      setEmailFormatError(true);
-    } else {
-      setEmailFormatError(false);
-    }
-    }}
-    autoCapitalize="none"
-    />
-  {emailError && (
-  <Text style={styles.fieldError}>Cette case doit être remplie</Text>
-  )}
-  {emailFormatError && (
-  <Text style={styles.fieldError}>L'email doit contenir un @xxx.xx</Text>
-  )}
-    
-    <TextInput
-        style= {[ styles.input, (passwordError || passwordFormatError) && { borderColor: "red" }]}
-        placeholder="Mot de passe*"
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text); 
-          setPasswordError(false);
-          // Vérifier: min 6 caractères, 1 chiffre, 1 majuscule
-          const hasNumber = /\d/.test(text);
-          const hasUpperCase = /[A-Z]/.test(text);
-          if (text.length > 0 && (text.length < 6 || !hasNumber || !hasUpperCase)) {
-            setPasswordFormatError(true);
-          } else {
-            setPasswordFormatError(false);
-          }
-        }}
-        secureTextEntry={true}
-      />
-      {passwordError && (
-        <Text style={styles.fieldError}>Le mot de passe doit contenir au moins 6 caractères, 1 chiffre et 1 majuscule</Text>
-      )}
-      {passwordFormatError && (
-        <Text style={styles.fieldError}>Min 6 caractères, 1 chiffre et 1 majuscule requis</Text>
-      )}
-
-
-     <TextInput
-  style={[styles.input, birthDateFormatError && { borderColor: "red" }]}
-  placeholder="Date de naissance (JJ/MM/AAAA)"
-  value={birthDate}
-  keyboardType="numeric"
-  maxLength={10} 
-  onChangeText={(text) => {
-    
-    const digits = text.replace(/\D/g, "");
-
-    let formatted = digits;
-
-    if (digits.length > 2 && digits.length <= 4) {
+    </View>
+ <Text className="text-[28px] font-bold text-[#FF914D] text-center mb-2 mt-6"
+      style ={{ fontFamily: "Shrikhand_400Regular" }}>
+        Création de compte
+      </Text>
+    {/* Content */}
+    <View className="flex-1 px-6 pt-2">
+      {/* Mascotte (optionnel) */}
+      {/* Si tu as une image mascotte, importe Image et remplace ce bloc */}
+      <View className="items-center mb-6 mt-2">
+        <View className="w-28 h-28 rounded-full bg-[#EEFAE6] self-center items-center justify-center">
+           <Image
+            source={MascottePhoto}
+            className="w-24 h-24 self-center" contentFit="contain" 
       
-      formatted = digits.slice(0,2) + "/" + digits.slice(2);
-    } else if (digits.length > 4) {
-      
-      formatted = digits.slice(0,2) + "/" + digits.slice(2,4) + "/" + digits.slice(4,8);
-    }
+    />
+        </View>
+      </View>
 
-    setBirthDate(formatted);
     
-    // Vérifier le format complet DD/MM/YYYY
-    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (formatted.length > 0 && formatted.length < 10) {
-      setBirthDateFormatError(true);
-    } else if (formatted.length === 10 && !dateRegex.test(formatted)) {
-      setBirthDateFormatError(true);
-    } else if (formatted.length === 10 && dateRegex.test(formatted)) {
-      setBirthDateFormatError(false);
-    } else if (formatted.length === 0) {
-      setBirthDateFormatError(false);
-    }
-  }}
-/>
-{birthDateFormatError && (
-  <Text style={styles.fieldError}>Format attendu: JJ/MM/AAAA</Text>
-)}
 
-      <View style={styles.termsContainer}>
-        <TouchableOpacity 
+      {/* Inputs */}
+      <View className="w-full">
+        {/* Prénom */}
+        <TextInput
+          className={`h-12 rounded-full border px-5 text-[16px] bg-white text-[#111827] ${
+            nameError || nameFormatError ? "border-red-500" : "border-[#FF914D]"
+          }`}
+          placeholder="Prénom..."
+          placeholderTextColor="#9CA3AF"
+          value={firstName}
+          maxLength={50}
+          onChangeText={(text) => {
+            const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, "");
+            setNameFormatError(text !== filteredText);
+            setFirstName(filteredText);
+            setNameError(false);
+          }}
+        />
+        {(nameError || nameFormatError) && (
+          <Text className="text-red-500 text-[13px] mt-2 ml-2">
+            {nameError ? "Cette case doit être remplie" : "Seules les lettres et accents sont autorisés"}
+          </Text>
+        )}
+
+        {/* Nom */}
+        <TextInput
+          className={`h-12 rounded-full border px-5 text-[16px] bg-white text-[#111827] mt-4 ${
+            lastNameError || lastNameFormatError ? "border-red-500" : "border-[#FF914D]"
+          }`}
+          placeholder="Nom de famille..."
+          placeholderTextColor="#9CA3AF"
+          value={lastName}
+          maxLength={50}
+          onChangeText={(text) => {
+            const filteredText = text.replace(/[^a-zA-ZÀ-ÿ\s-]/g, "");
+            setLastNameFormatError(text !== filteredText);
+            setLastName(filteredText);
+            setLastNameError(false);
+          }}
+        />
+        {(lastNameError || lastNameFormatError) && (
+          <Text className="text-red-500 text-[13px] mt-2 ml-2">
+            {lastNameError ? "Cette case doit être remplie" : "Seules les lettres et accents sont autorisés"}
+          </Text>
+        )}
+
+        {/* Email */}
+        <TextInput
+          className={`h-12 rounded-full border px-5 text-[16px] bg-white text-[#111827] mt-4 ${
+            emailError || emailFormatError ? "border-red-500" : "border-[#FF914D]"
+          }`}
+          placeholder="Email..."
+          placeholderTextColor="#9CA3AF"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            setEmailError(false);
+            setEmailFormatError(text.length > 0 && !text.includes("@"));
+          }}
+          autoCapitalize="none"
+        />
+        {(emailError || emailFormatError) && (
+          <Text className="text-red-500 text-[13px] mt-2 ml-2">
+            {emailError ? "Cette case doit être remplie" : "L'email doit contenir un @xxx.xx"}
+          </Text>
+        )}
+
+        {/* Mot de passe */}
+        <TextInput
+          className={`h-12 rounded-full border px-5 text-[16px] bg-white text-[#111827] mt-4 ${
+            passwordError || passwordFormatError ? "border-red-500" : "border-[#FF914D]"
+          }`}
+          placeholder="Mot de passe..."
+          placeholderTextColor="#9CA3AF"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setPasswordError(false);
+
+            const hasNumber = /\d/.test(text);
+            const hasUpperCase = /[A-Z]/.test(text);
+            setPasswordFormatError(text.length > 0 && (text.length < 6 || !hasNumber || !hasUpperCase));
+          }}
+          secureTextEntry
+        />
+        {(passwordError || passwordFormatError) && (
+          <Text className="text-red-500 text-[13px] mt-2 ml-2">
+            {passwordError
+              ? "Le mot de passe doit contenir au moins 6 caractères, 1 chiffre et 1 majuscule"
+              : "Min 6 caractères, 1 chiffre et 1 majuscule requis"}
+          </Text>
+        )}
+
+        {/* Date */}
+        <TextInput
+          className={`h-12 rounded-full border px-5 text-[16px] bg-white text-[#111827] mt-4 ${
+            birthDateFormatError ? "border-red-500" : "border-[#FF914D]"
+          }`}
+          placeholder="JJ/MM/AAAA"
+          placeholderTextColor="#9CA3AF"
+          value={birthDate}
+          keyboardType="numeric"
+          maxLength={10}
+          onChangeText={(text) => {
+            const digits = text.replace(/\D/g, "");
+            let formatted = digits;
+
+            if (digits.length > 2 && digits.length <= 4) {
+              formatted = digits.slice(0, 2) + "/" + digits.slice(2);
+            } else if (digits.length > 4) {
+              formatted = digits.slice(0, 2) + "/" + digits.slice(2, 4) + "/" + digits.slice(4, 8);
+            }
+
+            setBirthDate(formatted);
+
+            const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+            if (formatted.length > 0 && formatted.length < 10) setBirthDateFormatError(true);
+            else if (formatted.length === 10 && !dateRegex.test(formatted)) setBirthDateFormatError(true);
+            else setBirthDateFormatError(false);
+          }}
+        />
+        {birthDateFormatError && (
+          <Text className="text-red-500 text-[13px] mt-2 ml-2">
+            Format attendu: JJ/MM/AAAA
+          </Text>
+        )}
+      </View>
+
+      {/* Terms */}
+      <View className="flex-row items-start mt-6">
+        <TouchableOpacity
           onPress={() => {
             setTermsAccepted(!termsAccepted);
             setTermsError(false);
           }}
-          style={styles.checkboxContainer}
+          activeOpacity={0.8}
+          className="mr-3 mt-0.5"
         >
-          <Ionicons 
-            name={termsAccepted ? "checkbox" : "square-outline"} 
-            size={24} 
-            color={termsError ? "red" : "#00b7ff9a"} 
+          <Ionicons
+            name={termsAccepted ? "checkbox" : "square-outline"}
+            size={26}
+            color={termsError ? "red" : "#60AFDF"}
           />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.termsText, termsError && { color: "red" }]}>
-            J'accepte la{" "}
-            <Text 
-              style={styles.link}
-              onPress={() => router.push("/PolitiqueConfidentialite")}
-            >
-              Politique de confidentialité
-            </Text>
-            {" "}et les{" "}
-            <Text 
-              style={styles.link}
-              onPress={() => router.push("/ConditionsUtilisation")}
-            >
-              Conditions générales d'utilisation
-            </Text>
+
+        <Text className={`flex-1 text-[13px] leading-5 ${termsError ? "text-red-500" : "text-neutral-600"}`}>
+          J'ai lu et j’accepte les{" "}
+          <Text className="text-[#60AFDF] underline font-semibold" onPress={() => router.push("/ConditionsUtilisation")}>
+            Conditions d'utilisation
+          </Text>{" "}
+          et la{" "}
+          <Text className="text-[#60AFDF] underline font-semibold" onPress={() => router.push("/PolitiqueConfidentialite")}>
+            Politique de confidentialité
           </Text>
-        </View>
+          .
+        </Text>
       </View>
+
       {termsError && (
-        <Text style={styles.fieldError}>Vous devez accepter les conditions pour continuer</Text>
+        <Text className="text-red-500 text-[13px] mt-2">
+          Vous devez accepter les conditions pour continuer
+        </Text>
       )}
 
-      <View style={{ alignItems: "center", marginTop: 20 }}>
+      {/* CTA */}
       {(() => {
         const hasNumber = /\d/.test(password);
         const hasUpperCase = /[A-Z]/.test(password);
         const isPasswordValid = password.length >= 6 && hasNumber && hasUpperCase;
-        
-        const isFormValid = 
-          firstName.trim() !== "" && 
-          lastName.trim() !== "" && 
-          email.trim() !== "" && 
-          email.includes('@') &&
-          isPasswordValid && 
+
+        const isFormValid =
+          firstName.trim() !== "" &&
+          lastName.trim() !== "" &&
+          email.trim() !== "" &&
+          email.includes("@") &&
+          isPasswordValid &&
           termsAccepted &&
           !nameFormatError &&
           !lastNameFormatError &&
           !emailFormatError &&
           !birthDateFormatError;
-        
+
         return (
           <TouchableOpacity
             onPress={handleSignUp}
-            style={[styles.signUpButton, !isFormValid && styles.signUpButtonDisabled]}
             disabled={loading || !isFormValid}
+            activeOpacity={0.9}
+            className={`mt-7 h-12 rounded-full items-center justify-center ${
+              !isFormValid ? "bg-[#F2A167]/40" : "bg-[#F2A167]"
+            }`}
           >
-            <Text style={styles.signUpText}>S'inscrire</Text>
-   
+            <Text className="text-white font-semibold text-[16px]">
+              S’inscrire
+            </Text>
           </TouchableOpacity>
-          
         );
       })()}
-      </View>
 
-      <View style={{ alignItems: "center", marginTop: 10 }}>
-       <TouchableOpacity onPress={() => router.push("/auth")}>
-       <Text style={{ color: "navy", textDecorationLine: "underline", fontSize: 12 }}>Vous avez déja un compte ?</Text>
-       </TouchableOpacity>
+      {/* Link */}
+      <TouchableOpacity
+        onPress={() => router.push("/auth")}
+        className="items-center mt-5"
+        activeOpacity={0.8}
+      >
+        <Text className="text-[13px] text-[#FF914D] underline text">
+          Vous avez déjà un compte ?
+        </Text>
+      </TouchableOpacity>
+
+      {!!errorMessage && (
+        <Text className="text-red-500 text-center mt-4">{errorMessage}</Text>
+      )}
     </View>
-      
-    </ View> 
-    </View>
-    
-    
-  );
+  </View>
+);
+
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, borderRadius: 20 },
-  title: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20, borderRadius: 20 },
-  
-  input: {
-  height: 40,
-  borderColor: "gray",
-  borderWidth: 1,
-  marginBottom: 10,
-  paddingHorizontal: 10,
-  fontStyle: "italic", 
-  color: "rgba(100, 100, 100, 0.7)", 
-  borderRadius: 15
-},
-  modalContainer: {
-  flex: 1,
-  justifyContent: "center",
-  alignItems: "center",
-},
-modalContent: {
-  width: 250,
-  padding: 20,
-  backgroundColor: "white",
-  borderRadius: 10,
-  alignItems: "center",
-},
-
-  modalText: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  closeButton: {
-    marginTop: 10,
-    padding: 5,
-  },
-  closeText: { fontSize: 18, fontWeight: "bold" },
-
-  signUpButton: {
-  backgroundColor: "#00b7ff9a",      
-  paddingVertical: 10,          
-  paddingHorizontal: 25,        
-  borderRadius: 5,             
-  alignItems: "center",
-  marginTop: 10,
-},
-signUpButtonDisabled: {
-  backgroundColor: "rgba(0, 183, 255, 0.3)",
-  opacity: 0.5,
-},
-signUpText: {
-  color: "white",               
-  fontSize: 16,
-  fontWeight: "bold",
-},
- fieldError: {
-    color: "red",
-    marginTop: -5,
-    marginBottom: 8,
-    textAlign: "left",
-    fontSize: 13,
-  },
-   error: {
-    color: "red",
-    textAlign: "center",
-    marginBottom: 10,
-    
-  },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 15,
-    marginBottom: 5,
-    paddingHorizontal: 5,
-  },
-  checkboxContainer: {
-    marginRight: 10,
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 12,
-    color: "#666",
-    lineHeight: 16,
-  },
-  link: {
-    color: "#00b7ff",
-    textDecorationLine: "underline",
-    fontWeight: "600",
-  },
-});
