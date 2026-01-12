@@ -408,14 +408,14 @@ const deleteGroup = async (group: any) => {
             <View className="bg-[#EEFAE6] rounded-[16px] p-3.5 mb-2.5 border border-[#68cb30]">
   <TouchableOpacity onPress={() => setCreateType("private")}>
     <Text className="text-center text-[15px] text-[#111827] font-semibold"
-    style={{ fontFamily: 'Montserrat_400Regular' }}>Conversation privée</Text>
+    style={{ fontFamily: 'Montserrat_400Regular' }}>Privée</Text>
   </TouchableOpacity>
 </View>
 
 <View className="bg-[#E6F2FB] rounded-[16px] p-3.5 mb-2.5 border border-[#5AA9E6]">
   <TouchableOpacity onPress={() => setCreateType("group")}>
     <Text className="text-center text-[15px] text-[#111827] font-semibold"
-     style={{ fontFamily: 'Montserrat_400Regular' }}>👨‍👩‍👧‍👦Groupe</Text>
+     style={{ fontFamily: 'Montserrat_400Regular' }}>Groupe</Text>
   </TouchableOpacity>
 </View>
               </>
