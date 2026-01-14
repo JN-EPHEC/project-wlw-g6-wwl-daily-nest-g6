@@ -44,6 +44,8 @@ const [editFamilyModalVisible, setEditFamilyModalVisible] = useState(false);
 const [roleManagementVisible, setRoleManagementVisible] = useState(false);
 const [selectedFamilyForRoles, setSelectedFamilyForRoles] = useState<any>(null);
 const [roleAssignments, setRoleAssignments] = useState<{[email: string]: string}>({});
+const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+const [familyToDelete, setFamilyToDelete] = useState<any>(null);
 
 useEffect(() => {
   const unsub = auth.onAuthStateChanged((u) => {
@@ -165,20 +167,81 @@ useEffect(() => {
   };
 
   const handleDeletePress = (family: any) => {
-  Alert.alert("Confirmation", "Voulez-vous vraiment supprimer cette famille ?", [
-    { text: "Annuler" },
-    {
-      text: "Oui",
-      onPress: async () => {
-        try {
-          await deleteDoc(doc(db, "families", family.id));
-          setFamilies(prev => prev.filter(f => f.id !== family.id));
-        } catch (err) {
-          Alert.alert("Erreur", "Impossible de supprimer la famille");
+  console.log("✅ ENTRÉE dans handleDeletePress");
+  console.log("👤 User UID:", user?.uid);
+  console.log("👑 Owner UID:", family.ownerUid);
+  console.log("📋 Famille complète:", family);
+  
+  // Vérifier si l'utilisateur est le propriétaire
+  const isOwner = family.ownerUid === user?.uid;
+  console.log("🔐 Est propriétaire?", isOwner);
+  
+  if (!isOwner) {
+    console.log("❌ Pas propriétaire");
+    alert("❌ Permission refusée\n\nSeul le créateur de la famille peut la supprimer.");
+    return;
+  }
+
+  console.log("⚠️ Ouverture modal de confirmation...");
+  setFamilyToDelete(family);
+  setDeleteModalVisible(true);
+};
+
+const confirmDelete = async () => {
+  if (!familyToDelete) return;
+  
+  console.log("🔴 CONFIRMATION DE SUPPRESSION");
+  setDeleteModalVisible(false);
+  
+  try {
+    console.log("🗑️ Début suppression famille:", familyToDelete.id);
+    
+    // Fermer le modal si la famille sélectionnée est celle qu'on supprime
+    if (selectedFamily?.id === familyToDelete.id) {
+      setSelectedFamily(null);
+      setFamilyModalVisible(false);
+    }
+
+    // Supprimer toutes les sous-collections
+    const subcollections = ["shopping", "todos", "calendar", "rewards", "budgets"];
+    
+    for (const subcollection of subcollections) {
+      console.log(`📦 Suppression de ${subcollection}...`);
+      const subCol = collection(db, "families", familyToDelete.id, subcollection);
+      const subDocs = await getDocs(subCol);
+      
+      for (const subDoc of subDocs.docs) {
+        // Supprimer les sous-sous-collections (items, expenses)
+        const itemsCol = collection(db, "families", familyToDelete.id, subcollection, subDoc.id, "items");
+        const itemsDocs = await getDocs(itemsCol);
+        for (const itemDoc of itemsDocs.docs) {
+          await deleteDoc(itemDoc.ref);
         }
-      },
-    },
-  ]);
+        
+        const expensesCol = collection(db, "families", familyToDelete.id, subcollection, subDoc.id, "expenses");
+        const expensesDocs = await getDocs(expensesCol);
+        for (const expenseDoc of expensesDocs.docs) {
+          await deleteDoc(expenseDoc.ref);
+        }
+        
+        // Supprimer le document parent
+        await deleteDoc(subDoc.ref);
+      }
+    }
+    
+    // Supprimer le document de la famille
+    console.log("🗑️ Suppression du document principal...");
+    await deleteDoc(doc(db, "families", familyToDelete.id));
+    
+    console.log("✅ Famille supprimée avec succès");
+    setFamilyToDelete(null);
+    alert("✅ Succès!\n\nLa famille et toutes ses données ont été supprimées.");
+  } catch (err: any) {
+    console.error("❌ Erreur de suppression:", err);
+    console.error("❌ Code erreur:", err?.code);
+    console.error("❌ Message:", err?.message);
+    alert(`❌ Erreur\n\nImpossible de supprimer la famille.\n\nDétails: ${err?.message || err}`);
+  }
 };
 
 const updateFamilyName = async () => {
@@ -256,40 +319,44 @@ const saveRoles = async () => {
   data={families}
   keyExtractor={(item) => item.id}
   renderItem={({ item }) => (
-    <TouchableOpacity
-      onPress={() => {
-        setSelectedFamily(item);
-        setFamilyModalVisible(true);
-      }}
-    >
-      <View style={styles.familyRow}>
-        <Text style={{fontFamily: "Montserrat_400Regular", flex: 1, fontSize: 16, color: "#60AFDF" }}>{item.name}</Text>
+    <View style={styles.familyRow}>
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        onPress={() => {
+          setSelectedFamily(item);
+          setFamilyModalVisible(true);
+        }}
+      >
+        <Text style={{fontFamily: "Montserrat_400Regular", fontSize: 16, color: "#60AFDF" }}>{item.name}</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => openRoleManagementForFamily(item)}
-          style={{ marginRight: 10 }}
-        >
-          <Ionicons name="people-circle" size={24} color="#6DDB31" />
-        </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => openRoleManagementForFamily(item)}
+        style={{ marginRight: 10 }}
+      >
+        <Ionicons name="people-circle" size={24} color="#6DDB31" />
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => {
-            setFamilyName(item.name);
-            setSelectedFamily(item);
-            setEditFamilyModalVisible(true);
-          }}
-        >
-          <Ionicons name="pencil" size={22} color="orange" />
-        </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          setFamilyName(item.name);
+          setSelectedFamily(item);
+          setEditFamilyModalVisible(true);
+        }}
+      >
+        <Ionicons name="pencil" size={22} color="orange" />
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => handleDeletePress(item)}
-          style={{ marginLeft: 10 }}
-        >
-          <Ionicons name="trash" size={22} color="red" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          console.log("🗑️ CLIC SUR POUBELLE - Famille:", item.name, "ID:", item.id);
+          handleDeletePress(item);
+        }}
+        style={{ marginLeft: 10 }}
+      >
+        <Ionicons name="trash" size={22} color="red" />
+      </TouchableOpacity>
+    </View>
   )}
 />
 
@@ -467,6 +534,51 @@ const saveRoles = async () => {
 
       <TouchableOpacity 
         onPress={() => setRoleManagementVisible(false)}
+        style={{ position: "absolute", top: 10, right: 10 }}>
+        <Ionicons name="close" size={22} color="black"/>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
+{/* Modal Confirmation de suppression */}
+<Modal visible={deleteModalVisible} transparent animationType="fade">
+  <View style={styles.modalContainer}>
+    <View style={styles.modal}>
+      <Text style={[styles.modalTitle, { color: "#FF0000" }]}>⚠️ Attention</Text>
+      
+      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 16, marginVertical: 15, textAlign: "center" }}>
+        Voulez-vous vraiment supprimer la famille "{familyToDelete?.name}" ?
+      </Text>
+      
+      <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, color: "#666", marginBottom: 20, textAlign: "center" }}>
+        Toutes les données liées (calendrier, listes, budget, récompenses) seront définitivement supprimées.
+      </Text>
+
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <TouchableOpacity 
+          style={[styles.btn, { backgroundColor: "#ccc", flex: 1 }]} 
+          onPress={() => {
+            setDeleteModalVisible(false);
+            setFamilyToDelete(null);
+          }}
+        >
+          <Text style={[styles.btnText, { color: "#000" }]}>Annuler</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.btn, { backgroundColor: "#FF0000", flex: 1 }]} 
+          onPress={confirmDelete}
+        >
+          <Text style={styles.btnText}>Supprimer</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity 
+        onPress={() => {
+          setDeleteModalVisible(false);
+          setFamilyToDelete(null);
+        }}
         style={{ position: "absolute", top: 10, right: 10 }}>
         <Ionicons name="close" size={22} color="black"/>
       </TouchableOpacity>
