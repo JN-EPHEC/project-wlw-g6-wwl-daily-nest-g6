@@ -167,22 +167,14 @@ useEffect(() => {
   };
 
   const handleDeletePress = (family: any) => {
-  console.log("✅ ENTRÉE dans handleDeletePress");
-  console.log("👤 User UID:", user?.uid);
-  console.log("👑 Owner UID:", family.ownerUid);
-  console.log("📋 Famille complète:", family);
-  
   // Vérifier si l'utilisateur est le propriétaire
   const isOwner = family.ownerUid === user?.uid;
-  console.log("🔐 Est propriétaire?", isOwner);
   
   if (!isOwner) {
-    console.log("❌ Pas propriétaire");
     alert("❌ Permission refusée\n\nSeul le créateur de la famille peut la supprimer.");
     return;
   }
 
-  console.log("⚠️ Ouverture modal de confirmation...");
   setFamilyToDelete(family);
   setDeleteModalVisible(true);
 };
@@ -190,12 +182,9 @@ useEffect(() => {
 const confirmDelete = async () => {
   if (!familyToDelete) return;
   
-  console.log("🔴 CONFIRMATION DE SUPPRESSION");
   setDeleteModalVisible(false);
   
   try {
-    console.log("🗑️ Début suppression famille:", familyToDelete.id);
-    
     // Fermer le modal si la famille sélectionnée est celle qu'on supprime
     if (selectedFamily?.id === familyToDelete.id) {
       setSelectedFamily(null);
@@ -206,7 +195,6 @@ const confirmDelete = async () => {
     const subcollections = ["shopping", "todos", "calendar", "rewards", "budgets"];
     
     for (const subcollection of subcollections) {
-      console.log(`📦 Suppression de ${subcollection}...`);
       const subCol = collection(db, "families", familyToDelete.id, subcollection);
       const subDocs = await getDocs(subCol);
       
@@ -230,16 +218,12 @@ const confirmDelete = async () => {
     }
     
     // Supprimer le document de la famille
-    console.log("🗑️ Suppression du document principal...");
     await deleteDoc(doc(db, "families", familyToDelete.id));
     
-    console.log("✅ Famille supprimée avec succès");
     setFamilyToDelete(null);
     alert("✅ Succès!\n\nLa famille et toutes ses données ont été supprimées.");
   } catch (err: any) {
-    console.error("❌ Erreur de suppression:", err);
-    console.error("❌ Code erreur:", err?.code);
-    console.error("❌ Message:", err?.message);
+    console.error("Erreur de suppression:", err);
     alert(`❌ Erreur\n\nImpossible de supprimer la famille.\n\nDétails: ${err?.message || err}`);
   }
 };
@@ -348,10 +332,7 @@ const saveRoles = async () => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => {
-          console.log("🗑️ CLIC SUR POUBELLE - Famille:", item.name, "ID:", item.id);
-          handleDeletePress(item);
-        }}
+        onPress={() => handleDeletePress(item)}
         style={{ marginLeft: 10 }}
       >
         <Ionicons name="trash" size={22} color="red" />
