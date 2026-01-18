@@ -10,7 +10,7 @@ export default function TermsOfUse() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#ffbf00" />
+          <Ionicons name="arrow-back" size={24} color="#ff914d" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Conditions générales d'utilisation</Text>
       </View>
@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
     paddingTop: 50,
+    fontFamily: "Shrikhand_400Regular"
   },
   backButton: {
     marginRight: 15,
@@ -164,8 +165,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: "#ff914d",
     flex: 1,
+    fontFamily: "Shrikhand_400Regular"
   },
   content: {
     flex: 1,
@@ -180,9 +182,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffbf00",
+    color: "#ff914d",
     marginTop: 20,
     marginBottom: 10,
+    fontFamily:"montserrat-SemiBold"
   },
   paragraph: {
     fontSize: 14,
@@ -190,6 +193,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 10,
     textAlign: "justify",
+    fontFamily:"montserrat-Regular"
   },
   listItem: {
     fontSize: 14,
@@ -197,13 +201,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginLeft: 10,
     marginBottom: 5,
+    fontFamily:"montserrat-Regular"
   },
   contactInfo: {
     fontSize: 14,
-    color: "#ffbf00",
+    color: "#ff914d",
     fontWeight: "600",
     marginTop: 5,
     marginLeft: 10,
+    fontFamily:"montserrat-SemiBold"
   },
   footer: {
     marginTop: 30,
@@ -211,12 +217,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff9e6",
     borderRadius: 10,
     borderLeftWidth: 4,
-    borderLeftColor: "#ffbf00",
+    borderLeftColor: "#ff914d",
+    fontFamily:"montserrat-Regular"
   },
   footerText: {
     fontSize: 13,
     color: "#666",
     fontStyle: "italic",
     textAlign: "center",
+    fontFamily:"montserrat-Regular"
   },
 });
