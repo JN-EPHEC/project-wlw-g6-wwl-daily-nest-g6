@@ -652,11 +652,7 @@ const saveTodo = async () => {
           </View>
 
           <ScrollView style={[styles.modalInnerContainer, { marginTop: 50 }]} contentContainerStyle={{ paddingBottom: 20 }}>
-            <Image 
-            source={require('../../assets/images/Mascotte_celebration.png')} // Change le nom de l'image ici si c'est une photo différente
-            style={styles.smallMascot} 
-            resizeMode="contain"
-            />
+            
             <Text style={[styles.modalTitle, { fontSize: 25, marginBottom: 10, fontWeight: "normal", fontFamily: "Shrikhand_400Regular" }]}>Nouvel Événement</Text>
 
             {/* Sélection Personnel / Famille */}
@@ -1626,8 +1622,15 @@ const saveTodo = async () => {
             tabBarButton: () => (
               <TouchableOpacity
                 onPress={() => setMenuVisible(true)}
-                style={{ position: "absolute", bottom: 20, right: 20, zIndex: 10 }}
-              >
+                style={{
+      position: "absolute",
+      bottom: 18,
+      left: "50%",
+      transform: [{ translateX: -30 }], // - (size/2) si size=60
+      zIndex: 999,
+    }}
+    activeOpacity={0.8}
+  >
                 <Ionicons name="add-circle" size={60} color="#FF914D" />
               </TouchableOpacity>
             ),
