@@ -197,41 +197,63 @@ useEffect(() => {
 }, [selectedTodoType, selectedTodoFamily, user?.uid]);
 
 useEffect(() => {
-  if (!selectedTodoFamily || selectedTodoType !== "family") {
+  if (!user?.email) {
     setFamilyMembers([]);
     return;
   }
 
   const loadFamilyMembers = async () => {
-    const familyMembersData = selectedTodoFamily.members || [];
-    const usersSnapshot = await collection(db, "users");
-    onSnapshot(usersSnapshot, (snapshot) => {
-      const members: { uid: string; firstName: string; lastName: string }[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        console.log("👤 User data for member:", data.email, data);
-        
-        // Vérifier si l'email de l'utilisateur est dans les membres de la famille
-        const isInFamily = familyMembersData.some((memberItem: any) => {
-          if (typeof memberItem === 'string') {
-            return memberItem === data.email; // Format ancien (string)
-          } else if (typeof memberItem === 'object' && memberItem.email) {
-            return memberItem.email === data.email; // Format nouveau ({email, role})
-          }
-          return false;
-        });
-        
-        if (data.email && isInFamily) {
-          members.push({
-            uid: doc.id,
-            firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
-            lastName: data.nom || data.lastName || data.lastname || "",
+    if (selectedTodoType === "family" && selectedTodoFamily) {
+      // Charger les membres de la famille
+      const familyMembersData = selectedTodoFamily.members || [];
+      const usersSnapshot = await collection(db, "users");
+      onSnapshot(usersSnapshot, (snapshot) => {
+        const members: { uid: string; firstName: string; lastName: string }[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          console.log("👤 User data for member:", data.email, data);
+          
+          // Vérifier si l'email de l'utilisateur est dans les membres de la famille
+          const isInFamily = familyMembersData.some((memberItem: any) => {
+            if (typeof memberItem === 'string') {
+              return memberItem === data.email; // Format ancien (string)
+            } else if (typeof memberItem === 'object' && memberItem.email) {
+              return memberItem.email === data.email; // Format nouveau ({email, role})
+            }
+            return false;
           });
-        }
+          
+          if (data.email && isInFamily) {
+            members.push({
+              uid: doc.id,
+              firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
+              lastName: data.nom || data.lastName || data.lastname || "",
+            });
+          }
+        });
+        console.log("✅ Membres chargés pour les tâches:", members);
+        setFamilyMembers(members);
       });
-      console.log("✅ Membres chargés pour les tâches:", members);
-      setFamilyMembers(members);
-    });
+    } else if (selectedTodoType === "personal" && user?.uid) {
+      // Charger uniquement l'utilisateur actuel pour les listes personnelles
+      const usersSnapshot = await collection(db, "users");
+      onSnapshot(usersSnapshot, (snapshot) => {
+        const members: { uid: string; firstName: string; lastName: string }[] = [];
+        snapshot.forEach((doc) => {
+          if (doc.id === user.uid) {
+            const data = doc.data();
+            members.push({
+              uid: doc.id,
+              firstName: data.prenom || data.firstName || data.firstname || data.name || "Vous",
+              lastName: data.nom || data.lastName || data.lastname || "",
+            });
+          }
+        });
+        setFamilyMembers(members);
+      });
+    } else {
+      setFamilyMembers([]);
+    }
   };
 
   loadFamilyMembers();
@@ -1092,8 +1114,8 @@ const saveTodo = async () => {
             </View>
           </View>
 
-          {/* Assigner à (pour les listes familiales uniquement) */}
-          {selectedTodoType === "family" && (
+          {/* Assigner à */}
+          {familyMembers.length > 0 && (
             <View style={{ marginBottom: 10 }}>
               <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 5, color: "#fff" }}>Assigner à</Text>
               <Picker
@@ -1102,17 +1124,13 @@ const saveTodo = async () => {
                 style={styles.inputWeb}
               >
                 <Picker.Item label="Moi-même" value="" />
-                {familyMembers.length > 0 ? (
-                  familyMembers.map(member => (
-                    <Picker.Item 
-                      key={member.uid} 
-                      label={`${member.firstName} ${member.lastName}`} 
-                      value={member.uid} 
-                    />
-                  ))
-                ) : (
-                  <Picker.Item label="Chargement des membres..." value="" enabled={false} />
-                )}
+                {familyMembers.map(member => (
+                  <Picker.Item 
+                    key={member.uid} 
+                    label={`${member.firstName} ${member.lastName}`} 
+                    value={member.uid} 
+                  />
+                ))}
               </Picker>
             </View>
           )}
