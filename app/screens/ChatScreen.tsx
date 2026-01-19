@@ -1,33 +1,28 @@
-import ThemedText from "@/components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import {
   addDoc,
   collection,
-  CollectionReference,
   deleteDoc,
   doc,
-  DocumentData,
-  FieldValue,
   getDocs,
-  limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
-  where,
+  where
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Modal,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 import { auth, db } from "../../firebaseConfig";
 
@@ -38,9 +33,6 @@ export default function ChatScreen() {
   const [families, setFamilies] = useState<any[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<any | null>(null);
   const [conversations, setConversations] = useState<any[]>([]);
-  const [conversationMeta, setConversationMeta] = useState<Record<string, any>>(
-    {}
-  );
   const [familyMembers, setFamilyMembers] = useState<any[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -51,38 +43,16 @@ export default function ChatScreen() {
 
   const [editingGroup, setEditingGroup] = useState<any | null>(null);
 
-  const formatTime = (value: any) => {
-    if (!value) return "";
-    const date =
-      value instanceof Date
-        ? value
-        : typeof value?.toDate === "function"
-        ? value.toDate()
-        : typeof value?.seconds === "number"
-        ? new Date(value.seconds * 1000)
-        : null;
-    if (!date) return "";
-    return date.toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
 
 
   if (!user) return null;
-
-  const conversationData = conversations.map(conversation => ({
-    ...conversation,
-    ...(conversationMeta[conversation.id] || {}),
-  }));
 
   // 🔹 Charger familles
   useEffect(() => {
     const q = query(collection(db, "families"));
 
     return onSnapshot(q, snap => {
-      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const allFamilies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
       // Filtrer pour ne garder que les familles où l'utilisateur est membre
       const userFamilies = allFamilies.filter(family => {
@@ -106,7 +76,6 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!selectedFamily) {
       setConversations([]);
-      setConversationMeta({});
       return;
     }
 
@@ -121,74 +90,37 @@ export default function ChatScreen() {
     });
   }, [selectedFamily]);
 
-  useEffect(() => {
-    if (!user?.email || conversations.length === 0) return;
-
-    const unsubs: Array<() => void> = [];
-
-    conversations.forEach(conversation => {
-      const lastMessageQuery = query(
-        collection(db, "conversations", conversation.id, "messages"),
-        orderBy("createdAt", "desc"),
-        limit(1)
-      );
-      const unsubLast = onSnapshot(lastMessageQuery, snap => {
-        const lastDoc = snap.docs[0];
-        const lastData = lastDoc ? lastDoc.data() : null;
-        setConversationMeta(prev => ({
-          ...prev,
-          [conversation.id]: {
-            ...(prev[conversation.id] || {}),
-            lastMessage: lastData?.text || "",
-            lastMessageAt: lastData?.createdAt || null,
-          },
-        }));
-      });
-      unsubs.push(unsubLast);
-
-      const unreadQuery = query(
-        collection(db, "conversations", conversation.id, "messages"),
-        where("status", "==", "sent")
-      );
-      const unsubUnread = onSnapshot(unreadQuery, snap => {
-        const unreadCount = snap.docs.filter(docu => {
-          const data = docu.data();
-          return data.sender !== user.email;
-        }).length;
-        setConversationMeta(prev => ({
-          ...prev,
-          [conversation.id]: {
-            ...(prev[conversation.id] || {}),
-            unreadCount,
-          },
-        }));
-      });
-      unsubs.push(unsubUnread);
-    });
-
-    return () => {
-      unsubs.forEach(unsub => unsub());
-    };
-  }, [conversations, user?.email]);
-
   // 🔹 Charger membres famille
   useEffect(() => {
-    if (!selectedFamily) return;
+  if (!selectedFamily) return;
 
-    const loadMembers = async () => {
-      const members: any[] = [];
+  const loadMembers = async () => {
+    const members: any[] = [];
 
-      for (const email of selectedFamily.members) {
-        const q = query(collection(db, "users"), where("email", "==", email));
-        const snap = await getDocs(q);
-        snap.forEach(d => members.push({ uid: d.id, ...d.data() }));
-      }
+    // sécurité si members est undefined
+    const rawMembers = selectedFamily.members || [];
 
-      setFamilyMembers(members);
-    };
+    for (const m of rawMembers) {
+      // gérer ancien + nouveau format
+      const email =
+        typeof m === "string"
+          ? m
+          : typeof m === "object" && m !== null
+          ? m.email
+          : null;
 
-    loadMembers();
-  }, [selectedFamily]);
+      if (!email) continue;
+
+      const q = query(collection(db, "users"), where("email", "==", email));
+      const snap = await getDocs(q);
+      snap.forEach(d => members.push({ uid: d.id, ...d.data() }));
+    }
+
+    setFamilyMembers(members);
+  };
+
+  loadMembers();
+}, [selectedFamily]);
 
   // 🔹 Créer conversation
   const createConversation = async () => {
@@ -262,118 +194,89 @@ const deleteGroup = async (group: any) => {
 
 
   return (
-    <View className="flex-1 px-5 pt-[18px] bg-white">
-      <View className="items-center mb-1.5 relative px-5">
-        
-        {/* BOUTON + */}
-        {selectedFamily && (
-          <TouchableOpacity
-            className="absolute top-4 right-5"
-            onPress={() => setModalVisible(true)}
-          >
-        
-          </TouchableOpacity>
-        )}
-      </View>
-      
-      
-
-      
+    <View style={styles.container}>
+      <Text style={styles.title}>💬 Chat</Text>
 
       {/* PICKER FAMILLE */}
-      <View className=" rounded-[18px] px-3.5 py-2.5 my-3">
-        <ThemedText type='subtitle'className="text-[12px] text-[#9CA3AF] italic mb-1.5 mt-1.5"
-        style={{ fontFamily: 'Montserrat_400Regular', marginTop: -25 }}>
-          Choisir une famille
-        </ThemedText>
-        <View className="flex-row items-center gap-3">
-        <View className="flex-1">
-          <Picker
-            selectedValue={selectedFamily?.id || ""}
-            onValueChange={(value) => {
-              const fam = families.find((f) => f.id === value);
-              setSelectedFamily(fam || null);
-            }}
-            className="h-[42px] bg-blue-100 border border-blue-200 text-[#374151] rounded-[18px] px-3"
-          >
-            <Picker.Item label="Sélectionnez une famille" value="" color="#aaa" />
-            {families.map((f) => (
-              <Picker.Item key={f.id} label={f.name} value={f.id} />
-            ))}
-          </Picker>
-        </View>
+      <View style={styles.familyPickerContainer}>
+  <Text style={styles.familyPickerLabel}>
+    Choisir une famille
+  </Text>
 
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.85}
-          className="w-10 h-10 shrink-0 rounded-full bg-[#EEFAE6] items-center justify-center"
-        >
-          <Ionicons name="add" size={28} color="#68cb30" />
-        </TouchableOpacity>
-      </View>
-
-      </View>
+  <Picker
+    selectedValue={selectedFamily?.id || ""}
+    onValueChange={(value) => {
+      const fam = families.find(f => f.id === value);
+      setSelectedFamily(fam || null);
+    }}
+    style={styles.picker}
+  >
+    <Picker.Item
+      label="Sélectionnez une famille"
+      value=""
+      color="#aaa"
+    />
+    {families.map(f => (
+      <Picker.Item key={f.id} label={f.name} value={f.id} />
+    ))}
+  </Picker>
+</View>
 
 
       {/* LISTE CONVERSATIONS */}
       <FlatList
-        data={conversationData}
+        data={conversations}
         keyExtractor={item => item.id}
         ListEmptyComponent={
           selectedFamily ? (
-            <Text className="text-center mt-7.5 text-[#9CA3AF]"
-            style={{ fontFamily: 'Montserrat_400Regular' }}>Aucune conversation</Text>
+            <Text style={styles.emptyText}>Aucune conversation</Text>
           ) : null
         }
         renderItem={({ item }) => (
-          <View className="flex-row items-center justify-between">
-            <TouchableOpacity
-              className="flex-row items-center py-3.5 border-b border-[#F3F4F6] flex-1"
-              onPress={() =>
-                navigation.navigate("Conversation", {
-                  conversationId: item.id,
-                })
-              }
-            >
-              <View className="w-[62px] h-[62px] rounded-full bg-[#D9D9D9] mr-3.5 items-center justify-center">
-                <Ionicons
-                  name={item.type === "group" ? "people" : "person"}
-                  size={26}
-                  color="#9CA3AF"
-                />
-              </View>
-              <View className="flex-1 mr-3">
-                <Text className="text-[18px] font-extrabold italic text-[#FF914D]">{item.title}</Text>
-                <Text className="mt-1 text-[13px] text-[#111827] font-bold" numberOfLines={1}>
-                  {item.lastMessage || "..."}
-                </Text>
-              </View>
-              <View className="items-end min-w-[54px]">
-                <Text className="text-[14px] text-[#FF914D] font-bold">
-                  {formatTime(item.lastMessageAt || item.updatedAt)}
-                </Text>
-                {!!item.unreadCount && (
-                  <View className="mt-1.5 self-end min-w-[26px] h-6 rounded-full px-1.5 bg-[#F15B5B] items-center justify-center">
-                    <Text className="text-[12px] text-white font-extrabold">{item.unreadCount}</Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-            {item.type === "group" && (
-              <View className="flex-row gap-2.5 ml-2.5">
-                <TouchableOpacity onPress={() => editGroup(item)}>
-                  <Ionicons name="pencil-outline" size={20} color="#555" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteGroup(item)}>
-                  <Ionicons name="trash-outline" size={20} color="red" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <TouchableOpacity
+            style={styles.chatItem}
+            onPress={() =>
+              navigation.navigate("Conversation", {
+                conversationId: item.id,
+              })
+            }
+          >
+            <Ionicons
+              name={item.type === "group" ? "people" : "person"}
+              size={22}
+              color="#ffbf00"
+            />
+            <Text style={styles.chatText}>{item.title}</Text>
+          </TouchableOpacity>
+         {item.type === "group" && (
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {/* Modifier */}
+        <TouchableOpacity onPress={() => editGroup(item)}>
+          <Ionicons name="pencil-outline" size={20} color="#555" />
+        </TouchableOpacity>
+
+        {/* Supprimer */}
+        <TouchableOpacity onPress={() => deleteGroup(item)}>
+          <Ionicons name="trash-outline" size={20} color="red" />
+        </TouchableOpacity>
+      </View>
+    )}
+  </View>
+
+
         )}
       />
 
-      
+      {/* BOUTON + */}
+      {selectedFamily && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="add" size={30} color="white" />
+        </TouchableOpacity>
+      )}
 
       {/* MODAL CRÉATION */}
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -383,9 +286,9 @@ const deleteGroup = async (group: any) => {
     setCreateType(null);
     setSelectedMembers([]);
   }}>
-        <View className="flex-1 bg-black/45 justify-center items-center px-5">
+        <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
-          <View className="w-[90%] bg-white rounded-[22px] p-[10px]">
+          <View style={styles.modalContainer}>
 {!createType ? (
               <>
                 <TouchableOpacity
@@ -396,26 +299,23 @@ const deleteGroup = async (group: any) => {
       createConversation();
     }
   }}
-  className="mt-1 mb-2 py-3.5 rounded-[16px] text-[15px] "
+  style={[styles.confirmBtn, /* ton style disabled */]}
 >
-  <Text className="text-center font-extrabold text-[20px] "
-  style={{ fontFamily: 'Montserrat_400Regular'}}>
+  <Text style={styles.confirmText}>
     {editingGroup ? "Modifier le groupe" : "Créer conversation"}
   </Text>
 </TouchableOpacity>
 
 
-            <View className="bg-[#EEFAE6] rounded-[16px] p-3.5 mb-2.5 border border-[#68cb30]">
+            <View style={styles.modalCard}>
   <TouchableOpacity onPress={() => setCreateType("private")}>
-    <Text className="text-center text-[15px] text-[#111827] font-semibold"
-    style={{ fontFamily: 'Montserrat_400Regular' }}>Privée</Text>
+    <Text style={styles.modalAction}>Conversation privée</Text>
   </TouchableOpacity>
 </View>
 
-<View className="bg-[#E6F2FB] rounded-[16px] p-3.5 mb-2.5 border border-[#5AA9E6]">
+<View style={styles.modalCard}>
   <TouchableOpacity onPress={() => setCreateType("group")}>
-    <Text className="text-center text-[15px] text-[#111827] font-semibold"
-     style={{ fontFamily: 'Montserrat_400Regular' }}>Groupe</Text>
+    <Text style={styles.modalAction}>👨‍👩‍👧‍👦Groupe</Text>
   </TouchableOpacity>
 </View>
               </>
@@ -423,14 +323,14 @@ const deleteGroup = async (group: any) => {
               <>
    {createType && (
   <>
-    <Text className="text-center text-[18px] font-bold mb-3.5 text-[#111827]">Choisir membres</Text>
+    <Text style={styles.modalTitle}>Choisir membres</Text>
 
     {createType === "group" && (
       <TextInput
         placeholder="Nom du groupe"
         value={groupName}
         onChangeText={setGroupName}
-        className="w-full py-3 px-3.5 mb-3 bg-[#F9FAFB] rounded-[14px] text-[14px] text-[#111827] border border-[#E5E7EB]"
+        style={styles.groupInput}
         placeholderTextColor="#aaa"
       />
     )}
@@ -442,33 +342,33 @@ const deleteGroup = async (group: any) => {
 
 
 {familyMembers
-.filter(m => m.email !== userEmail)
-.map(m => {
-  const selected = selectedMembers.includes(m.email);
-  console.log(familyMembers);
+  .filter(m => m.email !== userEmail)
+  .map(m => {
+    const selected = selectedMembers.includes(m.email);
+
 
   return (
-    <TouchableOpacity
-      key={m.email}
-      className="flex-row items-center bg-[#F9FAFB] p-3 rounded-[16px] mb-2 border border-[#EEF2F7]"
-      onPress={() =>
-        setSelectedMembers(prev =>
-          selected
-            ? prev.filter(email=> email !== m.email)
-            : [...prev, m.email]
-        )
-      }
-    >
-      <Ionicons
-        name={selected ? "checkmark-circle" : "ellipse-outline"}
-        size={22}
-        color={selected ? "#ffbf00" : "#ccc"}
-      />
+   <TouchableOpacity
+        key={m.email}
+        style={styles.memberCard}
+        onPress={() =>
+          setSelectedMembers(prev =>
+            selected
+              ? prev.filter(email => email !== m.email)
+              : [...prev, m.email]
+          )
+        }
+      >
+        <Ionicons
+          name={selected ? "checkmark-circle" : "ellipse-outline"}
+          size={22}
+          color={selected ? "#ffbf00" : "#ccc"}
+        />
 
-      <Text className="ml-2.5 text-[14px] text-[#111827] font-semibold">
-        {m.firstName} {m.lastName}
-      </Text>
-    </TouchableOpacity>
+        <Text style={styles.memberText}>
+          {m.firstName} {m.lastName}
+        </Text>
+      </TouchableOpacity>
   );
 })}
 
@@ -479,14 +379,15 @@ const deleteGroup = async (group: any) => {
     (createType === "private" && selectedMembers.length !== 1) ||
     (createType === "group" && selectedMembers.length < 2)
   }
-  className={`mt-3.5 bg-[#FF914D] py-3.5 rounded-[16px] ${
+  style={[
+    styles.confirmBtn,
     ((createType === "private" && selectedMembers.length !== 1) ||
-      (createType === "group" && selectedMembers.length < 2))
-      ? "opacity-40"
-      : ""
-  }`}
+      (createType === "group" && selectedMembers.length < 2)) && {
+      opacity: 0.4,
+    },
+  ]}
 >
-  <Text className="text-center font-extrabold text-white">Créer conversation</Text>
+  <Text style={styles.confirmText}>Créer conversation</Text>
 </TouchableOpacity>
 
               </>
@@ -499,6 +400,205 @@ const deleteGroup = async (group: any) => {
     </View>
   );
 }
-function docRef(arg0: CollectionReference<DocumentData, DocumentData>, arg1: { familyId: any; type: "private" | "group"; title: string; members: (string | null)[]; createdAt: FieldValue; }) {
-  throw new Error("Function not implemented.");
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: "white" },
+  title: { fontSize: 26, fontWeight: "bold", color: "#ffbf00" },
+
+  pickerBox: {
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 12,
+    marginVertical: 15,
+  },
+
+  chatItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: "#f4f4f4",
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+
+  chatText: { marginLeft: 10, fontSize: 16 },
+
+  emptyText: {
+    textAlign: "center",
+    marginTop: 30,
+    color: "#999",
+  },
+
+  addButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#ffbf00",
+    borderRadius: 30,
+    padding: 15,
+  },
+
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  modalContent: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    width: "85%",
+  },
+
+  
+
+  modalOption: {
+    fontSize: 16,
+    paddingVertical: 12,
+    textAlign: "center",
+  },
+
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 8,
+  },
+
+  
+
+  bubble: {
+    padding: 12,
+    borderRadius: 15,
+    marginVertical: 5,
+    maxWidth: "75%",
+  },
+
+  me: {
+    backgroundColor: "#ffbf00",
+    alignSelf: "flex-end",
+  },
+
+  other: {
+    backgroundColor: "#eaeaea",
+    alignSelf: "flex-start",
+  },
+
+  bubbleText: { color: "black" },
+
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderColor: "#eee",
+    padding: 10,
+  },
+
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ffbf00",
+    borderRadius: 10,
+    padding: 10,
+    marginRight: 10,
+  },
+  familyPickerContainer: {
+  backgroundColor: "#f9f9f9",
+  borderRadius: 16,
+  paddingHorizontal: 15,
+  paddingVertical: 8,
+  marginVertical: 15,
+  borderWidth: 1,
+  borderColor: "#eee",
+},
+
+familyPickerLabel: {
+  fontSize: 13,
+  color: "#999",
+  fontStyle: "italic",
+  marginBottom: 4,
+},
+
+picker: {
+  height: 45,
+  color: "#333",
+},
+ modalOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.45)",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+modalContainer: {
+  width: "80%",
+  backgroundColor: "white",
+  borderRadius: 20,
+  padding: 20,
+},
+
+modalTitle: {
+  textAlign: "center",
+  fontSize: 18,
+  fontWeight: "600",
+  marginBottom: 15,
+  color: "#333",
+},
+
+modalCard: {
+  backgroundColor: "#f5f5f5",
+  borderRadius: 14,
+  padding: 15,
+  marginBottom: 10,
+},
+
+modalAction: {
+  textAlign: "center",
+  fontSize: 15,
+},
+
+memberCard: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#f7f7f7",
+  padding: 12,
+  borderRadius: 14,
+  marginBottom: 8,
+},
+
+memberText: {
+  marginLeft: 10,
+  fontSize: 15,
+},
+
+confirmBtn: {
+  marginTop: 15,
+  backgroundColor: "#ffbf00",
+  padding: 14,
+  borderRadius: 14,
+},
+
+confirmText: {
+  textAlign: "center",
+  fontWeight: "bold",
+},
+groupInput: {
+  width: "100%",
+  paddingVertical: 12,
+  paddingHorizontal: 14,
+  marginBottom: 12,
+
+  backgroundColor: "rgba(255,255,255,0.85)",
+  borderRadius: 12,
+
+  fontSize: 15,
+  fontStyle: "italic",
+  color: "#333",
+
+  borderWidth: 1,
+  borderColor: "#e0e0e0",
+},
+
+
+
+});
