@@ -829,7 +829,7 @@ export default function TodoList() {
             </View>
 
             {/* Sélectionner le membre */}
-            {familyMembers.length > 0 && (
+            {selectedTodoType === "family" && familyMembers.length > 0 && (
               <View style={{ marginTop: 20 }}>
                 <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", marginBottom: 12, color: "#FF8C42" }}>Assigner à</Text>
                 <View style={styles.pickerContainer}>
