@@ -555,9 +555,10 @@ const saveEvent = async () => {
             name={direction === "left" ? "chevron-back" : "chevron-forward"}
             size={19}
             color={calendarTheme}
-            style={{ marginHorizontal: 50 }}
+            
           />
         )}
+         style={{ paddingHorizontal: 6 }}
         theme={{
           arrowColor: calendarTheme,
           backgroundColor: 'transparent',      // IMPORTANT : Fond transparent
