@@ -340,11 +340,21 @@ export default function TodoList() {
 
         // Si mode famille, charger les membres de la famille sélectionnée
         if (selectedTodoType === "family" && selectedFamily) {
-          const memberEmails = selectedFamily.members || [];
+          const memberItems = selectedFamily.members || [];
           const allMembers: { uid: string; firstName: string; lastName: string }[] = [];
 
           // Récupérer les infos de chaque membre
-          for (const memberEmail of memberEmails) {
+          for (const memberItem of memberItems) {
+            // Extraire l'email selon le format (string ou objet)
+            let memberEmail: string;
+            if (typeof memberItem === 'string') {
+              memberEmail = memberItem; // Format ancien (string)
+            } else if (typeof memberItem === 'object' && memberItem.email) {
+              memberEmail = memberItem.email; // Format nouveau ({email, role})
+            } else {
+              continue; // Ignorer les formats invalides
+            }
+            
             const usersSnapshot = await getDocs(
               query(collection(db, "users"), where("email", "==", memberEmail))
             );
@@ -819,7 +829,7 @@ export default function TodoList() {
             </View>
 
             {/* Sélectionner le membre */}
-            {familyMembers.length > 0 && (
+            {selectedTodoType === "family" && familyMembers.length > 0 && (
               <View style={{ marginTop: 20 }}>
                 <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "600", marginBottom: 12, color: "#FF8C42" }}>Assigner à</Text>
                 <View style={styles.pickerContainer}>

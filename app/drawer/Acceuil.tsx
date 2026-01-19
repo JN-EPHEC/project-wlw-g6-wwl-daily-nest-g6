@@ -203,14 +203,25 @@ useEffect(() => {
   }
 
   const loadFamilyMembers = async () => {
-    const familyMembers = selectedTodoFamily.members || [];
+    const familyMembersData = selectedTodoFamily.members || [];
     const usersSnapshot = await collection(db, "users");
     onSnapshot(usersSnapshot, (snapshot) => {
       const members: { uid: string; firstName: string; lastName: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
         console.log("👤 User data for member:", data.email, data);
-        if (data.email && familyMembers.includes(data.email)) {
+        
+        // Vérifier si l'email de l'utilisateur est dans les membres de la famille
+        const isInFamily = familyMembersData.some((memberItem: any) => {
+          if (typeof memberItem === 'string') {
+            return memberItem === data.email; // Format ancien (string)
+          } else if (typeof memberItem === 'object' && memberItem.email) {
+            return memberItem.email === data.email; // Format nouveau ({email, role})
+          }
+          return false;
+        });
+        
+        if (data.email && isInFamily) {
           members.push({
             uid: doc.id,
             firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
@@ -218,6 +229,7 @@ useEffect(() => {
           });
         }
       });
+      console.log("✅ Membres chargés pour les tâches:", members);
       setFamilyMembers(members);
     });
   };
@@ -232,13 +244,24 @@ useEffect(() => {
   }
 
   const loadCalendarFamilyMembers = async () => {
-    const familyMembersEmails = selectedFamily.members || [];
+    const familyMembersData = selectedFamily.members || [];
     const usersSnapshot = await collection(db, "users");
     onSnapshot(usersSnapshot, (snapshot) => {
       const members: { uid: string; firstName: string; lastName: string }[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.email && familyMembersEmails.includes(data.email)) {
+        
+        // Vérifier si l'email de l'utilisateur est dans les membres de la famille
+        const isInFamily = familyMembersData.some((memberItem: any) => {
+          if (typeof memberItem === 'string') {
+            return memberItem === data.email; // Format ancien (string)
+          } else if (typeof memberItem === 'object' && memberItem.email) {
+            return memberItem.email === data.email; // Format nouveau ({email, role})
+          }
+          return false;
+        });
+        
+        if (data.email && isInFamily) {
           members.push({
             uid: doc.id,
             firstName: data.prenom || data.firstName || data.firstname || data.name || "Prénom",
@@ -1073,8 +1096,8 @@ const saveTodo = async () => {
             </View>
           </View>
 
-          {/* Assigner à (si membres famille disponibles) */}
-          {familyMembers.length > 0 && !todoIsRotation && (
+          {/* Assigner à (pour les listes familiales uniquement) */}
+          {selectedTodoType === "family" && (
             <View style={{ marginBottom: 10 }}>
               <Text style={{ fontFamily: "Montserrat_400Regular", fontSize: 14, fontWeight: "700", marginBottom: 5, color: "#fff" }}>Assigner à</Text>
               <Picker
@@ -1083,13 +1106,17 @@ const saveTodo = async () => {
                 style={styles.inputWeb}
               >
                 <Picker.Item label="Moi-même" value="" />
-                {familyMembers.map(member => (
-                  <Picker.Item 
-                    key={member.uid} 
-                    label={`${member.firstName} ${member.lastName}`} 
-                    value={member.uid} 
-                  />
-                ))}
+                {familyMembers.length > 0 ? (
+                  familyMembers.map(member => (
+                    <Picker.Item 
+                      key={member.uid} 
+                      label={`${member.firstName} ${member.lastName}`} 
+                      value={member.uid} 
+                    />
+                  ))
+                ) : (
+                  <Picker.Item label="Chargement des membres..." value="" enabled={false} />
+                )}
               </Picker>
             </View>
           )}
