@@ -1096,11 +1096,6 @@ const saveTodo = async () => {
             </View>
           </View>
 
-          {/* DEBUG - À retirer après */}
-          <Text style={{ color: "#fff", fontSize: 12, marginBottom: 10 }}>
-            Debug: selectedTodoType={selectedTodoType}, familyMembers.length={familyMembers.length}, selectedTodoFamily={selectedTodoFamily?.name || "null"}
-          </Text>
-
           {/* Assigner à (pour les listes familiales uniquement) */}
           {selectedTodoType === "family" && (
             <View style={{ marginBottom: 10 }}>
